@@ -3,11 +3,15 @@
 declare(strict_types=1);
 
 use Illuminate\Http\Client\Factory;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
+use RequestTracer\Recording\Decision;
 use RequestTracer\Recording\RecordingDecider;
+use RequestTracer\Storage\TraceStorage;
+use RequestTracer\Support\Failure;
 use RequestTracer\Tests\Fixtures\Models\Order;
 use RequestTracer\Tests\Fixtures\Models\Product;
 use RequestTracer\Tests\Fixtures\Models\User;
@@ -60,7 +64,7 @@ it('puts queries under the controller and tags them with connection and calling 
     expect($insert['connection'])->toBe('testing')
         ->and($insert['file'])->toContain('OrderService.php')
         ->and($insert['line'])->toBeInt()
-        ->and($insert['input']['i'][0][1])->toContain('insert into "orders"');
+        ->and(str_replace(['"', '`'], '', $insert['input']['i'][0][1]))->toContain('insert into orders');
 });
 
 it('records every table written, with rows and before/after values', function () {
@@ -273,7 +277,7 @@ it('counts rows hydrated per table as tables read', function () {
     $this->get('/read')->assertOk();
 
     $read = $this->lastTrace()['tables_read'];
-    expect($read['products'])->toBe(['queries' => 1, 'rows' => 3])->and($read['orders']['queries'])->toBe(1);
+    expect($read['products'])->toEqual(['queries' => 1, 'rows' => 3])->and($read['orders']['queries'])->toBe(1);
 });
 
 it('attributes the user to the trace', function () {
@@ -292,13 +296,29 @@ it('persists nothing for a request that is not recorded', function () {
     expect($this->tracerTable('traces')->count())->toBe(0);
 });
 
-it('keeps working when a collector fails', function () {
+it('keeps working when the tracer itself fails', function () {
     $products = $this->seedCatalog();
-    // break the dumper: the tracer must swallow it and the request must still succeed
-    app()->bind(RecordingDecider::class, fn () => throw new RuntimeException('boom'));
-    app()->forgetInstance(RecordingDecider::class);
+    $logged = [];
+    Failure::useSink(function (string $message) use (&$logged) {
+        $logged[] = $message;
+    });
 
+    // 1. the recording decision blows up
+    $this->app->instance(RecordingDecider::class, new class extends RecordingDecider
+    {
+        public function decide(Request $request): Decision
+        {
+            throw new RuntimeException('decider broke');
+        }
+    });
     placeOrder($this, $this->orderPayload($products))->assertCreated();
 
-    expect(Order::count())->toBe(1);
+    // 2. recording works but storing the trace blows up (the request was already answered; the tracer must not throw)
+    $this->app->forgetInstance(RecordingDecider::class);
+    $this->mock(TraceStorage::class, fn ($m) => $m->shouldReceive('store')->andThrow(new RuntimeException('disk full')));
+    $this->actingAs($this->makeUser())->postJson('/api/orders', ['items' => []])->assertStatus(422);
+
+    expect(Order::count())->toBe(1)
+        ->and(implode('
+', $logged))->toContain('decider broke')->toContain('disk full');
 });

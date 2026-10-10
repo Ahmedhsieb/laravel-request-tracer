@@ -134,6 +134,7 @@ final class Tracer
         $dumper = new ValueDumper($this->masker(), $this->limits(), (array) $this->config('capture', []));
 
         $this->session = new TraceSession((string) Str::ulid(), $kind, $decision->state, $decision->trigger, $clock, $recorder, $dumper);
+        $this->session->bag['tentative'] = $decision->hints;
         $this->on = true;
         Hot::$on = true;
 
@@ -226,11 +227,12 @@ final class Tracer
         $this->session = null;
     }
 
-    /** Called by collectors that decide late (watch list, sampling) that a tentative trace should be kept. */
-    public function confirm(): void
+    /** Called by collectors that decide late (watch list, sampling, a token bound to a user) that a tentative trace is kept. */
+    public function confirm(string $trigger): void
     {
         if ($this->session !== null && $this->session->state === RecordingState::Tentative) {
             $this->session->state = RecordingState::On;
+            $this->session->trigger = $trigger;
         }
     }
 

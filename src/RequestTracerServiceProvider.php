@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace RequestTracer;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Http\Kernel as HttpKernel;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use RequestTracer\Collectors\CacheCollector;
 use RequestTracer\Collectors\Collector;
@@ -21,7 +25,11 @@ use RequestTracer\Collectors\QueryCollector;
 use RequestTracer\Collectors\RequestCollector;
 use RequestTracer\Collectors\TransactionCollector;
 use RequestTracer\Collectors\ValidationCollector;
+use RequestTracer\Console\InstallCommand;
+use RequestTracer\Console\PruneCommand;
+use RequestTracer\Console\TokenCommand;
 use RequestTracer\DeepTrace\Loader;
+use RequestTracer\Http\Middleware\Authorize;
 use RequestTracer\Http\Middleware\RecordRequest;
 use RequestTracer\Proxy\ProxyGenerator;
 use RequestTracer\Proxy\ProxyRegistry;
@@ -88,8 +96,11 @@ final class RequestTracerServiceProvider extends ServiceProvider
         Paths::configure($this->app->basePath());
         $this->registerLogChannel();
 
+        $this->loadViewsFrom(__DIR__.'/../resources/views', Brand::NAME);
         $this->publishResources();
+        $this->registerCommands();
 
+        // The master switch makes the whole package inert: no listeners, middleware, autoloader, container hook or routes.
         if (! App::config()->get(Brand::NAME.'.enabled', true)) {
             return;
         }
@@ -98,6 +109,8 @@ final class RequestTracerServiceProvider extends ServiceProvider
         $tracer = $this->app->make(Tracer::class);
         $this->registerCollectors($tracer);
         $this->registerProxyHook($tracer);
+        $this->registerDashboard();
+        $this->registerSchedule();
 
         if (App::config()->get(Brand::NAME.'.deep_trace.enabled', true)) {
             Loader::ensureRegistered();
@@ -155,6 +168,60 @@ final class RequestTracerServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../database/migrations/2026_10_01_000000_create_request_tracer_tables.php' => database_path('migrations/'.date('Y_m_d_His').'_create_request_tracer_tables.php'),
         ], Brand::NAME.'-migrations');
+
+        $this->publishes([
+            __DIR__.'/../dist' => public_path('vendor/'.Brand::NAME),
+        ], [Brand::NAME.'-assets', 'laravel-assets']);
+    }
+
+    private function registerCommands(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([PruneCommand::class, InstallCommand::class, TokenCommand::class]);
+        }
+    }
+
+    /**
+     * Dashboard + JSON API. Protected by the `viewRequestTracer` gate (see Authorize): in the local environment a permissive
+     * default is defined; anywhere else the application has to define it.
+     */
+    private function registerDashboard(): void
+    {
+        $config = (array) App::config()->get(Brand::NAME.'.dashboard', []);
+        if (! ($config['enabled'] ?? true)) {
+            return;
+        }
+
+        $gate = (string) ($config['gate'] ?? Brand::GATE);
+        if (! Gate::has($gate) && App::container()->make(RecordingDecider::class)->isLocal()) {
+            Gate::define($gate, static fn (?Authenticatable $user = null): bool => true);
+        }
+
+        if ($this->app->routesAreCached()) {
+            return;
+        }
+
+        Route::group([
+            'domain' => $config['domain'] ?? null,
+            'prefix' => trim((string) ($config['path'] ?? Brand::NAME), '/'),
+            'middleware' => (array) ($config['middleware'] ?? ['web', Authorize::class]),
+            'as' => Brand::NAME.'.',
+        ], function (): void {
+            $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+        });
+    }
+
+    /** Prune old traces on a schedule, unless the application opted out. */
+    private function registerSchedule(): void
+    {
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            if (! App::config()->get(Brand::NAME.'.retention.schedule', true)) {
+                return;
+            }
+            $at = (string) App::config()->get(Brand::NAME.'.retention.schedule_at', 'hourly');
+            $frequency = in_array($at, ['everyFiveMinutes', 'everyTenMinutes', 'everyFifteenMinutes', 'everyThirtyMinutes', 'hourly', 'daily', 'twiceDaily'], true) ? $at : 'hourly';
+            $schedule->command(PruneCommand::class)->{$frequency}()->withoutOverlapping()->runInBackground();
+        });
     }
 
     /** Internal failures go to their own log channel; define a sensible one when the app has none. */

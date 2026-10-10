@@ -16,6 +16,9 @@
         <testsuite name="Order">
             <directory>tests/Order</directory>
         </testsuite>
+        <testsuite name="Local">
+            <directory>tests/Local</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

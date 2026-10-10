@@ -99,7 +99,8 @@ return [
         'token_ttl' => 300,                                     // seconds a signed header token stays valid (max 3600)
         'watch_list' => [
             'enabled' => true,                                  // costs one cache read per request when the tracer is enabled
-            'max_ttl' => 3600,
+            'max_ttl' => 3600,                                  // seconds a "watch this user" entry can live at most
+            'store' => null,                                    // cache store for the list (null = default store)
         ],
         'sampling' => [
             'enabled' => false,
@@ -117,7 +118,8 @@ return [
         'domain' => null,
         'middleware' => ['web', Authorize::class],
         'gate' => 'viewRequestTracer',
-        'poll_seconds' => 5,
+        'poll_seconds' => 5,                                    // the request list refreshes this often (0 = never)
+        'slow_ms' => 500,                                       // what the "Slow" filter chip considers slow
     ],
 
     /*
