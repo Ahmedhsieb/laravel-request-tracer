@@ -8,10 +8,14 @@ use RequestTracer\RecordingState;
 
 final class Decision
 {
+    /**
+     * @param  string  $trigger  always | token | watch | sample | job | command | schedule
+     * @param  array<string, mixed>  $hints  what a tentative recording needs to be confirmed later (`token_uid`, `watch`, `sample`)
+     */
     public function __construct(
         public readonly RecordingState $state,
-        /** always | token | watch | sample | job | command */
         public readonly string $trigger = 'always',
+        public readonly array $hints = [],
     ) {}
 
     public static function off(): self

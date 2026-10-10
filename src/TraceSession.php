@@ -60,7 +60,7 @@ final class TraceSession
         public readonly string $id,
         public readonly string $kind,
         public RecordingState $state,
-        public readonly string $trigger,
+        public string $trigger,
         public readonly Clock $clock,
         public readonly Recorder $recorder,
         public readonly ValueDumper $dumper,

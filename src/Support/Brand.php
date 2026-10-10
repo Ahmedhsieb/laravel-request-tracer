@@ -36,6 +36,9 @@ final class Brand
     /** Placeholder that replaces masked values. */
     public const MASK = '••••••••';
 
+    /** The dashboard's Blade view (view namespace = NAME). */
+    public const VIEW = 'request-tracer::app';
+
     /** Container alias of the Tracer singleton. */
     public const CONTAINER_KEY = 'request-tracer';
 }

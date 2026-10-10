@@ -46,4 +46,10 @@ interface TraceStorage
     public function prune(DateTimeInterface $olderThan, int $maxRows): int;
 
     public function count(): int;
+
+    /** Delete one trace with everything that belongs to it. Returns whether it existed. */
+    public function delete(string $id): bool;
+
+    /** Delete every trace. Returns the number of traces removed. */
+    public function clear(): int;
 }

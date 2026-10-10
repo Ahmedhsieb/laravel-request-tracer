@@ -12,9 +12,15 @@ use RequestTracer\Support\App;
 /**
  * Decides, at the very start of a request, whether it is recorded (brief section 7).
  *
- * Order: master switch → mode → excluded paths → local environment / `always` → signed header → watch list / sampling (tentative).
+ * Order: master switch → mode → excluded paths → `always` mode → (triggered mode:) signed header → watch list / sampling.
+ *
+ * The header is valid immediately. The watch list and sampling need to know *who* the user is, which is only known after the
+ * session middleware ran, so those requests are recorded "tentatively" (in memory) and confirmed when the user authenticates;
+ * a request that never authenticates is dropped without a single write. A token that names a user (`uid`) behaves the same.
+ *
+ * Not final on purpose: bind a subclass in the container to change how requests are chosen.
  */
-final class RecordingDecider
+class RecordingDecider
 {
     /** always | triggered | off */
     public function mode(): string
@@ -40,34 +46,70 @@ final class RecordingDecider
             return Decision::off();
         }
         $mode = $this->mode();
-        if ($mode === 'off') {
-            return Decision::off();
-        }
-        if ($this->excluded($request)) {
+        if ($mode === 'off' || $this->excluded($request)) {
             return Decision::off();
         }
         if ($mode === 'always') {
             return new Decision(RecordingState::On, 'always');
         }
 
-        // Triggered mode: signed header, watch list and sampling arrive in phase 4.
-        return Decision::off();
+        return $this->triggered($request);
+    }
+
+    private function triggered(Request $request): Decision
+    {
+        $config = App::config();
+
+        // (a) signed header
+        $header = (string) $config->get('request-tracer.triggers.header', 'X-Request-Tracer');
+        $token = $request->headers->get($header);
+        if (is_string($token) && $token !== '') {
+            $payload = App::container()->make(TokenService::class)->verify($token, $request);
+            if ($payload !== null) {
+                return isset($payload['uid'])
+                    ? new Decision(RecordingState::Tentative, 'token', ['token_uid' => $payload['uid']])
+                    : new Decision(RecordingState::On, 'token');
+            }
+        }
+
+        // (b) watch list and (c) sampling: both are confirmed once a user has authenticated
+        $hints = [];
+        if ($config->get('request-tracer.triggers.watch_list.enabled', true) && App::container()->make(WatchList::class)->any()) {
+            $hints['watch'] = true;
+        }
+        if ($config->get('request-tracer.triggers.sampling.enabled', false) && Sampler::hit((float) $config->get('request-tracer.triggers.sampling.rate', 0.01))) {
+            if ((bool) $config->get('request-tracer.triggers.sampling.require_auth', true)) {
+                $hints['sample'] = true;
+            } else {
+                return new Decision(RecordingState::On, 'sample');
+            }
+        }
+
+        if ($hints === []) {
+            return Decision::off();
+        }
+
+        return new Decision(RecordingState::Tentative, isset($hints['watch']) ? 'watch' : 'sample', $hints);
     }
 
     public function excluded(Request $request): bool
     {
         $config = App::config();
         $path = ltrim($request->path(), '/');
+        $subject = $path === '' ? '/' : $path;
+
         $patterns = (array) $config->get('request-tracer.exclude.paths', []);
-        if ($patterns !== [] && Str::is($patterns, $path === '' ? '/' : $path)) {
+        $own = trim((string) $config->get('request-tracer.dashboard.path', 'request-tracer'), '/');
+        if ($own !== '') {
+            $patterns[] = $own;
+            $patterns[] = $own.'/*';
+        }
+        if (Str::is($patterns, $subject)) {
             return true;
         }
 
         $only = (array) $config->get('request-tracer.scope.paths', []);
-        if ($only !== [] && ! Str::is($only, $path === '' ? '/' : $path)) {
-            return true;
-        }
 
-        return false;
+        return $only !== [] && ! Str::is($only, $subject);
     }
 }

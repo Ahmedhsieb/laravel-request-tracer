@@ -59,7 +59,29 @@ final class DatabaseStorage implements TraceStorage
             $next = (string) $rows[count($rows) - 1]['id'];
         }
 
+        $kinds = $this->problemKinds(array_values(array_map(static fn (array $r): string => (string) $r['id'], $rows)));
+        foreach ($rows as $i => $row) {
+            $rows[$i]['problem_kinds'] = $kinds[$row['id']] ?? [];
+        }
+
         return ['data' => array_values($rows), 'next_cursor' => $next];
+    }
+
+    /**
+     * @param  list<string>  $traceIds
+     * @return array<string, list<string>> trace id => distinct problem kinds
+     */
+    private function problemKinds(array $traceIds): array
+    {
+        if ($traceIds === []) {
+            return [];
+        }
+        $out = [];
+        foreach ($this->table('problems')->whereIn('trace_id', $traceIds)->select(['trace_id', 'kind'])->distinct()->get() as $row) {
+            $out[(string) $row->trace_id][] = (string) $row->kind;
+        }
+
+        return $out;
     }
 
     public function spans(string $traceId): array
@@ -194,6 +216,23 @@ final class DatabaseStorage implements TraceStorage
     private function idList(Collection $ids): array
     {
         return array_values(array_map(static fn ($id): string => (string) $id, $ids->all()));
+    }
+
+    public function delete(string $id): bool
+    {
+        return $this->deleteTraces([$id]) > 0;
+    }
+
+    public function clear(): int
+    {
+        $deleted = 0;
+        while (true) {
+            $ids = $this->idList($this->table('traces')->orderBy('id')->limit($this->chunk)->pluck('id'));
+            if ($ids === []) {
+                return $deleted;
+            }
+            $deleted += $this->deleteTraces($ids);
+        }
     }
 
     /** @param  list<string>  $ids */

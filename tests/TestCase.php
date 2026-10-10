@@ -148,7 +148,10 @@ abstract class TestCase extends Orchestra
      */
     public function spansOf(array $spans, string $type, ?string $labelContains = null): array
     {
-        return array_values(array_filter($spans, fn (array $s): bool => $s['type'] === $type && ($labelContains === null || str_contains((string) $s['label'], $labelContains))));
+        // SQL quoting differs per driver ("orders" vs `orders`): compare without identifier quotes
+        $plain = static fn (string $text): string => str_replace(['"', '`'], '', $text);
+
+        return array_values(array_filter($spans, fn (array $s): bool => $s['type'] === $type && ($labelContains === null || str_contains($plain((string) $s['label']), $plain($labelContains)))));
     }
 
     /** @return list<array<string, mixed>> */

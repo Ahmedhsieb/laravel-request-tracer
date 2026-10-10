@@ -15,4 +15,8 @@ parameters:
     checkOctaneCompatibility: true
     checkModelProperties: true
     treatPhpDocTypesAsCertain: false
-    ignoreErrors: []
+    ignoreErrors:
+        # the dashboard view lives in this package's own view namespace, which Larastan cannot see
+        -
+            message: '#expects view-string(\|null)?, string given#'
+            path: src/Http/Controllers/DashboardController.php

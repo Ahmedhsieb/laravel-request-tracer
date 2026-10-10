@@ -37,3 +37,10 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 - Probe hits aggregate per (span, probe); `max_hits` cap marks the trace truncated; names of secrets mask values and snippet literals.
 - Corpus tests: control flow (incl. alt syntax, brace-less, nested else-if), strict types, namespaces, heredoc/nowdoc, attributes, enums, readonly, first-class callables, named args, match, constant-expression contexts, inline HTML, by-reference returns, magic constants.
 - End-to-end test for `POST /api/orders` including the Deep trace of every condition in `OrderService::create()`.
+
+### Phase 4 – API, gate, triggers, prune
+- Gate `viewRequestTracer` (Horizon-style: permissive default only in `local`), `Authorize` middleware, configurable middleware stack/domain/path.
+- Signed recording tokens (HMAC-SHA256, ≤1 h, optional user id and path pattern), watch list (cache), sampling (needs an authenticated user unless configured), tentative recording confirmed on `Authenticated`, route-name exclusions, dashboard paths never recorded.
+- JSON API v1: meta, trace list (filters, cursor), trace summary, step tree without payloads, lazy payloads, Deep trace lines with function sources, writes, problems, delete/clear, token issuing, watch list, Deep trace queue.
+- Commands: `request-tracer:prune` (scheduled hourly automatically), `request-tracer:install`, `request-tracer:token`.
+- Docs: running in production, API reference, SECURITY.md.
