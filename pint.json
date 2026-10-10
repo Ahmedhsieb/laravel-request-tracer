@@ -2,8 +2,6 @@
     "preset": "laravel",
     "exclude": ["tests/Fixtures/Deep/Corpus"],
     "rules": {
-        "declare_strict_types": true,
-        "not_operator_with_successor_space": false,
-        "single_trait_insert_per_statement": true
+        "declare_strict_types": true
     }
 }
