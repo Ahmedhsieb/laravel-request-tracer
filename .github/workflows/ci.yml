@@ -1,0 +1,171 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'phase/**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Laravel x PHP x stability matrix (SQLite in memory)
+  # ---------------------------------------------------------------------------
+  tests:
+    name: L${{ matrix.laravel }} / PHP ${{ matrix.php }} / ${{ matrix.stability }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Laravel 10: PHP 8.1 - 8.3, Testbench 8
+          - { laravel: '10.*', testbench: '^8.0', php: '8.1' }
+          - { laravel: '10.*', testbench: '^8.0', php: '8.2' }
+          - { laravel: '10.*', testbench: '^8.0', php: '8.3' }
+          # Laravel 11: PHP 8.2 - 8.4, Testbench 9
+          - { laravel: '11.*', testbench: '^9.0', php: '8.2' }
+          - { laravel: '11.*', testbench: '^9.0', php: '8.3' }
+          - { laravel: '11.*', testbench: '^9.0', php: '8.4' }
+          # Laravel 12: PHP 8.2 - 8.5, Testbench 10
+          - { laravel: '12.*', testbench: '^10.0', php: '8.2' }
+          - { laravel: '12.*', testbench: '^10.0', php: '8.3' }
+          - { laravel: '12.*', testbench: '^10.0', php: '8.4' }
+          - { laravel: '12.*', testbench: '^10.0', php: '8.5' }
+          # Laravel 13: PHP 8.3 - 8.5, Testbench 11
+          - { laravel: '13.*', testbench: '^11.0', php: '8.3' }
+          - { laravel: '13.*', testbench: '^11.0', php: '8.4' }
+          - { laravel: '13.*', testbench: '^11.0', php: '8.5' }
+        stability: [prefer-lowest, prefer-stable]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pdo_sqlite, sqlite3, zlib, json, openssl
+          coverage: none
+
+      - name: Pin Laravel and Testbench
+        run: >
+          composer require
+          "laravel/framework:${{ matrix.laravel }}"
+          "orchestra/testbench:${{ matrix.testbench }}"
+          --no-interaction --no-update
+
+      - name: Install dependencies
+        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress
+
+      - name: Run tests
+        run: vendor/bin/pest --compact
+
+  # ---------------------------------------------------------------------------
+  # Same suite against MySQL, PostgreSQL and SQLite (file) databases
+  # ---------------------------------------------------------------------------
+  database:
+    name: DB ${{ matrix.db }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite, mysql, pgsql]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: tracer_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=10
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tracer_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      TRACER_TEST_DB: ${{ matrix.db }}
+      TRACER_TEST_DB_HOST: 127.0.0.1
+      TRACER_TEST_DB_USERNAME: ${{ matrix.db == 'pgsql' && 'postgres' || 'root' }}
+      TRACER_TEST_DB_PASSWORD: ${{ matrix.db == 'pgsql' && 'postgres' || '' }}
+      TRACER_TEST_DB_DATABASE: tracer_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_sqlite, sqlite3, pdo_mysql, pdo_pgsql, zlib, json, openssl
+          coverage: none
+      - run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress
+      - run: vendor/bin/pest --compact
+
+  # ---------------------------------------------------------------------------
+  # Style + static analysis + frontend checks
+  # ---------------------------------------------------------------------------
+  quality:
+    name: Pint, PHPStan, frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_sqlite, sqlite3, zlib
+          coverage: none
+      - run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress
+      - run: vendor/bin/pint --test
+      - run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  # ---------------------------------------------------------------------------
+  # Package code must parse on PHP 8.1 (no readonly classes, typed class constants, ...)
+  # ---------------------------------------------------------------------------
+  php81-syntax:
+    name: PHP 8.1 syntax guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+      - run: |
+          status=0
+          while IFS= read -r -d '' f; do php -l "$f" >/dev/null || status=1; done < <(find src config database routes -name '*.php' -print0)
+          exit $status
+
+  # ---------------------------------------------------------------------------
+  # dist/ must be reproducible from resources/js
+  # ---------------------------------------------------------------------------
+  dist:
+    name: dist/ is up to date
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Fail when committed assets differ from a fresh build
+        run: |
+          git add -N dist
+          git diff --exit-code -- dist || (echo "::error::dist/ is out of date. Run 'npm run build' and commit the result." && exit 1)

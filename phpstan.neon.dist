@@ -1,0 +1,17 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 8
+    paths:
+        - src
+        - database
+        - routes
+    tmpDir: .phpstan.cache
+    excludePaths:
+        - src/Proxy/stubs/*
+    phpVersion: 80100
+    checkOctaneCompatibility: true
+    checkModelProperties: true
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors: []
