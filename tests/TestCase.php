@@ -12,6 +12,7 @@ use Monolog\Handler\NullHandler;
 use Orchestra\Testbench\TestCase as Orchestra;
 use RequestTracer\RequestTracerServiceProvider;
 use RequestTracer\Storage\ConnectionResolver;
+use RequestTracer\Storage\TraceStorage;
 
 abstract class TestCase extends Orchestra
 {
@@ -108,8 +109,73 @@ abstract class TestCase extends Orchestra
         }
     }
 
+    public function traceStorage(): TraceStorage
+    {
+        return $this->app->make(TraceStorage::class);
+    }
+
+    /** @return array<string, mixed> newest stored trace summary */
+    public function lastTrace(): array
+    {
+        $rows = $this->traceStorage()->traces([], null, 1)['data'];
+        expect($rows)->not->toBeEmpty('no trace was stored');
+
+        return $rows[0];
+    }
+
+    /**
+     * Spans of a trace (newest by default) with `input` / `output` decoded and merged into each row.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function traceSpans(?string $traceId = null): array
+    {
+        $traceId ??= (string) $this->lastTrace()['id'];
+        $spans = [];
+        foreach ($this->traceStorage()->spans($traceId) as $span) {
+            $payload = $this->traceStorage()->payload($traceId, $span['id']) ?? ['input' => null, 'output' => null];
+            $span['input'] = $payload['input'] === null ? null : json_decode($payload['input'], true);
+            $span['output'] = $payload['output'] === null ? null : json_decode($payload['output'], true);
+            $spans[] = $span;
+        }
+
+        return $spans;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $spans
+     * @return list<array<string, mixed>>
+     */
+    public function spansOf(array $spans, string $type, ?string $labelContains = null): array
+    {
+        return array_values(array_filter($spans, fn (array $s): bool => $s['type'] === $type && ($labelContains === null || str_contains((string) $s['label'], $labelContains))));
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function traceProblems(?string $traceId = null): array
+    {
+        return $this->traceStorage()->problems($traceId ?? (string) $this->lastTrace()['id']);
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function traceWrites(?string $traceId = null): array
+    {
+        return $this->traceStorage()->writes($traceId ?? (string) $this->lastTrace()['id']);
+    }
+
+    /** Everything stored in the tracer tables, as one JSON string (for "this secret never reaches storage" assertions). */
+    public function everythingStored(): string
+    {
+        $dump = '';
+        foreach (['traces', 'spans', 'lines', 'writes', 'problems'] as $table) {
+            $dump .= json_encode($this->tracerTable($table)->get()->all());
+        }
+
+        return $dump;
+    }
+
     /** @return Builder */
-    protected function tracerTable(string $name)
+    public function tracerTable(string $name)
     {
         return $this->app->make(ConnectionResolver::class)->resolve()->table('tracer_'.$name);
     }

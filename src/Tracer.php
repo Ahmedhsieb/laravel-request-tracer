@@ -17,6 +17,7 @@ use RequestTracer\Support\App;
 use RequestTracer\Support\CallSite;
 use RequestTracer\Support\Failure;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
  * Entry point of the package: owns the current TraceSession and the on/off flag every collector checks.
@@ -171,6 +172,10 @@ final class Tracer
         if ($response !== null) {
             $session->meta['status'] = $response->getStatusCode();
             $session->root->output = $session->dump($response);
+            $exception = property_exists($response, 'exception') ? $response->exception : null;
+            if ($exception instanceof \Throwable) {
+                $session->exceptions()->markUncaught($exception, $this->ignorable($exception));
+            }
         }
         $route = $request->route();
         if (is_object($route) && method_exists($route, 'getName')) {
@@ -274,6 +279,18 @@ final class Tracer
         }
 
         return $value;
+    }
+
+    /** Exceptions that are normal control flow (validation, 404, auth...): no problem is raised for them. */
+    private function ignorable(\Throwable $e): bool
+    {
+        foreach ((array) $this->config('problems.ignore_exceptions', []) as $class) {
+            if (is_string($class) && $e instanceof $class) {
+                return $e instanceof HttpExceptionInterface ? $e->getStatusCode() < 500 : true;
+            }
+        }
+
+        return false;
     }
 
     private function persist(TraceData $data): void

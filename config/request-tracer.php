@@ -2,7 +2,13 @@
 
 declare(strict_types=1);
 
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Session\TokenMismatchException;
+use Illuminate\Validation\ValidationException;
 use RequestTracer\Http\Middleware\Authorize;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /*
 |--------------------------------------------------------------------------
@@ -138,10 +144,10 @@ return [
         'ignore_events' => [                                    // fnmatch on event names; noisy framework internals
             'Illuminate\Database\Events\*', 'Illuminate\Log\Events\*', 'Illuminate\Cache\Events\*',
             'Illuminate\Routing\Events\*', 'Illuminate\Http\Client\Events\*', 'Illuminate\Auth\Events\Authenticated',
-            'Illuminate\Foundation\Events\*', 'Illuminate\Queue\Events\*', 'Illuminate\Console\Events\*',
+            'Illuminate\Foundation\Events\*', 'Illuminate\Foundation\Http\Events\*', 'Illuminate\Queue\Events\*', 'Illuminate\Console\Events\*',
             'Illuminate\Contracts\Queue\*', 'Illuminate\Mail\Events\MessageSending', 'eloquent.*', 'bootstrapped:*',
             'bootstrapping:*', 'composing:*', 'creating:*', 'Illuminate\Events\*', 'Illuminate\Bus\Events\*',
-            'RequestTracer\*', 'Laravel\Octane\Events\*',
+            'Laravel\Octane\Events\*',
         ],
         'request_headers' => [                                  // allowlist, everything else is dropped
             'accept', 'accept-language', 'content-type', 'content-length', 'host', 'origin', 'referer',
@@ -221,7 +227,17 @@ return [
         'slow_step_share' => 0.4,                               // or this share of the whole request (and at least slow_step_min_ms)
         'slow_step_min_ms' => 50,
         'n_plus_one_threshold' => 5,
-        'repeated_query_threshold' => 2,
+        'repeated_query_threshold' => 2,                        // identical SELECT (same SQL + same bindings) this many times
+        'repeated_write_threshold' => 3,                        // same INSERT/UPDATE/DELETE shape this many times from one place
+        'http_failed_min_status' => 400,                        // outgoing HTTP responses with this status or above are "failed"
+        'ignore_exceptions' => [                                // uncaught exceptions that are normal control flow (no problem is raised)
+            ValidationException::class,
+            AuthenticationException::class,
+            AuthorizationException::class,
+            ModelNotFoundException::class,
+            TokenMismatchException::class,
+            HttpExceptionInterface::class,
+        ],
     ],
 
     /*

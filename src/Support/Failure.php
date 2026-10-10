@@ -21,6 +21,12 @@ final class Failure
         self::$sink = $sink;
     }
 
+    /** True while an internal failure is being logged (collectors ignore the log lines that produces). */
+    public static function reporting(): bool
+    {
+        return self::$reporting;
+    }
+
     public static function report(\Throwable $e, string $where): void
     {
         if (self::$reporting) {
@@ -49,11 +55,15 @@ final class Failure
     /** Debug-level note (invalid tokens and similar expected situations). */
     public static function debug(string $message): void
     {
+        $was = self::$reporting;
+        self::$reporting = true;
         try {
             if (self::$sink !== null) {
                 (self::$sink)('[debug] ['.Brand::NAME.'] '.$message, ['level' => 'debug']);
             }
         } catch (\Throwable) {
+        } finally {
+            self::$reporting = $was;
         }
     }
 
