@@ -9,7 +9,8 @@ parameters:
         - routes
     tmpDir: .phpstan.cache
     excludePaths:
-        - src/Proxy/stubs/*
+        # php-parser 4 shim: only runs on php-parser 4 (see the class comment), cannot be analysed against the installed v5
+        - src/DeepTrace/LegacyParser.php
     phpVersion: 80100
     checkOctaneCompatibility: true
     checkModelProperties: true

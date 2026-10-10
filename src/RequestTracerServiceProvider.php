@@ -21,6 +21,7 @@ use RequestTracer\Collectors\QueryCollector;
 use RequestTracer\Collectors\RequestCollector;
 use RequestTracer\Collectors\TransactionCollector;
 use RequestTracer\Collectors\ValidationCollector;
+use RequestTracer\DeepTrace\Loader;
 use RequestTracer\Http\Middleware\RecordRequest;
 use RequestTracer\Proxy\ProxyGenerator;
 use RequestTracer\Proxy\ProxyRegistry;
@@ -97,6 +98,10 @@ final class RequestTracerServiceProvider extends ServiceProvider
         $tracer = $this->app->make(Tracer::class);
         $this->registerCollectors($tracer);
         $this->registerProxyHook($tracer);
+
+        if (App::config()->get(Brand::NAME.'.deep_trace.enabled', true)) {
+            Loader::ensureRegistered();
+        }
 
         $this->callAfterResolving(HttpKernel::class, function (HttpKernel $kernel): void {
             if (method_exists($kernel, 'prependMiddleware') && method_exists($kernel, 'hasMiddleware') && ! $kernel->hasMiddleware(RecordRequest::class)) {

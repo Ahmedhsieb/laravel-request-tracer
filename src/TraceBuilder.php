@@ -9,7 +9,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use RequestTracer\Analysis\ProblemDetector;
+use RequestTracer\DeepTrace\LinesBuilder;
+use RequestTracer\DeepTrace\Loader;
+use RequestTracer\DeepTrace\ProbeMap;
 use RequestTracer\Support\Failure;
+use RequestTracer\Support\Paths;
 
 /**
  * Turns a finished TraceSession into the rows storage persists. Runs in terminate(), after the response was sent.
@@ -29,6 +33,15 @@ final class TraceBuilder
 
         if ($session->recorder->capped()) {
             $session->truncated = true;
+        }
+
+        // Deep trace: probe hits -> line rows; files that were compiled but could not be, become notes
+        $deep = LinesBuilder::build($session, new ProbeMap(Loader::cachePath()), max(100, (int) $this->tracer->config('limits.max_lines', 20000)));
+        foreach (Loader::pullWarnings() as $file => $message) {
+            $session->note('deep_trace', Paths::relative($file) ?? $file, 'Deep trace could not compile this file, the original was used: '.$message);
+        }
+        if ($deep['files'] !== []) {
+            Loader::queue()->consume(array_map(static fn (string $f): string => Paths::absolute($f), $deep['files']));
         }
 
         (new ProblemDetector)->detect($session, $spans);
@@ -68,7 +81,7 @@ final class TraceBuilder
             ['span_id', 'connection', 'table', 'operation', 'row_key', 'before', 'after', 'transaction', 'rows'],
         )), $session->writes);
 
-        return new TraceData($trace, $spans, $session->lines, array_values($writes), $session->problems);
+        return new TraceData($trace, $spans, $deep['rows'], array_values($writes), $session->problems);
     }
 
     /** @return list<array<string, mixed>>|null */

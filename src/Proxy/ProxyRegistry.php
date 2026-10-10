@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Container\Container;
 use RequestTracer\Attributes\NoTrace;
 use RequestTracer\Attributes\Trace;
+use RequestTracer\Support\ClassPatterns;
 use RequestTracer\Support\Failure;
 use RequestTracer\Tracer;
 
@@ -27,9 +28,6 @@ final class ProxyRegistry
 
     /** @var array<string, true> */
     private array $middleware = [];
-
-    /** @var array<string, string> pattern => compiled regex */
-    private array $compiled = [];
 
     public function __construct(private readonly ProxyGenerator $generator) {}
 
@@ -154,17 +152,7 @@ final class ProxyRegistry
     /** @param  array<int, mixed>  $patterns */
     private function matches(string $class, array $patterns): bool
     {
-        foreach ($patterns as $pattern) {
-            if (! is_string($pattern) || $pattern === '') {
-                continue;
-            }
-            $regex = $this->compiled[$pattern] ??= '~^'.str_replace('\\*', '[^\\\\]*', preg_quote(ltrim($pattern, '\\'), '~')).'(?:\\\\.*)?$~i';
-            if (preg_match($regex, $class) === 1) {
-                return true;
-            }
-        }
-
-        return false;
+        return ClassPatterns::matches($class, $patterns);
     }
 
     /** True when the container binding is the default "build this very class" wrapper that `singleton(Foo::class)` creates. */

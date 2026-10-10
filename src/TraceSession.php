@@ -7,6 +7,7 @@ namespace RequestTracer;
 use RequestTracer\Analysis\ExceptionTracker;
 use RequestTracer\Analysis\QueryStats;
 use RequestTracer\Analysis\WriteTracker;
+use RequestTracer\DeepTrace\ProbeStore;
 use RequestTracer\Dumper\ValueDumper;
 use RequestTracer\Support\App;
 
@@ -53,6 +54,8 @@ final class TraceSession
 
     private ?QueryStats $queryStats = null;
 
+    private ?ProbeStore $probeStore = null;
+
     public function __construct(
         public readonly string $id,
         public readonly string $kind,
@@ -73,6 +76,21 @@ final class TraceSession
         if (count($this->notes) < 200) {
             $this->notes[] = ['kind' => $kind, 'target' => $target, 'message' => $message];
         }
+    }
+
+    /** Deep trace hits of this trace. */
+    public function deep(): ProbeStore
+    {
+        return $this->probeStore ??= new ProbeStore(
+            $this,
+            max(100, (int) App::config()->get('request-tracer.deep_trace.max_hits', 20000)),
+            max(1, (int) App::config()->get('request-tracer.deep_trace.loop_snapshots', 5)),
+        );
+    }
+
+    public function hasDeepData(): bool
+    {
+        return $this->probeStore !== null && ! $this->probeStore->isEmpty();
     }
 
     public function writeTracker(): WriteTracker

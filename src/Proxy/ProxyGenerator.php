@@ -6,6 +6,7 @@ namespace RequestTracer\Proxy;
 
 use RequestTracer\Attributes\NoTrace;
 use RequestTracer\Attributes\Trace;
+use RequestTracer\Support\Files;
 use RequestTracer\Support\Paths;
 
 /**
@@ -199,19 +200,7 @@ final class ProxyGenerator
 
     private function write(string $path, string $contents): void
     {
-        $dir = dirname($path);
-        if (! is_dir($dir) && ! @mkdir($dir, 0775, true) && ! is_dir($dir)) {
-            throw new \RuntimeException("Cannot create {$dir}");
-        }
-        $tmp = $path.'.'.bin2hex(random_bytes(4)).'.tmp';
-        file_put_contents($tmp, $contents);
-        if (! @rename($tmp, $path)) {                        // Windows cannot rename over an open/opcached file
-            @unlink($path);
-            @rename($tmp, $path);
-        }
-        if (function_exists('opcache_invalidate')) {
-            @opcache_invalidate($path, true);
-        }
+        Files::write($path, $contents);
     }
 
     // ------------------------------------------------------------------------------------------------

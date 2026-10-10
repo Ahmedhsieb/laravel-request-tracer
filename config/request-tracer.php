@@ -182,6 +182,7 @@ return [
         'enabled' => true,
         'namespaces' => [],                                     // e.g. ['App\\Services\\OrderService', 'App\\Domain\\Billing']
         'files' => [],                                          // absolute paths
+        'attribute_scan' => false,                              // read classes under proxies.attribute_namespaces for #[Trace(deep: true)] (costs a file read per class, off by default)
         'cache_path' => null,                                   // default storage/framework/request-tracer/compiled
         'max_hits' => 20000,                                    // probe hits per trace, then probes stop and the trace is marked truncated
         'loop_snapshots' => 5,                                  // iterations of a loop whose state is kept

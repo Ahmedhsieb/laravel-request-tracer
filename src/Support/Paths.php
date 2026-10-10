@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace RequestTracer\Support;
 
+use RequestTracer\DeepTrace\Loader;
+
 /**
  * File path helpers: stored paths are relative to the application base path (forward slashes) when possible.
+ * Files compiled for Deep trace are reported under the path of the original they were compiled from.
  */
 final class Paths
 {
@@ -34,6 +37,7 @@ final class Paths
             return null;
         }
         $file = str_replace('\\', '/', $file);
+        $file = Loader::originalOf($file) ?? $file;
         if (self::$base !== null && str_starts_with($file, self::$base.'/')) {
             return substr($file, strlen(self::$base) + 1);
         }
@@ -57,6 +61,7 @@ final class Paths
             return true;
         }
         $file = str_replace('\\', '/', $file);
+        $file = Loader::originalOf($file) ?? $file;
 
         return (self::$vendor !== null && str_starts_with($file, self::$vendor))
             || (self::$packageSrc !== null && str_starts_with($file, self::$packageSrc))

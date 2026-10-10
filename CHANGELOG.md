@@ -29,3 +29,11 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 - `#[Trace(label:, deep:)]` and `#[NoTrace]`; `Hot::$on` single static flag for proxies, probes and `trace()`.
 - Exceptions thrown through traced spans are recorded once per instance and the spans are flagged `failed` (ended the request) or `caught`.
 - 17 generator edge-case tests and 15 integration tests (tree shape, masking, contextual bindings, singletons, attributes, state not leaking between requests).
+
+### Phase 3b – Deep trace
+- Compiler: php-parser 4.18+/5.x, **insertion-only** text edits at AST positions (no pretty printing), brace normalisation for brace-less bodies, `__FILE__`/`__DIR__` rewritten; verified by a line guard (same lines, every token on its line, still parses).
+- Probes: conditions (with comparison operands), short-circuit parts, blocks, `catch` (exception received), loops (iterations + snapshots), assignments (RHS wrap, no property reads), arguments, returns, throws, `match`/`switch` subjects and arms, plain statements ("this line ran").
+- Loader: prepended autoloader with mtime/version cache and negative cache, fallback to the original with a dashboard warning, "trace this file" queue, optional `#[Trace(deep: true)]` scan.
+- Probe hits aggregate per (span, probe); `max_hits` cap marks the trace truncated; names of secrets mask values and snippet literals.
+- Corpus tests: control flow (incl. alt syntax, brace-less, nested else-if), strict types, namespaces, heredoc/nowdoc, attributes, enums, readonly, first-class callables, named args, match, constant-expression contexts, inline HTML, by-reference returns, magic constants.
+- End-to-end test for `POST /api/orders` including the Deep trace of every condition in `OrderService::create()`.
