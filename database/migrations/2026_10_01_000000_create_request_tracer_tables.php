@@ -42,6 +42,7 @@ return new class extends Migration
             $table->unsignedInteger('problems_count')->default(0);
             $table->json('tables_written')->nullable();
             $table->json('tables_read')->nullable();
+            $table->json('notes')->nullable();                        // "not traceable: final", Deep trace compile warnings...
             $table->boolean('truncated')->default(false);
             $table->string('laravel_version', 16)->nullable();
             $table->string('environment', 32)->nullable();

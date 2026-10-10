@@ -27,6 +27,7 @@ final class ProblemDetector
         $this->config = (array) App::config()->get('request-tracer.problems', []);
 
         $this->exceptions($session);
+        $this->flagExceptionSpans($session, $spans);
         $this->queries($session);
         $this->slowSteps($session, $spans);
         $this->httpFailures($session);
@@ -52,6 +53,24 @@ final class ProblemDetector
             } else {
                 $this->add($session, $r->span, 'exception_caught', $short.' — caught by application code, so the request continued'.($status !== null ? " (the response was still {$status})" : '').'.', $r->file, $r->line);
             }
+        }
+    }
+
+    /**
+     * Spans an exception propagated through are `failed` when it ended the request and `caught` when application code handled it.
+     *
+     * @param  list<Span>  $spans
+     */
+    private function flagExceptionSpans(TraceSession $session, array $spans): void
+    {
+        $records = $session->exceptions()->records();
+        foreach ($spans as $span) {
+            $id = $span->meta['exception'] ?? null;
+            if (! is_int($id) || ! isset($records[$id])) {
+                continue;
+            }
+            $record = $records[$id];
+            $span->flag = $record->uncaught ? ($record->ignore ? null : SpanFlag::Failed) : SpanFlag::Caught;
         }
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RequestTracer;
 
+use Illuminate\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +22,8 @@ use RequestTracer\Collectors\RequestCollector;
 use RequestTracer\Collectors\TransactionCollector;
 use RequestTracer\Collectors\ValidationCollector;
 use RequestTracer\Http\Middleware\RecordRequest;
+use RequestTracer\Proxy\ProxyGenerator;
+use RequestTracer\Proxy\ProxyRegistry;
 use RequestTracer\Recording\RecordingDecider;
 use RequestTracer\Storage\ConnectionResolver;
 use RequestTracer\Storage\DatabaseStorage;
@@ -56,6 +59,11 @@ final class RequestTracerServiceProvider extends ServiceProvider
         $this->app->alias(Tracer::class, Brand::CONTAINER_KEY);
         $this->app->singleton(RecordingDecider::class);
         $this->app->singleton(ConnectionResolver::class);
+        $this->app->singleton(ProxyRegistry::class, function (Application $app): ProxyRegistry {
+            $path = App::config()->get(Brand::NAME.'.proxies.cache_path');
+
+            return new ProxyRegistry(new ProxyGenerator(is_string($path) && $path !== '' ? $path : $app->storagePath('framework/'.Brand::STORAGE_DIR.'/proxies')));
+        });
         $this->app->singleton(TraceStorage::class, function (Application $app): TraceStorage {
             /** @var array<string, mixed> $config */
             $config = (array) App::config()->get(Brand::NAME.'.storage', []);
@@ -88,6 +96,7 @@ final class RequestTracerServiceProvider extends ServiceProvider
         // Make sure the singleton exists so `Tracer::$instance` is set for trace() and probes.
         $tracer = $this->app->make(Tracer::class);
         $this->registerCollectors($tracer);
+        $this->registerProxyHook($tracer);
 
         $this->callAfterResolving(HttpKernel::class, function (HttpKernel $kernel): void {
             if (method_exists($kernel, 'prependMiddleware') && method_exists($kernel, 'hasMiddleware') && ! $kernel->hasMiddleware(RecordRequest::class)) {
@@ -114,6 +123,18 @@ final class RequestTracerServiceProvider extends ServiceProvider
                 Failure::guard(fn () => $this->app->make($class)->register($tracer, $this->app), 'registering collector '.$key);
             }
         }
+    }
+
+    /** Layer 2/3: swap container bindings for traced subclasses while a trace is recorded. */
+    private function registerProxyHook(Tracer $tracer): void
+    {
+        $registry = $this->app->make(ProxyRegistry::class);
+
+        $this->app->beforeResolving(static function (string $abstract, array $parameters, Container $container) use ($registry, $tracer): void {
+            if (Hot::$on) {
+                $registry->handle($abstract, $container, $tracer);
+            }
+        });
     }
 
     private function publishResources(): void

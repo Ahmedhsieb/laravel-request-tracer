@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RequestTracer;
 
 use Closure;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use RequestTracer\Dumper\DumpLimits;
@@ -134,6 +135,7 @@ final class Tracer
 
         $this->session = new TraceSession((string) Str::ulid(), $kind, $decision->state, $decision->trigger, $clock, $recorder, $dumper);
         $this->on = true;
+        Hot::$on = true;
 
         return $this->session;
     }
@@ -152,6 +154,11 @@ final class Tracer
         $session->meta['path'] = $path;
         $ip = (string) $request->ip();
         $session->meta['ip_hash'] = $ip === '' ? null : substr(hash_hmac('sha256', $ip, (string) App::config()->get('app.key', 'request-tracer')), 0, 16);
+
+        $kernel = App::container()->make(Kernel::class);
+        if (method_exists($kernel, 'getGlobalMiddleware')) {
+            App::container()->make(Proxy\ProxyRegistry::class)->markMiddleware($kernel->getGlobalMiddleware());
+        }
 
         $root = $session->recorder->begin(SpanType::Request, $request->getMethod().' '.$path);
         $root->startUs = 0;
@@ -197,6 +204,7 @@ final class Tracer
 
         // Stop recording first: nothing the tracer does below may become part of the trace.
         $this->on = false;
+        Hot::$on = false;
 
         try {
             if ($session->state === RecordingState::On && ! $session->discard) {
@@ -214,6 +222,7 @@ final class Tracer
     public function reset(): void
     {
         $this->on = false;
+        Hot::$on = false;
         $this->session = null;
     }
 
@@ -245,6 +254,12 @@ final class Tracer
         return $out;
     }
 
+    /** Tell the dashboard something about this trace (e.g. "not traceable: final"). No-op when not recording. */
+    public function note(string $kind, string $target, string $message): void
+    {
+        $this->session?->note($kind, $target, $message);
+    }
+
     // ---------------------------------------------------------------------------------------------
     // trace() helper
     // ---------------------------------------------------------------------------------------------
@@ -259,6 +274,9 @@ final class Tracer
      */
     public static function helper(mixed $value, ?string $label = null): mixed
     {
+        if (! Hot::$on) {
+            return $value;
+        }
         $tracer = self::$instance;
         if ($tracer === null || ! $tracer->on) {
             return $value;

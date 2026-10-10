@@ -38,6 +38,9 @@ final class TraceSession
     /** @var array<string, mixed> free storage for collectors that need per-request state (reset with the session) */
     public array $bag = [];
 
+    /** @var list<array{kind: string, target: string, message: string}> things the dashboard should tell the user ("not traceable: final", compile warnings) */
+    public array $notes = [];
+
     public bool $truncated = false;
 
     public ?string $parentTraceId = null;
@@ -59,6 +62,18 @@ final class TraceSession
         public readonly Recorder $recorder,
         public readonly ValueDumper $dumper,
     ) {}
+
+    public function note(string $kind, string $target, string $message): void
+    {
+        foreach ($this->notes as $n) {
+            if ($n['kind'] === $kind && $n['target'] === $target && $n['message'] === $message) {
+                return;
+            }
+        }
+        if (count($this->notes) < 200) {
+            $this->notes[] = ['kind' => $kind, 'target' => $target, 'message' => $message];
+        }
+    }
 
     public function writeTracker(): WriteTracker
     {

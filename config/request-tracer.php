@@ -164,8 +164,11 @@ return [
      * when resolved from the container, e.g. ['App\\Services', 'App\\Domain\\*\\Services'].
      */
     'proxies' => [
-        'namespaces' => [],
-        'exclude' => [],                                        // class names / namespaces never proxied
+        'namespaces' => [],                                     // patterns: App\Services, App\*\Services, App\Domain\*
+        'exclude' => [],                                        // class names / namespace patterns never proxied
+        'middleware' => true,                                   // a `middleware` span around every middleware's handle()
+        'attribute_namespaces' => ['App\\'],                    // classes under these prefixes are proxied when they carry #[Trace]
+        'vendor_methods' => false,                              // also trace public methods a proxied class inherits from vendor code
         'cache_path' => null,                                   // default storage/framework/request-tracer/proxies
     ],
 
