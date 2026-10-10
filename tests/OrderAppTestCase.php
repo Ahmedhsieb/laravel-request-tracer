@@ -28,6 +28,9 @@ abstract class OrderAppTestCase extends TestCase
         $app['config']->set('auth.guards.web', ['driver' => 'session', 'provider' => 'users']);
         $app['config']->set('auth.providers.users', ['driver' => 'eloquent', 'model' => User::class]);
         $app['config']->set('request-tracer.problems.n_plus_one_threshold', 3);
+        $app['config']->set('request-tracer.proxies.namespaces', ['RequestTracer\Tests\Fixtures\Services']);
+        $app['config']->set('request-tracer.proxies.attribute_namespaces', ['RequestTracer\Tests\Fixtures\Attr']);
+        $app['config']->set('request-tracer.proxies.cache_path', sys_get_temp_dir().'/rt-proxies-'.getmypid());
     }
 
     protected function defineDatabaseMigrations(): void

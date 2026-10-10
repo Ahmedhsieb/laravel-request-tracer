@@ -55,6 +55,7 @@ final class TraceBuilder
             'problems_count' => count($session->problems),
             'tables_written' => $this->json($this->tablesWritten($session)),
             'tables_read' => $this->json($session->tablesRead === [] ? null : $session->tablesRead),
+            'notes' => $this->json($session->notes === [] ? null : $session->notes),
             'truncated' => $session->truncated,
             'laravel_version' => $this->app->version(),
             'environment' => $this->app->environment(),

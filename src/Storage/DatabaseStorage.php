@@ -269,7 +269,7 @@ final class DatabaseStorage implements TraceStorage
      */
     private function presentTrace(array $row): array
     {
-        foreach (['tables_written', 'tables_read'] as $json) {
+        foreach (['tables_written', 'tables_read', 'notes'] as $json) {
             $row[$json] = isset($row[$json]) ? json_decode((string) $row[$json], true) : null;
         }
         foreach (['status', 'spans_count', 'queries_count', 'problems_count'] as $int) {

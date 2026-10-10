@@ -31,7 +31,7 @@ function sampleTrace(string $id, array $over = []): TraceData
         array_replace([
             'id' => $id, 'kind' => 'request', 'method' => 'GET', 'path' => '/x', 'route_name' => null, 'status' => 200,
             'duration_ms' => 5.0, 'memory_peak' => 1000, 'user_id' => '7', 'tenant' => null, 'module' => null, 'ip_hash' => null,
-            'spans_count' => 2, 'queries_count' => 1, 'problems_count' => 1, 'tables_written' => '[{"table":"orders"}]', 'tables_read' => null,
+            'spans_count' => 2, 'queries_count' => 1, 'problems_count' => 1, 'tables_written' => '[{"table":"orders"}]', 'tables_read' => null, 'notes' => null,
             'truncated' => false, 'laravel_version' => '12.0.0', 'environment' => 'testing', 'mode' => 'always', 'parent_trace_id' => null,
             'created_at' => now(),
         ], $over),

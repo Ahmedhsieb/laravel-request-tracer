@@ -67,6 +67,12 @@ final class ExceptionTracker
         }
     }
 
+    /** Index of the record of $e (stored on the spans the exception passed through as `meta.exception`). */
+    public function idOf(Throwable $e): ?int
+    {
+        return $this->seen[$e]['id'] ?? null;
+    }
+
     public function seen(Throwable $e): bool
     {
         return isset($this->seen[$e]);

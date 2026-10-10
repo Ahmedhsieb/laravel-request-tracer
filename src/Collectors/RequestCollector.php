@@ -9,6 +9,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Events\RouteMatched;
 use RequestTracer\Http\Middleware\TraceAction;
+use RequestTracer\Proxy\ProxyRegistry;
 use RequestTracer\Support\Failure;
 use RequestTracer\Tracer;
 
@@ -28,11 +29,11 @@ final class RequestCollector implements Collector
         /** @var Dispatcher $events */
         $events = $app->make('events');
 
-        $events->listen(RouteMatched::class, function (RouteMatched $event) use ($tracer): void {
+        $events->listen(RouteMatched::class, function (RouteMatched $event) use ($tracer, $app): void {
             if (! $tracer->on) {
                 return;
             }
-            Failure::guard(function () use ($tracer, $event): void {
+            Failure::guard(function () use ($tracer, $event, $app): void {
                 $session = $tracer->session();
                 if ($session === null) {
                     return;
@@ -40,6 +41,10 @@ final class RequestCollector implements Collector
                 $route = $event->route;
                 $session->meta['route_name'] = $route->getName();
                 $session->meta['route_uri'] = $route->uri();
+
+                // Every middleware the pipeline is about to resolve becomes a `middleware` span (via the proxy hook).
+                $registry = $app->make(ProxyRegistry::class);
+                $registry->markMiddleware($app->make('router')->gatherRouteMiddleware($route));
 
                 // Put our middleware last, after route and controller middleware, without touching the route definition.
                 $middleware = $route->gatherMiddleware();
