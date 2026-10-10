@@ -63,7 +63,11 @@ final class TraceBuilder
             'created_at' => Carbon::createFromTimestamp((int) floor($session->clock->wallStart)),
         ];
 
-        return new TraceData($trace, $spans, $session->lines, $session->writes, $session->problems);
+        $writes = array_map(static fn (array $w): array => array_intersect_key($w, array_flip(
+            ['span_id', 'connection', 'table', 'operation', 'row_key', 'before', 'after', 'transaction', 'rows'],
+        )), $session->writes);
+
+        return new TraceData($trace, $spans, $session->lines, array_values($writes), $session->problems);
     }
 
     /** @return list<array<string, mixed>>|null */

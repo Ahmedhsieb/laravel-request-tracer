@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace RequestTracer;
 
+use RequestTracer\Analysis\ExceptionTracker;
+use RequestTracer\Analysis\QueryStats;
+use RequestTracer\Analysis\WriteTracker;
 use RequestTracer\Dumper\ValueDumper;
+use RequestTracer\Support\App;
 
 /**
  * Everything that belongs to the trace currently being recorded. The Tracer creates one at the start of a request
@@ -40,6 +44,12 @@ final class TraceSession
 
     public bool $discard = false;
 
+    private ?WriteTracker $writeTracker = null;
+
+    private ?ExceptionTracker $exceptionTracker = null;
+
+    private ?QueryStats $queryStats = null;
+
     public function __construct(
         public readonly string $id,
         public readonly string $kind,
@@ -49,6 +59,21 @@ final class TraceSession
         public readonly Recorder $recorder,
         public readonly ValueDumper $dumper,
     ) {}
+
+    public function writeTracker(): WriteTracker
+    {
+        return $this->writeTracker ??= new WriteTracker($this, $this->dumper->masker(), (int) App::config()->get('request-tracer.limits.max_writes', 2000));
+    }
+
+    public function exceptions(): ExceptionTracker
+    {
+        return $this->exceptionTracker ??= new ExceptionTracker($this);
+    }
+
+    public function queryStats(): QueryStats
+    {
+        return $this->queryStats ??= new QueryStats;
+    }
 
     /**
      * Dump a value for storage. The time spent is subtracted from the timeline so spans show the application's time only.

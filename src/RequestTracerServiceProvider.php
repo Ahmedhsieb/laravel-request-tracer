@@ -8,6 +8,18 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
+use RequestTracer\Collectors\CacheCollector;
+use RequestTracer\Collectors\Collector;
+use RequestTracer\Collectors\EventCollector;
+use RequestTracer\Collectors\ExceptionCollector;
+use RequestTracer\Collectors\HttpClientCollector;
+use RequestTracer\Collectors\JobCollector;
+use RequestTracer\Collectors\LogCollector;
+use RequestTracer\Collectors\ModelCollector;
+use RequestTracer\Collectors\QueryCollector;
+use RequestTracer\Collectors\RequestCollector;
+use RequestTracer\Collectors\TransactionCollector;
+use RequestTracer\Collectors\ValidationCollector;
 use RequestTracer\Http\Middleware\RecordRequest;
 use RequestTracer\Recording\RecordingDecider;
 use RequestTracer\Storage\ConnectionResolver;
@@ -21,6 +33,21 @@ use RequestTracer\Support\Paths;
 
 final class RequestTracerServiceProvider extends ServiceProvider
 {
+    /** @var list<class-string<Collector>> */
+    private const COLLECTORS = [
+        RequestCollector::class,
+        ValidationCollector::class,
+        QueryCollector::class,
+        TransactionCollector::class,
+        ModelCollector::class,
+        LogCollector::class,
+        ExceptionCollector::class,
+        HttpClientCollector::class,
+        CacheCollector::class,
+        EventCollector::class,
+        JobCollector::class,
+    ];
+
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/'.Brand::NAME.'.php', Brand::NAME);
@@ -59,13 +86,34 @@ final class RequestTracerServiceProvider extends ServiceProvider
         }
 
         // Make sure the singleton exists so `Tracer::$instance` is set for trace() and probes.
-        $this->app->make(Tracer::class);
+        $tracer = $this->app->make(Tracer::class);
+        $this->registerCollectors($tracer);
 
         $this->callAfterResolving(HttpKernel::class, function (HttpKernel $kernel): void {
             if (method_exists($kernel, 'prependMiddleware') && method_exists($kernel, 'hasMiddleware') && ! $kernel->hasMiddleware(RecordRequest::class)) {
                 $kernel->prependMiddleware(RecordRequest::class);
             }
         });
+    }
+
+    /** Built-in collectors (each switchable under `collectors`) plus custom ones mapped to a class name. */
+    private function registerCollectors(Tracer $tracer): void
+    {
+        /** @var array<string, mixed> $config */
+        $config = (array) App::config()->get(Brand::NAME.'.collectors', []);
+
+        foreach (self::COLLECTORS as $class) {
+            if (($config[$class::key()] ?? true) === false) {
+                continue;
+            }
+            Failure::guard(fn () => (new $class)->register($tracer, $this->app), 'registering collector '.$class);
+        }
+
+        foreach ($config as $key => $class) {
+            if (is_string($class) && class_exists($class) && is_subclass_of($class, Collector::class)) {
+                Failure::guard(fn () => $this->app->make($class)->register($tracer, $this->app), 'registering collector '.$key);
+            }
+        }
     }
 
     private function publishResources(): void

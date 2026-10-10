@@ -13,6 +13,9 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <testsuite name="Order">
+            <directory>tests/Order</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

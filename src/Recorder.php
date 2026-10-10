@@ -32,6 +32,9 @@ final class Recorder
 
     private bool $capped = false;
 
+    /** Spans created while nothing is open (after the root ended) hang off the first span instead of becoming extra roots. */
+    private ?int $rootId = null;
+
     public function __construct(
         private readonly Clock $clock,
         private readonly int $maxSpans = 5000,
@@ -217,7 +220,9 @@ final class Recorder
 
     private function create(?int $parentId, SpanType $type, string $label, ?string $file, ?int $line, int $startUs): Span
     {
+        $parentId ??= $this->rootId;
         $span = new Span($this->nextId++, $parentId, $type, $label, $file, $line, $startUs);
+        $this->rootId ??= $span->id;
         $span->memStart = memory_get_usage();
         $this->spans[$span->id] = $span;
 

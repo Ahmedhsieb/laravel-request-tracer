@@ -1,6 +1,7 @@
 {
     "preset": "laravel",
     "exclude": ["tests/Fixtures/Deep/Corpus"],
+    "notPath": ["vendor-matrix-"],
     "rules": {
         "declare_strict_types": true
     }
