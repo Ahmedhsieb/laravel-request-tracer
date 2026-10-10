@@ -3,7 +3,7 @@
 declare(strict_types=1);
 use RequestTracer\Tracer;
 
-if (!function_exists('trace')) {
+if (! function_exists('trace')) {
     /**
      * Record $value as a span (in dd() format) and return it unchanged, so it can wrap any expression:
      *

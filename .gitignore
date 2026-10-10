@@ -18,3 +18,5 @@ Thumbs.db
 /storage/
 /coverage/
 /.env
+/composer.matrix-*
+/vendor-matrix-*/
