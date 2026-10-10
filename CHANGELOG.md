@@ -23,3 +23,9 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 - Write tracking: model events claim the query write they caused; transaction state (`none`/`committed`/`rolled_back`) per write.
 - Problem detector: caught/uncaught exceptions, N+1, repeated queries and writes, slow queries, slow steps (self time), failed HTTP calls, truncation.
 - Example "Order flow" app under `tests/Fixtures` and 18 collector tests; suite verified on Laravel 10 (PHP 8.1), 11 (8.3), 12 (8.4), 13 (8.4).
+
+### Phase 3 – proxies, attributes, helper
+- Container proxies: reflection-exact subclass generator (by-ref, variadic, union/intersection/nullable types, `self`/`static`/`void`/`never`, constant/enum/array defaults, attributes), on-disk cache with a dependency manifest, `beforeResolving` hook that keeps singleton and contextual bindings, middleware spans, "not traceable" notes for final classes/methods.
+- `#[Trace(label:, deep:)]` and `#[NoTrace]`; `Hot::$on` single static flag for proxies, probes and `trace()`.
+- Exceptions thrown through traced spans are recorded once per instance and the spans are flagged `failed` (ended the request) or `caught`.
+- 17 generator edge-case tests and 15 integration tests (tree shape, masking, contextual bindings, singletons, attributes, state not leaking between requests).

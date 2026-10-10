@@ -1,6 +1,6 @@
 # How capture works
 
-> Status: written phase by phase. This page currently covers the core (spans, recorder, value format, masking) and layer 1 (framework collectors). Proxies, attributes and Deep trace are added by their phases.
+> Status: written phase by phase. This page currently covers the core (spans, recorder, value format, masking) layers 1–4 (framework collectors, container proxies, attributes, `trace()`). Deep trace is added by its phase.
 
 A trace is a **tree of spans**. Every collector produces spans into one `Recorder`; at `terminate()` the finished tree
 is written to storage. Nothing is written while the request runs.
@@ -93,3 +93,63 @@ Detected once per trace, after the response, from counters that do not depend on
 | `slow_step` | a service / controller / middleware / http / job / validation span spent ≥ `slow_step_ms` (500) *by itself* (its own time, children excluded), or ≥ `slow_step_share` (40 %) of the request and ≥ `slow_step_min_ms` (50) |
 | `http_failed` | the call could not connect or returned ≥ `http_failed_min_status` (400) |
 | `truncated` | the span cap or another recording cap was reached |
+
+## Layer 2 – container proxies
+
+List the namespaces you care about in `proxies.namespaces`:
+
+```php
+'proxies' => ['namespaces' => ['App\Services', 'App\Domain\*\Actions']],
+```
+
+Every class in those namespaces that the container resolves *while a trace is recorded* is replaced by a generated subclass that overrides every **public, non-static, non-final** method. An override costs one boolean check when nothing is recorded; when recording it opens a `service` span with the arguments (by parameter name, so `$password` is masked), calls `parent::method()`, and closes the span with the return value or the exception — which is re-thrown unchanged.
+
+* The subclass is built **through the container** (`$container->build(ProxyClass)`), so the parent constructor receives its dependencies. Singletons stay singletons, contextual bindings (`when(Foo::class)->needs(...)`) are copied to the proxy, and an interface bound to a class proxies the concrete class.
+* Signatures are produced from reflection: by-reference and variadic parameters, nullable / union / intersection types, `self` / `static` / `void` / `never` returns, constant, array and enum defaults, and parameter / method / class attributes (so Laravel's `#[Middleware]`-style attributes still work).
+* Generated files live in `storage/framework/request-tracer/proxies`, together with a manifest of the mtimes of the class, its parents and traits (and of the generator). Edit a file and its proxy is rewritten.
+* **Middleware** gets the same treatment automatically (`proxies.middleware`): only `handle()` is overridden and the span is a `middleware` span labelled with the class name.
+
+### Limits of proxies
+
+Proxies hook into *container resolution*. They cannot see:
+
+| Not traced | Why |
+|---|---|
+| `new Foo()` | the container is never asked |
+| classes bound to a custom closure (`bind(Foo::class, fn () => new Foo(...))`) | the closure builds the object |
+| private and protected methods, and calls made through `$this->helper()` inside the class | an override only sees calls that arrive from outside; use Deep trace for what happens inside |
+| `static` methods | cannot be overridden on an instance |
+| final classes and final methods | PHP forbids subclassing / overriding. The dashboard lists them under *Not traceable* with the reason (`App\Foo — not traceable: final class`) |
+| methods returning by reference, parameters whose default is a `new` expression | cannot be reproduced exactly; listed under *Not traceable* |
+| services built before the request (singletons created while the app boots) | the hook only acts while a trace is recorded |
+
+Side effects to know about: `get_class($service)` and `static::class` return the proxy class name (`…__Proxy`), and `serialize($service)` stores that name. Put a class in `proxies.exclude` if it depends on either.
+
+## Layer 3 – attributes
+
+```php
+use RequestTracer\Attributes\NoTrace;
+use RequestTracer\Attributes\Trace;
+
+class InvoiceCalculator
+{
+    #[Trace(label: 'Tax rules')]      // proxied even though App\Support is not in proxies.namespaces
+    public function applyTax(Invoice $invoice): Money { /* ... */ }
+
+    #[NoTrace]                        // never traced, even inside a proxied namespace
+    public function hotPath(): int { /* ... */ }
+}
+
+#[Trace]                              // every public method of the class
+class ReportBuilder { /* ... */ }
+```
+
+`#[Trace(deep: true)]` also opts the file into Deep trace (see the Deep trace guide); `#[NoTrace]` on a class or method keeps probes out of it too. Classes outside `proxies.namespaces` are only inspected for `#[Trace]` when they live under `proxies.attribute_namespaces` (default `App\`).
+
+## Layer 4 – the `trace()` helper
+
+```php
+return trace($this->calculate($order), 'order total');   // returns the value unchanged
+```
+
+Records a span with the caller's file and line and the value in `dd()` format. When nothing is recorded it is a single boolean check and returns its argument.
