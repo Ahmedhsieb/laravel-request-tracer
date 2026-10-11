@@ -75,6 +75,7 @@ final class EventCollector implements Collector
             return;
         }
         $span->meta['listeners'] = array_slice($listeners, 0, 20);
+        $span->meta['summary'] = count($listeners).' '.(count($listeners) === 1 ? 'listener' : 'listeners');
         $span->input = $session->dump([
             'event' => is_object($object) && count($payload) === 1 ? $object : $payload,
             'listeners' => $listeners,

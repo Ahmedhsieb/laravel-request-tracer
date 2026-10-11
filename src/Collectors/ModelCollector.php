@@ -92,6 +92,7 @@ final class ModelCollector implements Collector
         $span->connection = (string) ($model->getConnectionName() ?? $write['connection'] ?? '');
         $span->meta['table'] = $model->getTable();
         $span->meta['event'] = $kind;
+        $span->meta['summary'] = ucfirst($verb).' in '.$model->getTable();
         if ($write !== null) {
             $span->input = $write['before'] === null ? null : $this->asValue($session, (string) $write['before']);
             $span->output = $write['after'] === null ? null : $this->asValue($session, (string) $write['after']);

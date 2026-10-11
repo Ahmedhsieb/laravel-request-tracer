@@ -182,6 +182,18 @@ it('returns Deep trace lines of a step together with the source of the functions
         ->and(collect($source['lines'])->pluck('text')->implode("\n"))->toContain('public function create(User $user, array $data): Order')
         ->and($source['changed_since_trace'])->toBeFalse();
 
+    // the lines that carry a probe: only those can be shown as "not run"
+    $statements = $source['statements'];
+    expect($statements)->toBeArray()->not->toBeEmpty()
+        ->and($statements)->toBe(array_values(array_unique($statements)))
+        ->and(min($statements))->toBeGreaterThanOrEqual($source['start'])
+        ->and(max($statements))->toBeLessThanOrEqual($source['end']);
+    foreach ($data['lines'] as $row) {
+        if ($row['file'] === $source['file'] && ($row['result']['fn'][1] ?? null) === $source['start'] && ($row['result']['fn'][2] ?? null) === $source['end']) {
+            expect($statements)->toContain($row['line']);          // every line that ran has a probe
+        }
+    }
+
     // the whole trace's lines, too
     expect($this->getJson(API."/traces/{$id}/lines")->json('data'))->not->toBeEmpty();
 });

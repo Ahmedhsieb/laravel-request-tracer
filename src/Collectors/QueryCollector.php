@@ -63,6 +63,8 @@ final class QueryCollector implements Collector
         $span = $session->recorder->leaf(SpanType::Query, $event->sql, $durationUs, $file, $line);
         $span->connection = $event->connectionName;
         $span->meta['op'] = $statement->operation;
+        $tables = array_map(static fn ($t): string => $t->name, $statement->writes !== [] ? $statement->writes : $statement->reads);
+        $span->meta['summary'] = strtoupper($statement->operation).($tables === [] ? '' : ' '.implode(', ', array_slice($tables, 0, 3))).' · '.$event->connectionName;
 
         $names = BindingNamer::names($event->sql, $driver);
         $bindings = array_values($event->bindings);

@@ -8,6 +8,7 @@ use RequestTracer\Span;
 use RequestTracer\SpanFlag;
 use RequestTracer\SpanType;
 use RequestTracer\Support\Paths;
+use RequestTracer\Support\Summary;
 use RequestTracer\TraceSession;
 use Throwable;
 
@@ -46,6 +47,7 @@ final class ExceptionTracker
             $span->flag = SpanFlag::Caught;
             $span->output = $this->session->dump($e);
             $span->meta['exception'] = $id;
+            $span->meta['summary'] = Summary::of($e);
         }
 
         return $span->id;

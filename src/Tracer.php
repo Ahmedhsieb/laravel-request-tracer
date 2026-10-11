@@ -17,6 +17,7 @@ use RequestTracer\Storage\TraceStorage;
 use RequestTracer\Support\App;
 use RequestTracer\Support\CallSite;
 use RequestTracer\Support\Failure;
+use RequestTracer\Support\Summary;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -180,6 +181,7 @@ final class Tracer
         if ($response !== null) {
             $session->meta['status'] = $response->getStatusCode();
             $session->root->output = $session->dump($response);
+            $session->root->meta['summary'] = Summary::of($response);
             $exception = property_exists($response, 'exception') ? $response->exception : null;
             if ($exception instanceof \Throwable) {
                 $session->exceptions()->markUncaught($exception, $this->ignorable($exception));

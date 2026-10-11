@@ -8,6 +8,7 @@ use RequestTracer\Span;
 use RequestTracer\SpanFlag;
 use RequestTracer\SpanType;
 use RequestTracer\Support\Failure;
+use RequestTracer\Support\Summary;
 use RequestTracer\Tracer;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -62,6 +63,9 @@ final class Runtime
             }
             if (! $span->ghost && ! $void) {
                 $span->output = $session->dump($value instanceof Response && $span->type === SpanType::Middleware ? ['status' => $value->getStatusCode()] : $value);
+                $span->meta['summary'] = 'Returns '.Summary::of($value);
+            } elseif (! $span->ghost && $void) {
+                $span->meta['summary'] = 'Returns nothing';
             }
             $session->recorder->end($span);
         } catch (\Throwable $e) {
@@ -85,6 +89,7 @@ final class Runtime
                 // Failed until we know the exception was caught further up (decided once the request ended).
                 $span->flag = SpanFlag::Failed;
                 $span->meta['exception'] = $session->exceptions()->idOf($exception);
+                $span->meta['summary'] = 'Threw '.Summary::of($exception);
                 $span->output = $session->dump($exception);
             }
             $session->recorder->end($span);

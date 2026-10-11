@@ -64,6 +64,9 @@ it('records the whole flow of POST /api/orders as a tree', function () {
         ->toContain('service:InventoryService::reserve');
     expect(array_count_values($inside)['service:InventoryService::reserve'])->toBe(3);
 
+    // the one-line description the dashboard shows under the step
+    expect($this->create['meta']['summary'])->toStartWith('Returns Order #');
+
     // per-step input / output in dd() format
     expect($this->create['input']['i'][0][0])->toBe('user')
         ->and($this->create['output']['kind'])->toBe('model');

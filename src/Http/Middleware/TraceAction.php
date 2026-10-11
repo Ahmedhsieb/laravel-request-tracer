@@ -10,6 +10,7 @@ use Illuminate\Routing\Route;
 use RequestTracer\SpanType;
 use RequestTracer\Support\Failure;
 use RequestTracer\Support\Locator;
+use RequestTracer\Support\Summary;
 use RequestTracer\Tracer;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -52,6 +53,7 @@ final class TraceAction
                     if ($session !== null) {
                         if (! $span->ghost && $response instanceof Response) {
                             $span->output = $session->dump($response);
+                            $span->meta['summary'] = 'Returns '.Summary::of($response);
                         }
                         $session->recorder->end($span);
                     }

@@ -48,6 +48,7 @@ final class JobCollector implements Collector
                     return;
                 }
                 $span->meta['job'] = $name;
+                $span->meta['summary'] = 'Dispatched to '.($event->connectionName ?: 'queue');
                 $span->meta['connection'] = $event->connectionName;
                 $span->meta['job_id'] = is_scalar($event->id) ? (string) $event->id : null;
                 $span->input = $session->dump(['job' => is_object($event->job) ? $event->job : $name, 'connection' => $event->connectionName, 'queue' => $event->queue ?? null]);
