@@ -37,7 +37,7 @@ Git: one branch per phase `phase/<n>-<slug>`, merge to `main` when tests + analy
 9. **Nothing records on its own, in any environment** (local included): only while `request-tracer:listen` runs (a heartbeat file, checked with one `stat()`), or for a signed header, a watched user, a sample, a replay, or a process started with `REQUEST_TRACER=1`. `mode=always` is an explicit opt-in. The one exception is the request journal (`journal.enabled`, off by default): one light masked row per request, never a trace, kept `journal.hours`.
 10. **Installing is `composer require`.** No config, migration or publish step may become necessary: every key has a default, the tables create themselves, the dashboard is served from the package.
 11. **The scope is folders** (`code.paths`, default `app`, minus `code.except`): everything inside is traced, nothing is listed class by class. Compiled copies are only loaded while recording is wanted (`Listening::wanted()`).
-12. **Replay never leaves database changes behind** and never sends mail or queued jobs; it is off in the `production` environment unless `replay.enabled` says so.
+12. **A replay is a choice, and a simulation changes nothing**: its database changes are rolled back and mail, notifications, jobs, broadcasts and HTTP-client calls do not go out. **Running for real** keeps the changes, records every Eloquent write in the encrypted undo log (the one place raw values are kept, short-lived, never returned by the API) and says what it cannot undo. Replay is off in the `production` environment unless `replay.enabled` says so; real needs `replay.real` too.
 
 ## Conventions
 
@@ -58,8 +58,8 @@ src/DeepTrace/                           compiler + probes
 src/Dumper/                              Symfony VarCloner → stored structure, masking
 src/Storage/                             TraceStorage + database driver
 src/Http/ routes/                        API + dashboard
-src/Console/                             listen, replay, prune, install, token
-src/Replay/                              run a request again (cURL parser, transactions, replayer)
+src/Console/                             listen, replay, undo, prune, install, token
+src/Replay/                              run a request again (cURL parser, transactions, replayer, undo log)
 src/Recording/                           when to record: decider, listening heartbeat, tokens, watch list
 resources/js/                            Vue SPA   → dist/ (committed build)
 tests/Fixtures/                          example Order app used by the end-to-end test

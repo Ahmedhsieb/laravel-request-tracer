@@ -10,6 +10,7 @@ import DatabaseTab from './DatabaseTab.vue'
 import ProblemsTab from './ProblemsTab.vue'
 import SpanTree from './SpanTree.vue'
 import StepDetail from './StepDetail.vue'
+import UndoBanner from './UndoBanner.vue'
 
 const props = defineProps<{ traceId: string }>()
 
@@ -164,7 +165,7 @@ onBeforeUnmount(() => {
       <span class="badge method" :class="methodTone(trace.method)">{{ trace.method ?? trace.kind }}</span>
       <h1>{{ trace.path ?? trace.kind }}</h1>
       <span v-if="trace.status !== null" class="mono" :class="`tone-${statusTone(trace.status)}`">{{ trace.status }}</span>
-      <span v-if="trace.mode === 'replay'" class="badge" style="--badge: var(--purple)" title="This trace is a replay: the request was run again, and its database changes were rolled back">replay</span>
+      <span v-if="trace.mode === 'replay'" class="badge" style="--badge: var(--purple)" title="This trace is a replay: the request was run again, as a simulation (nothing was changed) or for real (see below)">replay</span>
       <button class="copy btn small ghost" type="button" @click="copyLink">Copy link</button>
       <button v-if="store.meta?.replay.enabled && trace.kind === 'request'" class="btn small" type="button" title="Run this request again, traced from the first line" @click="replayThis">Replay this request</button>
     </div>
@@ -177,6 +178,8 @@ onBeforeUnmount(() => {
       <span class="mono faint">{{ trace.id }}</span>
       <button v-if="trace.parent_trace_id" class="copy" type="button" @click="store.open(trace.parent_trace_id)">Dispatched by a request: open it</button>
     </div>
+
+    <UndoBanner v-if="trace.mode === 'replay' && store.meta?.replay.enabled" :key="trace.id" :trace-id="trace.id" />
 
     <p v-if="trace.truncated" class="tone-warn" role="status" style="margin: 10px 0 0">
       This trace hit the step limit, so the busiest parts were merged or left out. Raise <code>request-tracer.limits.max_spans</code> to keep more.

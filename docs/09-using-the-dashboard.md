@@ -65,20 +65,22 @@ The request you need to understand happened while nothing was listening? Run it 
 
 1. **Replay a request** (header), then either **Paste cURL** (browser: Network tab, right-click the request, *Copy → Copy as cURL (bash)*; Postman and bug reports have one too) or **Describe it** (method, URL or path, headers, body).
 2. Optionally the id of the user to **act as**: the request runs as that user, with no login.
-3. **Replay it**. The new trace opens, marked *replay*.
+3. Choose what it may change: **Simulation** (nothing is changed, the default) or **Run for real** (it affects data, and you can undo it afterwards; you must tick a confirmation).
+4. **Simulate it** / **Run it for real**. The new trace opens, marked *replay*.
 
 On any trace, **Replay this request** opens the same dialog filled in from what was recorded: method, path and query, headers and body. Values that were masked when the request was recorded (passwords, tokens) cannot be recovered, so the dialog warns you and shows the mask where the secret was: replace it before you run.
 
 What a replay does and does not do:
 
 - The request goes through your application's **own HTTP kernel**, middleware and all, in a PHP process of its own, so its code is compiled for line-by-line tracing from the first class.
-- **Database changes are rolled back** (a transaction on every connection the request touches). The trace still shows what the request wrote, in the Database tab.
-- **E-mails** go to the `array` mailer, **queued jobs** are dropped and **broadcasts** are not sent.
-- **Calls to other services** (payment gateways, APIs, anything over the HTTP client or a socket) **are real**. That is why replay is off in the `production` environment unless `request-tracer.replay.enabled` is `true`.
+- In a **simulation** (the default) **database changes are rolled back** (a transaction on every connection the request touches); the trace still shows what the request wrote, in the Database tab. **E-mails** go to the `array` mailer, **notifications** and **broadcasts** are dropped, **queued jobs** are discarded, calls made with **Laravel's HTTP client** are answered with an empty `200` and the **cache and the session** stay in memory.
+- A simulation cannot control what happens outside the framework: **files**, a **Guzzle or curl call made directly**, an SDK that talks to a service by itself, a table that does not support transactions, a statement that commits on its own (DDL). While it runs, the rows it touches are locked and auto-increment counters move.
+- **Run for real** lets the request do what it does: rows are written and kept, e-mails and jobs go out, other services are called. While it runs, **every Eloquent write is recorded exactly** (the row for an insert, the changed columns before and after for an update, the whole row for a delete; a soft delete too) in a log that is separate from the trace, because the trace masks and cuts values. The log is encrypted with the application key and never shown.
+- On the trace of a real replay, a banner lists what can be **undone** (`orders: 1 insert, 1 update`, ...) and what cannot: writes made with the query builder or raw SQL (listed by table), e-mails, jobs, files and calls to other services. **Undo these changes** takes the recorded writes back, last first, in one transaction per connection: **all or nothing**. A row that changed after the replay (somebody edited it) is not touched: the banner lists those rows and **Undo anyway** is the explicit way to force it. From the terminal: `php artisan request-tracer:undo <trace>` (`--force`, `--yes`). The log expires after `replay.undo_hours` (24 by default).
+- Replay is off in the `production` environment unless `request-tracer.replay.enabled` is `true`, and running for real there also needs `request-tracer.replay.real` to be `true`.
 - POSTs get a valid CSRF token automatically. Multipart uploads are not replayed.
-- Files, caches and other stores outside the database are not rolled back.
 
-From the terminal: `php artisan request-tracer:replay "POST /orders" --data='{"items":[1]}' --as=42`, or `--curl="curl '...' ..."`.
+From the terminal: `php artisan request-tracer:replay "POST /orders" --data='{"items":[1]}' --as=42`, or `--curl="curl '...' ..."`; add `--real` (it asks to confirm, or `--force`) to run it for real, and undo it with `php artisan request-tracer:undo <trace>`.
 
 ## The journal
 
@@ -86,7 +88,7 @@ You do not always know what the request looked like. A user says "it failed arou
 
 Each journal row shows the method, the URL with its query string, the status, who made the request (user id, or *guest*), how long it took, and, for a failure, the exception (`RuntimeException: Invoice 9912 has no ledger entry.`) or `HTTP 500`. Filter with **Failed** (a 5xx or an exception) and the search box (URL, user, error).
 
-**Click a row** and the replay form opens filled in from it: method, URL, headers, the body, and the user it ran as. Press **Replay it** and you get the full trace, line by line, of what that request does now (database changes rolled back, see above). If the request was traced when it happened, the row has a **Trace** button that opens that trace instead.
+**Click a row** and the replay form opens filled in from it: method, URL, headers, the body, and the user it ran as. Choose the mode and run it, and you get the full trace, line by line, of what that request does now (a simulation changes nothing; see above for running it for real). If the request was traced when it happened, the row has a **Trace** button that opens that trace instead.
 
 From the terminal, without opening the dashboard: `php artisan request-tracer:replay --journal=failed` (the newest request that failed), `--journal=last`, or `--journal=<id>`.
 

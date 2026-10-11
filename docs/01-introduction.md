@@ -34,7 +34,7 @@ No config, no migration, nothing to publish. `request-tracer:listen` works like 
 
 **What is traced is simple to say**: every call in your `app/` folder, with input and output, and, line by line, every condition, block and variable inside it. To look at other folders or single files, or to leave something out, change two lists (`code.paths`, `code.except`). You never name classes one by one.
 
-The request you care about already happened? **Replay it**: paste its cURL command, and the application runs it again, traced, with its database changes rolled back.
+The request you care about already happened? **Replay it**: paste its cURL command, and the application runs it again, traced: as a simulation that changes nothing, or for real, with what it wrote recorded so it can be undone.
 
 Underneath there are four ways code gets seen, and all of them are on by default for the project:
 

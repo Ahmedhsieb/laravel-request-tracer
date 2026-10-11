@@ -92,6 +92,8 @@ code, pre, .mono { font-family: var(--mono); font-size: 12.5px; }
 .btn[disabled] { opacity: .6; cursor: default; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #0b1d18; font-weight: 600; }
 .btn.primary:hover { background: #7ae3cc; }
+.btn.danger { background: var(--red); border-color: var(--red); color: #2a0b0b; font-weight: 600; }
+.btn.danger:disabled { opacity: 0.5; }
 .btn.ghost { background: transparent; }
 .btn.small { min-height: var(--hit); padding: 0 12px; font-size: 13px; }
 
@@ -453,3 +455,24 @@ table.grid { border-collapse: collapse; width: 100%; font: 12.5px var(--mono); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------------------------------------------------------------- replay: simulate or run for real, and undo */
+
+.effects { display: grid; gap: 8px; }
+.dialog .effect, .dialog .confirm-real { display: flex; flex-direction: row; gap: 10px; align-items: flex-start; }
+.dialog .effect { color: var(--text); font-size: 13px; }
+.effect {
+  padding: 10px 12px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel);
+}
+.effect.on { border-color: var(--accent); }
+.effect.off { opacity: 0.55; cursor: not-allowed; }
+.effect input, .confirm-real input { flex: none; width: auto; margin: 3px 0 0; }
+.effect small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.dialog .confirm-real { gap: 8px; color: var(--red); font-size: 13px; }
+
+.undo-banner {
+  margin: 12px 0 0; padding: 10px 14px; border: 1px solid var(--yellow); border-radius: var(--radius);
+  background: color-mix(in srgb, var(--yellow) 8%, transparent); font-size: 13px;
+}
+.undo-list { margin: 6px 0 0; padding-left: 18px; font-size: 12px; color: var(--muted); }

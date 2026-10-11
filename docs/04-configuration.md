@@ -43,7 +43,9 @@ Running a request that already happened again, traced (dashboard: *Replay a requ
 
 | Key | Default | What it does |
 |---|---|---|
-| `enabled` | `null` | `null` allows replay everywhere except the `production` environment; `true` allows it everywhere; `false` never. Database changes of a replay are rolled back and e-mails and queued jobs go nowhere, but calls to other services are real: that is why production is off by default. |
+| `enabled` | `null` | `null` allows replay everywhere except the `production` environment; `true` allows it everywhere; `false` never. |
+| `real` | `null` | May a replay **run for real** (changes kept, e-mails sent, other services called)? `null` allows it wherever replay is allowed except in `production`; `true` allows it everywhere (in production you need `enabled => true` too); `false` never. A simulation, which changes nothing, is always available where replay is. |
+| `undo_hours` | `24` | How long what a real replay changed can still be undone. The exact values live in an encrypted file under `storage/framework/request-tracer/undo`, deleted when undone, when it expires and by `request-tracer:prune`. |
 | `timeout` | `120` | Seconds a replay may run. |
 
 ## `scope` and `exclude`

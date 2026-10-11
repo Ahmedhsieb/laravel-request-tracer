@@ -32,6 +32,7 @@ use RequestTracer\Console\ListenCommand;
 use RequestTracer\Console\PruneCommand;
 use RequestTracer\Console\ReplayCommand;
 use RequestTracer\Console\TokenCommand;
+use RequestTracer\Console\UndoCommand;
 use RequestTracer\DeepTrace\Loader;
 use RequestTracer\Http\Middleware\Authorize;
 use RequestTracer\Http\Middleware\LightWeb;
@@ -197,7 +198,7 @@ final class RequestTracerServiceProvider extends ServiceProvider
     private function registerCommands(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([ListenCommand::class, ReplayCommand::class, PruneCommand::class, InstallCommand::class, TokenCommand::class]);
+            $this->commands([ListenCommand::class, ReplayCommand::class, UndoCommand::class, PruneCommand::class, InstallCommand::class, TokenCommand::class]);
         }
     }
 
