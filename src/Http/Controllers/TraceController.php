@@ -7,6 +7,7 @@ namespace RequestTracer\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use RequestTracer\DeepTrace\Compiler;
 use RequestTracer\Storage\TraceStorage;
 use RequestTracer\Support\Paths;
 use RequestTracer\Tracer;
@@ -135,6 +136,7 @@ final class TraceController extends Controller
         $created = strtotime($traceCreatedAt) ?: 0;
         $sources = [];
         $cache = [];
+        $statements = [];
         foreach (array_slice($wanted, 0, self::MAX_SOURCE_FUNCTIONS) as [$file, $name, $start, $end]) {
             $absolute = Paths::absolute($file);
             $cache[$absolute] ??= is_file($absolute) && is_readable($absolute) ? preg_split('/\r\n|\n|\r/', (string) file_get_contents($absolute)) : null;
@@ -151,11 +153,57 @@ final class TraceController extends Controller
                 'start' => $start,
                 'end' => $end,
                 'lines' => $slice,
+                'statements' => $all === null ? null : self::functionStatements($statements[$absolute] ??= self::probeLines($absolute, $file), $start, $end),
                 'missing' => $all === null,
                 'changed_since_trace' => $all !== null && ((int) @filemtime($absolute)) > $created,
             ];
         }
 
         return $sources;
+    }
+
+    /**
+     * Where Deep trace puts probes in a file: [[line, functionStart, functionEnd], ...], or null when the file cannot be compiled.
+     * The dashboard marks a line "not run" only when a probe sits on it, so continuation lines of a long statement stay unmarked.
+     *
+     * @return list<array{0: int, 1: int, 2: int}>|null
+     */
+    private static function probeLines(string $absolute, string $relative): ?array
+    {
+        try {
+            $source = (string) file_get_contents($absolute);
+            $result = (new Compiler)->compile($source, $relative, $absolute);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $lines = [];
+        foreach ($result->probes as $probe) {
+            if ($probe['f'] !== null) {
+                $lines[] = [$probe['l'], $probe['f'][1], $probe['f'][2]];
+            }
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param  list<array{0: int, 1: int, 2: int}>|null  $probes
+     * @return list<int>|null
+     */
+    private static function functionStatements(?array $probes, int $start, int $end): ?array
+    {
+        if ($probes === null) {
+            return null;
+        }
+        $lines = [];
+        foreach ($probes as [$line, $from, $to]) {
+            if ($from === $start && $to === $end) {
+                $lines[$line] = true;
+            }
+        }
+        ksort($lines);
+
+        return array_keys($lines);
     }
 }

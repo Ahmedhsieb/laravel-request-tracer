@@ -49,6 +49,7 @@ final class TracedValidator extends Validator
                     }
                     if (! $span->ghost) {
                         $span->meta['passed'] = $passed;
+                        $span->meta['summary'] = $passed ? 'Passed' : 'Failed: '.$this->errors()->count().' '.($this->errors()->count() === 1 ? 'error' : 'errors');
                         $span->output = $session->dump($passed ? ['passed' => true] : ['passed' => false, 'errors' => $this->errors()->messages()]);
                         if (! $passed) {
                             $span->flag = SpanFlag::Failed;

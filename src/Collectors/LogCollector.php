@@ -41,6 +41,7 @@ final class LogCollector implements Collector
                     return;
                 }
                 $span->meta['level'] = $event->level;
+                $span->meta['summary'] = strtoupper($event->level);
                 $span->input = $session->dump(['message' => $message, 'context' => $event->context]);
             } catch (\Throwable $e) {
                 Failure::report($e, 'log collector');

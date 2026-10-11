@@ -87,6 +87,7 @@ final class HttpClientCollector implements Collector
         }
 
         $span->meta['status'] = $status;
+        $span->meta['summary'] = $status === null ? 'Connection failed' : 'HTTP '.$status;
         if ($failed) {
             $span->flag = SpanFlag::Failed;
         }

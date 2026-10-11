@@ -51,6 +51,7 @@ final class CacheCollector implements Collector
                 return;
             }
             $span->meta['kind'] = $kind;
+            $span->meta['summary'] = ucfirst($kind);
             $span->input = $session->dump(['key' => $key]);
             if ($withValue) {
                 $span->output = $session->dump($tracer->masker()->isSensitiveKey($key) ? new MaskedValue : $value);

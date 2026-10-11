@@ -44,3 +44,15 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 - JSON API v1: meta, trace list (filters, cursor), trace summary, step tree without payloads, lazy payloads, Deep trace lines with function sources, writes, problems, delete/clear, token issuing, watch list, Deep trace queue.
 - Commands: `request-tracer:prune` (scheduled hourly automatically), `request-tracer:install`, `request-tracer:token`.
 - Docs: running in production, API reference, SECURITY.md.
+
+### Phase 5 – dashboard
+- Vue 3 + Vite + TypeScript single-page app (no router or UI library dependency), built to `dist/app.js` and `dist/app.css` (committed, fixed file names, served by the package).
+- Request list with search, "With problems" / "Slow" filters, module filter, polling and slide-in of new rows, cursor pagination; header with environment badge, pulsing recording indicator and the "Record a request" dialog (signed header, watch list).
+- Request view: metric strip, animated stacked "where the time went" bar (self time per type), Flow / Database / Problems tabs.
+- Flow: virtualised step tree with elbow connectors, per-step type, one-line summary ("Returns Order #1057"), time bars and flags; hover previews and click pins a step; keyboard navigation (arrows, Enter).
+- Step detail: lazy-loaded Input / Output in `dd()` style (collapsible, copy, masked and truncated markers) and "Inside the code" (coloured dots, chips, hover card with variables, Replay with Back/Next/progress, "Trace this file line by line" queue button).
+- Database tab: INSERT / UPDATE / DELETE cards with before → after grids, masked cells, writing step link, transaction state, read-only tables. Problems tab: cards that jump to the step in the flow, plus the notes about things the tracer could not follow.
+- Seeded demo mode (`npm run dev`, or `?demo=1`): an order flow with a failed-then-retried HTTP call, an N+1, a caught exception, Deep trace and table writes; nothing leaves the browser.
+- Accessibility: 44 px hit areas, visible focus ring, tested 4.5:1 colour contrast, all animation disabled under `prefers-reduced-motion`, no horizontal scroll at 375 px.
+- Backend: one-line `meta.summary` for steps (`Returns Order #1057`, `Threw …`), and `sources[].statements` in the span-lines API so only lines that carry a probe can be shown as "not run".
+- Tests: 127 frontend tests (formatting, tree, value, code view, contrast and stylesheet rules).

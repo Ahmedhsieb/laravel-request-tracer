@@ -69,3 +69,10 @@ That keeps every original line, comment and whitespace untouched, so line number
 
 ### D12 – No closures in config
 `config:cache` cannot serialize closures. Resolvers (tenant, module) and custom storage drivers are class names; closures can be registered from a provider through the `Tracer` facade.
+
+### D13 – "Not run" is only shown on lines that carry a probe
+Deep trace stores the probes that were hit, never the ones that were not. Marking every code-looking line without a row as "not run" was wrong for the continuation lines of a multi-line statement.
+The span-lines endpoint therefore compiles the function again (read only, nothing is written) and returns the probe lines as `statements`; the dashboard marks only those. If the file cannot be compiled the dashboard falls back to a text heuristic.
+
+### D14 – The dashboard has no router and no UI library
+The app is a few screens, so it uses the History API directly (`<base>/trace/<id>`) and a small store. That keeps the committed `dist/` at about 140 KB (51 KB gzip), and the only runtime dependency is Vue.
