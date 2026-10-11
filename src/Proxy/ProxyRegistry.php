@@ -8,7 +8,9 @@ use Closure;
 use Illuminate\Container\Container;
 use RequestTracer\Attributes\NoTrace;
 use RequestTracer\Attributes\Trace;
+use RequestTracer\DeepTrace\Loader;
 use RequestTracer\Support\ClassPatterns;
+use RequestTracer\Support\CodeScope;
 use RequestTracer\Support\Failure;
 use RequestTracer\Support\Locator;
 use RequestTracer\Support\Paths;
@@ -140,6 +142,12 @@ final class ProxyRegistry
         }
 
         $vendorMethods = (bool) $tracer->config('proxies.vendor_methods', false);
+
+        // the project's own code: everything in `code.paths` that is not left out
+        if ($this->inCodeScope($class)) {
+            return ['vendor_methods' => $vendorMethods];
+        }
+
         $namespaces = (array) $tracer->config('proxies.namespaces', []);
         if ($namespaces !== [] && $this->matches($class, $namespaces) && class_exists($class)) {
             return ['vendor_methods' => $vendorMethods];
@@ -153,6 +161,21 @@ final class ProxyRegistry
         }
 
         return null;
+    }
+
+    /** A class that lives in `code.paths`, is not left out by `code.except` or `#[NoTrace]`, and is safe to subclass. */
+    private function inCodeScope(string $class): bool
+    {
+        if (! CodeScope::classAllowed($class) || ! class_exists($class)) {
+            return false;
+        }
+        $ref = new \ReflectionClass($class);
+        $file = $ref->getFileName();
+        if ($file === false || $ref->getAttributes(NoTrace::class) !== []) {
+            return false;
+        }
+
+        return CodeScope::includesFile(Loader::originalOf($file) ?? $file) && CodeScope::proxyable($ref);
     }
 
     /**

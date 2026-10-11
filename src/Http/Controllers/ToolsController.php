@@ -10,6 +10,10 @@ use Illuminate\Routing\Controller;
 use RequestTracer\DeepTrace\Loader;
 use RequestTracer\Recording\TokenService;
 use RequestTracer\Recording\WatchList;
+use RequestTracer\Replay\CurlParser;
+use RequestTracer\Replay\Replayer;
+use RequestTracer\Replay\ReplayRequest;
+use RequestTracer\Support\App;
 use RequestTracer\Support\Paths;
 use RequestTracer\Tracer;
 
@@ -37,6 +41,39 @@ final class ToolsController extends Controller
             'header' => $header,
             'example' => sprintf("curl -H '%s: %s' %s", $header, $issued['token'], rtrim((string) config('app.url'), '/').'/your/endpoint'),
         ]], 201);
+    }
+
+    /** Run a request again, traced: either a pasted cURL command or method, URL, headers and body. */
+    public function replay(Request $request): JsonResponse
+    {
+        abort_unless(Replayer::allowed(), 403, 'Replay is switched off in this environment (request-tracer.replay.enabled).');
+
+        $data = $request->validate([
+            'curl' => ['nullable', 'string', 'max:50000'],
+            'method' => ['nullable', 'string', 'max:10'],
+            'url' => ['nullable', 'string', 'max:2048'],
+            'headers' => ['nullable', 'array'],
+            'body' => ['nullable', 'string', 'max:500000'],
+            'as_user' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        try {
+            if (isset($data['curl']) && trim($data['curl']) !== '') {
+                $replay = CurlParser::parse($data['curl']);
+                $replay = isset($data['as_user']) && $data['as_user'] !== '' ? $replay->withUser($data['as_user']) : $replay;
+            } elseif (isset($data['url']) && $data['url'] !== '') {
+                $replay = ReplayRequest::fromArray($data);
+            } else {
+                abort(422, 'Paste a cURL command, or give a method and a URL.');
+            }
+        } catch (\InvalidArgumentException $e) {
+            abort(422, $e->getMessage());
+        }
+
+        set_time_limit((int) $this->tracer->config('replay.timeout', 120) + 15);
+        $result = App::container()->make(Replayer::class)->runInChild($replay);
+
+        return response()->json(['data' => $result], $result['error'] === null ? 200 : 422);
     }
 
     public function watchList(WatchList $watch): JsonResponse

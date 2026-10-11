@@ -31,18 +31,39 @@ return [
     'enabled' => env('REQUEST_TRACER_ENABLED', true),
 
     /*
-     * When requests are recorded:
-     *   null        -> 'always' in the `local` environment, 'triggered' everywhere else
-     *   'always'    -> every request that is not excluded
-     *   'triggered' -> only requests with a valid signed header, a watched user, or a sampled request
-     *   'off'       -> never record (dashboard still works)
+     * When things are recorded:
+     *   null / 'triggered' -> only while `php artisan request-tracer:listen` is running (like `queue:work`), or for a request
+     *                         that carries a signed header, a watched user, or a sampled request. The default, everywhere.
+     *   'always'           -> every request that is not excluded, with no command needed
+     *   'off'              -> never record (the dashboard still shows what is stored)
      */
     'mode' => env('REQUEST_TRACER_MODE'),
 
     /*
-     * Environments that count as "local" (recording on by default, dashboard open without a gate).
+     * Environments that count as "local": the dashboard is open without a gate there.
      */
     'local_environments' => ['local'],
+
+    /*
+     * The code that is looked into. Everything inside these folders and files is traced while the tracer records: every call
+     * (input and output) and, line by line, every condition, block and variable. Nothing has to be listed class by class.
+     */
+    'code' => [
+        'paths' => ['app'],         // folders or files, relative to the project (or absolute): 'app', 'modules/Billing/src', 'app/Support/Money.php'
+        'except' => [],             // folders, files or classes to leave out: 'app/Legacy', 'app/Support/Money.php', 'App\Legacy\*'
+        'line_by_line' => true,     // false = calls with input and output only, no per-line view
+    ],
+
+    /*
+     * Replaying a request that already happened ("run it again, traced", from the dashboard or `request-tracer:replay`).
+     * The database changes of a replay are rolled back; e-mails and queued jobs are not sent, but calls to other services are real.
+     *   null  -> allowed everywhere except the production environment
+     *   true  -> allowed everywhere, false -> never
+     */
+    'replay' => [
+        'enabled' => null,
+        'timeout' => 120,           // seconds
+    ],
 
     /*
      * Only requests whose path matches one of these patterns can be recorded. Empty = everything that is not excluded.

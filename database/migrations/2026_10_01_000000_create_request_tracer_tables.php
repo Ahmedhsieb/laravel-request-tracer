@@ -24,6 +24,12 @@ return new class extends Migration
     {
         $schema = Schema::connection($this->getConnection());
 
+        // The package creates its tables by itself the first time they are needed, and `php artisan migrate` runs this file too,
+        // and a copy that was published earlier may still exist: whichever comes first wins, the others have nothing to do.
+        if ($schema->hasTable($this->table('traces'))) {
+            return;
+        }
+
         $schema->create($this->table('traces'), function (Blueprint $table) {
             $table->char('id', 26)->primary();                       // ULID: sorts by time, used as the pagination cursor
             $table->string('kind', 16)->default('request');          // request | job | command | schedule

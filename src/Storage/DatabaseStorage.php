@@ -7,6 +7,7 @@ namespace RequestTracer\Storage;
 use DateTimeInterface;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use RequestTracer\Span;
@@ -22,6 +23,19 @@ final class DatabaseStorage implements TraceStorage
     ) {}
 
     public function store(TraceData $data): void
+    {
+        try {
+            $this->write($data);
+        } catch (QueryException $e) {
+            // the tables are missing on a fresh install: create them once and try again
+            if (! TableInstaller::ensure()) {
+                throw $e;
+            }
+            $this->write($data);
+        }
+    }
+
+    private function write(TraceData $data): void
     {
         $db = $this->connections->resolve();
 

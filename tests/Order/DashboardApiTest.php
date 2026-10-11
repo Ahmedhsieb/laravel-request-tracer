@@ -7,6 +7,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use RequestTracer\DeepTrace\Loader;
+use RequestTracer\Recording\Listening;
+use RequestTracer\Replay\Replayer;
+use RequestTracer\Replay\ReplayRequest;
 use RequestTracer\Support\Paths;
 
 const API = '/request-tracer/api/v1';
@@ -297,4 +300,91 @@ it('queues a file for Deep trace, refuses anything outside the application, and 
 
     $this->deleteJson(API.'/deep-trace/queue', ['file' => $file])->assertOk();
     expect(Loader::queue()->read())->toBe([]);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// replay and listening
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** A replayer that does not start a PHP process: it remembers what it was asked to run. */
+function fakeReplayer(array $result = ['trace_id' => '01HFAKETRACE00000000000000', 'status' => 200, 'error' => null]): Replayer
+{
+    $fake = new class($result) extends Replayer
+    {
+        public ?ReplayRequest $received = null;
+
+        /** @param  array{trace_id: string|null, status: int|null, error: string|null}  $result */
+        public function __construct(private readonly array $result) {}
+
+        public function runInChild(ReplayRequest $replay): array
+        {
+            $this->received = $replay;
+
+            return $this->result;
+        }
+    };
+    app()->instance(Replayer::class, $fake);
+
+    return $fake;
+}
+
+it('replays a pasted cURL command, as the user the form names, and returns the trace to open', function () {
+    allowEveryone();
+    $fake = fakeReplayer();
+
+    $this->postJson(API.'/replay', [
+        'curl' => "curl 'https://shop.test/api/orders?x=1' -H 'X-A: 1' -H 'content-type: application/json' --data-raw '{\"q\":1}'",
+        'as_user' => '7',
+    ])->assertOk()->assertJsonPath('data.trace_id', '01HFAKETRACE00000000000000');
+
+    expect($fake->received->method)->toBe('POST')
+        ->and($fake->received->url)->toBe('https://shop.test/api/orders?x=1')
+        ->and($fake->received->headers['X-A'])->toBe('1')
+        ->and($fake->received->body)->toBe('{"q":1}')
+        ->and($fake->received->asUser)->toBe('7');
+});
+
+it('replays a request described by method, URL, headers and body', function () {
+    allowEveryone();
+    $fake = fakeReplayer();
+
+    $this->postJson(API.'/replay', ['method' => 'delete', 'url' => '/api/orders/5', 'headers' => ['Accept' => 'application/json']])->assertOk();
+
+    expect($fake->received->method)->toBe('DELETE')->and($fake->received->url)->toBe('/api/orders/5');
+});
+
+it('answers 422 with the reason when the replay fails or there is nothing to replay', function () {
+    allowEveryone();
+    fakeReplayer(['trace_id' => null, 'status' => null, 'error' => 'There is no user with id 9 (guard "web").']);
+
+    $this->postJson(API.'/replay', ['method' => 'GET', 'url' => '/x'])->assertStatus(422)->assertJsonPath('data.error', 'There is no user with id 9 (guard "web").');
+    $this->postJson(API.'/replay', [])->assertStatus(422);
+    $this->postJson(API.'/replay', ['curl' => 'wget https://x.test'])->assertStatus(422);
+});
+
+it('refuses to replay where replay is not allowed, and says so in the meta', function () {
+    allowEveryone();
+    config(['request-tracer.replay.enabled' => false]);
+    fakeReplayer();
+
+    $this->postJson(API.'/replay', ['method' => 'GET', 'url' => '/x'])->assertForbidden();
+    $this->getJson(API.'/meta')->assertJsonPath('replay.enabled', false);
+});
+
+it('tells the dashboard whether somebody is listening and which code is looked into', function () {
+    allowEveryone();
+    $file = sys_get_temp_dir().'/rt-meta-'.uniqid();
+    Listening::useFile($file);
+    config(['request-tracer.code.paths' => ['app', 'modules/Billing'], 'request-tracer.code.except' => ['app/Legacy']]);
+
+    try {
+        $this->getJson(API.'/meta')->assertJsonPath('listening', false)->assertJsonPath('listen_command', 'php artisan request-tracer:listen')
+            ->assertJsonPath('code.paths', ['app', 'modules/Billing'])->assertJsonPath('code.except', ['app/Legacy'])->assertJsonPath('code.line_by_line', true);
+
+        Listening::beat();
+        $this->getJson(API.'/meta')->assertJsonPath('listening', true);
+    } finally {
+        @unlink($file);
+        Listening::useFile(null);
+    }
 });

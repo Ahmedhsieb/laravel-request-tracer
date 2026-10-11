@@ -40,11 +40,14 @@ class BackgroundDecider
             return new Decision(RecordingState::On, $kind);
         }
 
+        if (Listening::active()) {
+            return new Decision(RecordingState::On, $kind);
+        }
         if ($kind === 'job') {
             return $stamped ? new Decision(RecordingState::On, 'job') : Decision::off();
         }
 
-        return $this->flagged() ? new Decision(RecordingState::On, $kind) : Decision::off();
+        return Listening::flagged() ? new Decision(RecordingState::On, $kind) : Decision::off();
     }
 
     public function excluded(string $kind, string $name): bool
@@ -56,13 +59,5 @@ class BackgroundDecider
         $patterns = (array) App::config()->get('request-tracer.exclude.'.($kind === 'job' ? 'jobs' : 'commands'), []);
 
         return $patterns !== [] && Str::is($patterns, $name);
-    }
-
-    /** `REQUEST_TRACER=1 php artisan orders:reconcile` */
-    private function flagged(): bool
-    {
-        $value = getenv('REQUEST_TRACER');
-
-        return is_string($value) && in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
     }
 }

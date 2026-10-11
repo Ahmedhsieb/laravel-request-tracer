@@ -34,6 +34,9 @@ final class Tracer
     /** True while a trace is being recorded (state On or Tentative). */
     public bool $on = false;
 
+    /** The id of the trace the last finish() stored (the replay command reports it). */
+    public ?string $lastStoredId = null;
+
     private ?TraceSession $session = null;
 
     private ?Masker $masker = null;
@@ -269,6 +272,7 @@ final class Tracer
             if ($session->state === RecordingState::On && ! $session->discard) {
                 $data = (new TraceBuilder(App::application(), $this))->build($session);
                 $this->persist($data);
+                $this->lastStoredId = $session->id;
             }
         } catch (\Throwable $e) {
             Failure::report($e, 'finishing trace');
@@ -385,7 +389,8 @@ final class Tracer
 
     private static function bootTime(): ?float
     {
-        if (defined('LARAVEL_START')) {
+        // in the console (a replay) the clock of the process started long before the request did
+        if (defined('LARAVEL_START') && PHP_SAPI !== 'cli') {
             return (float) LARAVEL_START;
         }
 
