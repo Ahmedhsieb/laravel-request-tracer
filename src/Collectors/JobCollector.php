@@ -6,12 +6,19 @@ namespace RequestTracer\Collectors;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Events\JobQueued;
 use Illuminate\Queue\Queue;
+use RequestTracer\Recording\BackgroundDecider;
 use RequestTracer\SpanType;
+use RequestTracer\Support\App;
 use RequestTracer\Support\CallSite;
 use RequestTracer\Support\Failure;
 use RequestTracer\Support\Locator;
+use RequestTracer\Support\Summary;
 use RequestTracer\Tracer;
 
 /**
@@ -20,8 +27,6 @@ use RequestTracer\Tracer;
  */
 final class JobCollector implements Collector
 {
-    private static bool $payloadHooked = false;
-
     public static function key(): string
     {
         return 'jobs';
@@ -57,18 +62,64 @@ final class JobCollector implements Collector
             }
         });
 
-        // Static, registered once per process; it reads the *current* tracer, so nothing leaks between requests.
-        if (! self::$payloadHooked) {
-            self::$payloadHooked = true;
-            Queue::createPayloadUsing(static function (): array {
-                $tracer = Tracer::$instance;
-                $session = $tracer?->on ? $tracer->session() : null;
-                if ($session === null) {
-                    return [];
-                }
+        $this->registerWorkerListeners($events, $tracer);
 
-                return ['request_tracer' => ['trace' => $session->id, 'span' => $session->recorder->currentId()]];
-            });
-        }
+        // A static closure: it reads the *current* tracer, so nothing leaks between requests. Registered on every boot (once per process
+        // in production and under Octane); the framework's test teardown clears these callbacks, so a "registered once" flag would lose it.
+        Queue::createPayloadUsing(static function (): array {
+            $tracer = Tracer::$instance;
+            $session = $tracer?->on ? $tracer->session() : null;
+            if ($session === null) {
+                return [];
+            }
+
+            return ['request_tracer' => ['trace' => $session->id, 'span' => $session->recorder->currentId()]];
+        });
+    }
+
+    /**
+     * The worker side: every processed job is its own trace (kind `job`), linked to the trace that dispatched it through the
+     * `request_tracer` stamp in the payload. The trace is stored when the job finishes (`JobProcessed`), throws (`JobExceptionOccurred`)
+     * or is marked failed (`JobFailed`, which also covers timeouts and "attempted too many times").
+     */
+    private function registerWorkerListeners(Dispatcher $events, Tracer $tracer): void
+    {
+        $events->listen(JobProcessing::class, function (JobProcessing $event) use ($tracer): void {
+            Failure::guard(function () use ($event, $tracer): void {
+                if ($tracer->session() !== null) {
+                    return;                                         // `sync` queue: the job is part of the request that runs it
+                }
+                $name = $event->job->resolveName();
+                $stamp = $event->job->payload()['request_tracer'] ?? null;
+                $parent = is_array($stamp) && is_string($stamp['trace'] ?? null) ? $stamp['trace'] : null;
+
+                $decision = App::container()->make(BackgroundDecider::class)->decide('job', $name, $parent !== null);
+                $tracer->beginBackground('job', $name, SpanType::Job, Locator::shortClass($name), $decision, [
+                    'job' => $name,
+                    'connection' => $event->connectionName,
+                    'queue' => $event->job->getQueue(),
+                    'attempts' => $event->job->attempts(),
+                    'id' => $event->job->getJobId(),
+                ], $parent);
+            }, 'job processing');
+        });
+
+        $events->listen(JobProcessed::class, function () use ($tracer): void {
+            if ($tracer->on) {
+                Failure::guard(fn () => $tracer->endBackground('job', null, 'Processed'), 'job processed');
+            }
+        });
+
+        $events->listen(JobExceptionOccurred::class, function (JobExceptionOccurred $event) use ($tracer): void {
+            if ($tracer->on) {
+                Failure::guard(fn () => $tracer->endBackground('job', null, 'Threw '.Summary::of($event->exception), $event->exception), 'job exception');
+            }
+        });
+
+        $events->listen(JobFailed::class, function (JobFailed $event) use ($tracer): void {
+            if ($tracer->on) {
+                Failure::guard(fn () => $tracer->endBackground('job', null, 'Threw '.Summary::of($event->exception), $event->exception), 'job failed');
+            }
+        });
     }
 }

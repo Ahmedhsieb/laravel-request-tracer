@@ -195,6 +195,62 @@ final class Tracer
     }
 
     /**
+     * Start the trace of a queued job, an artisan command or a scheduled task. Returns null when it is not recorded,
+     * or when another trace is already running (a `sync` job inside a request, `Artisan::call()` inside a command):
+     * then the work simply becomes part of the outer trace.
+     *
+     * @param  array<string, mixed>  $input  what the root step shows as its input (masked like every other value)
+     */
+    public function beginBackground(string $kind, string $name, SpanType $type, string $label, Decision $decision, array $input = [], ?string $parentTraceId = null): ?TraceSession
+    {
+        if ($this->session !== null || ! $decision->on()) {
+            return null;
+        }
+
+        $session = $this->begin($kind, $decision);
+        if ($session === null) {
+            return null;
+        }
+
+        $session->meta['path'] = $name;
+        $session->parentTraceId = $parentTraceId;
+        $root = $session->recorder->begin($type, $label);
+        $root->startUs = 0;
+        $root->input = $session->dump($input);
+        $session->root = $root;
+
+        return $session;
+    }
+
+    /**
+     * End and store a trace started with beginBackground(). Safe to call twice and when nothing is being recorded.
+     *
+     * @param  string  $kind  only a running trace of this kind is ended: a job finishing inside a request or a command (`sync` queue) is not its end
+     * @param  string|null  $id  only finish when this is the running trace (a shutdown hook must not end a later one)
+     */
+    public function endBackground(string $kind, ?int $status, ?string $summary, ?\Throwable $failure = null, ?string $id = null): void
+    {
+        $session = $this->session;
+        if ($session === null || $session->root === null || $session->kind !== $kind || ($id !== null && $session->id !== $id)) {
+            return;
+        }
+
+        try {
+            $session->meta['status'] = $status;
+            $session->root->meta['summary'] = $summary;
+            if ($failure !== null) {
+                $session->exceptions()->markUncaught($failure, $this->ignorable($failure));
+                $session->root->flag = SpanFlag::Failed;
+            }
+            $session->recorder->end($session->root);
+        } catch (\Throwable $e) {
+            Failure::report($e, 'ending background trace');
+        }
+
+        $this->finish();
+    }
+
+    /**
      * Build and persist the trace, then reset. Safe to call when nothing is being recorded.
      * This is the only place trace data is written, and it runs in terminate().
      */

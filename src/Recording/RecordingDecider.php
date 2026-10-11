@@ -46,14 +46,18 @@ class RecordingDecider
             return Decision::off();
         }
         $mode = $this->mode();
-        if ($mode === 'off' || $this->excluded($request)) {
+        if ($mode === 'off') {
             return Decision::off();
         }
         if ($mode === 'always') {
-            return new Decision(RecordingState::On, 'always');
+            return $this->excluded($request) ? Decision::off() : new Decision(RecordingState::On, 'always');
         }
 
-        return $this->triggered($request);
+        // Triggered mode: look for a trigger first (a header, a watch list, sampling). Without one the request is not recorded, and
+        // the exclusion patterns (a regex per pattern) are never evaluated for the vast majority of requests.
+        $decision = $this->triggered($request);
+
+        return $decision->on() && $this->excluded($request) ? Decision::off() : $decision;
     }
 
     private function triggered(Request $request): Decision

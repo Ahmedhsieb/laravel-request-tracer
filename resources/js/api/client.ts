@@ -75,6 +75,7 @@ export class HttpApi implements Api {
       slow: filters.slow === true ? '1' : undefined,
       module: filters.module,
       tenant: filters.tenant,
+      parent_trace_id: filters.parent_trace_id,
       cursor: cursor ?? undefined,
     })
   }

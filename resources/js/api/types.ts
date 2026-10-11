@@ -212,6 +212,8 @@ export interface TraceFilters {
   slow?: boolean
   module?: string
   tenant?: string
+  /** only the traces dispatched by this trace (jobs of a request) */
+  parent_trace_id?: string
 }
 
 /** Everything the UI needs from the server. Implemented by HttpApi (real) and DemoApi (seeded data). */

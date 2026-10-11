@@ -15,7 +15,7 @@ Want to look around first? Run `npm run dev` in the package folder (or add `?dem
 
 ## The request list
 
-Newest first. Each row shows the method, path, status, duration, age, and a short note: *4 problems*, *exception*, *slow* or the module. The list refreshes every `dashboard.poll_seconds`; new requests slide in at the top. Filter with the search box (path, route name, id) or the chips **With problems** and **Slow** (`dashboard.slow_ms`).
+Newest first. Each row shows the method (or `JOB` / `COMMAND` for queued jobs and artisan commands, see [queues, commands and scheduled tasks](10-queues-commands-scheduled-tasks.md)), path, status, duration, age, and a short note: *4 problems*, *exception*, *slow* or the module. The list refreshes every `dashboard.poll_seconds`; new requests slide in at the top. Filter with the search box (path, route name, id) or the chips **With problems** and **Slow** (`dashboard.slow_ms`).
 
 ## A request
 
@@ -28,6 +28,7 @@ The tree of everything that ran: middleware, controller, validation, services, q
 - Hover a step to preview it on the right; click it to **pin** it (click again to release). Arrow keys move through the tree, Left/Right collapse and expand, Enter pins.
 - Under each label: a one-line summary (*Returns Order #1057*, *Responded 200 OK*) and the file and line.
 - Chips: `×6` identical statements were merged into one step, `slow`, `repeated`, `caught`, `failed`.
+- A request that dispatched jobs shows a **Started by this request** row under the step details, one button per job; a job's own page links back with **Dispatched by a request**.
 - Search finds steps by label, SQL, file or summary and keeps their ancestors visible.
 
 **Input / Output** shows the arguments and return value in `dd()` format. Nodes collapse, *Copy* copies the value, and the markers tell you when something was **masked** (secrets never reach storage) or **truncated** (the limits in `request-tracer.dumper`).
