@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Carbon;
 use RequestTracer\Span;
 use RequestTracer\SpanType;
 use RequestTracer\Storage\PayloadCodec;
@@ -107,4 +108,19 @@ it('prunes by age and by max rows, including child tables', function () {
         ->and($storage->count())->toBe(2)
         ->and($this->tracerTable('spans')->count())->toBe(4)
         ->and($this->tracerTable('writes')->where('trace_id', TRACE_B)->count())->toBe(0);
+});
+
+it('compares ages in UTC, so the retention cut-off does not move with the application time zone', function () {
+    $before = date_default_timezone_get();
+    date_default_timezone_set('Asia/Riyadh');                  // UTC+3, while traces are stored in UTC
+    try {
+        $storage = app(TraceStorage::class);
+        $storage->store(sampleTrace(TRACE_A, ['created_at' => Carbon::now('UTC')->subHours(22)]));   // younger than a day: must stay
+        $storage->store(sampleTrace(TRACE_B, ['created_at' => Carbon::now('UTC')->subHours(26)]));   // older than a day: must go
+
+        expect($storage->prune(Carbon::now()->subDay(), 0))->toBe(1)
+            ->and(array_column($storage->traces()['data'], 'id'))->toBe([TRACE_A]);
+    } finally {
+        date_default_timezone_set($before);
+    }
 });

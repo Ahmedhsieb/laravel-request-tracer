@@ -20,7 +20,7 @@ The rules are the same idea as for requests: **in production nothing is recorded
 | `triggered` (the default elsewhere) | recorded **only if the request or job that dispatched it was recorded** | recorded **only if the process was started with `REQUEST_TRACER=1`** |
 | `off` | never | never |
 
-In every mode `exclude.jobs` and `exclude.commands` (fnmatch patterns) win. The defaults already exclude the long-running and internal commands: `queue:work`, `queue:listen`, `schedule:run`, `schedule:work`, `serve`, `tinker`, `migrate*`, `config:*`, `cache:*`, `horizon*`, `octane:*`, `request-tracer:*` and a few more. The tracer's own queued writes (`RequestTracer\Jobs\*`) are never recorded.
+In every mode `exclude.jobs` and `exclude.commands` (fnmatch patterns) win. The defaults already exclude the long-running and internal commands: `queue:work`, `queue:listen`, `schedule:run`, `schedule:work`, `schedule:finish`, `serve`, `tinker`, `invoke-serialized-closure`, `migrate*`, `package:*`, `config:*`, `cache:*`, `horizon*`, `octane:*`, `request-tracer:*` and a few more. The tracer's own queued writes (`RequestTracer\Jobs\*`) are never recorded.
 
 ```bash
 # trace one run of a command in production

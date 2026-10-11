@@ -9,6 +9,7 @@ use RequestTracer\RecordingState;
 use RequestTracer\Tests\Fixtures\Attr\AttributedService;
 use RequestTracer\Tests\Fixtures\Attr\TracedClass;
 use RequestTracer\Tests\Fixtures\Contracts\CurrencyProvider;
+use RequestTracer\Tests\Fixtures\Http\ClosureBoundMiddleware;
 use RequestTracer\Tests\Fixtures\Locked\FinalThing;
 use RequestTracer\Tests\Fixtures\Locked\PartlyLocked;
 use RequestTracer\Tests\Fixtures\Providers\DollarProvider;
@@ -256,4 +257,31 @@ it('does not leak the hot flag or any state between requests', function () {
     expect($second['id'])->not->toBe($first['id'])
         ->and($this->traceSpans($second['id'])[0]['label'])->toBe('POST /api/orders')
         ->and(count($this->traceSpans($second['id'])))->toBeLessThan(count($this->traceSpans($first['id'])));
+});
+
+it('records a middleware that a custom container closure builds, and still terminates it', function () {
+    ClosureBoundMiddleware::$terminated = 0;
+    app()->singleton(ClosureBoundMiddleware::class, fn () => new ClosureBoundMiddleware('built by closure'));
+    Route::middleware(ClosureBoundMiddleware::class.':?')->get('/closure-mw', fn () => 'ok');
+
+    $this->get('/closure-mw')->assertOk()->assertHeader('X-Closure', 'built by closure?');
+
+    $span = collect($this->traceSpans())->firstWhere('label', 'ClosureBoundMiddleware');
+    expect($span)->not->toBeNull()
+        ->and($span['type'])->toBe('middleware')
+        ->and($span['file'])->toContain('ClosureBoundMiddleware.php')
+        ->and(ClosureBoundMiddleware::$terminated)->toBe(1);
+});
+
+it('leaves a closure-built middleware alone when nothing is recording', function () {
+    ClosureBoundMiddleware::$terminated = 0;
+    config(['request-tracer.mode' => 'off']);
+    app()->singleton(ClosureBoundMiddleware::class, fn () => new ClosureBoundMiddleware('plain'));
+    Route::middleware(ClosureBoundMiddleware::class)->get('/closure-mw', fn () => 'ok');
+
+    $this->get('/closure-mw')->assertOk()->assertHeader('X-Closure', 'plain!');
+
+    expect(app(ClosureBoundMiddleware::class))->toBeInstanceOf(ClosureBoundMiddleware::class)      // not decorated
+        ->and(ClosureBoundMiddleware::$terminated)->toBe(1)
+        ->and($this->tracerTable('traces')->count())->toBe(0);
 });

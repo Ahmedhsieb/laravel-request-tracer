@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use RequestTracer\DeepTrace\Loader;
@@ -165,6 +166,23 @@ it('returns the trace summary, writes and problems', function () {
     $stock = collect($writes)->where('table', 'products')->where('operation', 'update')->first();
     expect($stock['before']['stock'])->toBe(100)->and($stock['after']['stock'])->toBe(98);
     expect(array_column($this->getJson(API."/traces/{$id}/problems")->json('data'), 'kind'))->toContain('exception_caught');
+});
+
+it('says which time zone created_at is in (UTC), so a browser anywhere shows the right age', function () {
+    allowEveryone();
+    $before = date_default_timezone_get();
+    date_default_timezone_set('Asia/Riyadh');                  // an application in UTC+3: the stored time must not depend on it
+    try {
+        $id = recordOrder($this);
+        $shown = $this->getJson(API."/traces/{$id}")->json('data.created_at');
+        $listed = $this->getJson(API.'/traces')->json('data.0.created_at');
+    } finally {
+        date_default_timezone_set($before);
+    }
+
+    expect($shown)->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$/')                  // UTC, with the offset spelled out
+        ->and($listed)->toBe($shown)
+        ->and(abs(Carbon::parse($shown)->getTimestamp() - time()))->toBeLessThan(60);
 });
 
 it('returns Deep trace lines of a step together with the source of the functions that ran', function () {

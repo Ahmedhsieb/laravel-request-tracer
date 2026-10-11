@@ -45,11 +45,10 @@ return [
     'local_environments' => ['local'],
 
     /*
-     * Only these route middleware groups / paths are traced. Empty = everything not excluded.
+     * Only requests whose path matches one of these patterns can be recorded. Empty = everything that is not excluded.
      */
     'scope' => [
         'paths' => [],              // fnmatch patterns on the request path, e.g. 'api/*'
-        'modules' => [],            // module names (see 'resolvers.module'); empty = all
     ],
 
     /*
@@ -66,9 +65,9 @@ return [
         ],
         'routes' => [],             // route names (fnmatch)
         'commands' => [
-            'queue:work', 'queue:listen', 'schedule:run', 'schedule:work', 'serve', 'tinker',
-            'request-tracer:*', 'migrate*', 'vendor:publish', 'package:discover', 'config:*', 'route:*', 'view:*',
-            'cache:*', 'optimize*', 'key:generate', 'horizon*', 'octane:*', 'reverb:*', 'pail', 'list', 'help',
+            'queue:work', 'queue:listen', 'schedule:run', 'schedule:work', 'schedule:finish', 'schedule:interrupt', 'serve', 'tinker',
+            'invoke-serialized-closure', 'request-tracer:*', 'migrate*', 'vendor:publish', 'package:*', 'config:*', 'route:*', 'view:*',
+            'cache:*', 'optimize*', 'key:generate', 'storage:link', 'horizon*', 'octane:*', 'reverb:*', 'pail', 'list', 'help', 'completion', '_complete',
         ],
         'jobs' => [],               // job class names (fnmatch)
     ],

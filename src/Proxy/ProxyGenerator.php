@@ -36,7 +36,10 @@ final class ProxyGenerator
         '__set_state' => 1, '__debuginfo' => 1, '__tostring' => 1,
     ];
 
-    public function __construct(private readonly string $cachePath) {}
+    public function __construct(private readonly string $cachePath)
+    {
+        Paths::markGenerated($cachePath);
+    }
 
     /**
      * @param  array{only?: list<string>|null, middleware?: bool, vendor_methods?: bool}  $options

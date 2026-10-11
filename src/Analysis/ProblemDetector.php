@@ -80,6 +80,9 @@ final class ProblemDetector
         $nPlusOne = max(2, (int) ($this->config['n_plus_one_threshold'] ?? 5));
         $repeated = max(2, (int) ($this->config['repeated_query_threshold'] ?? 2));
         $repeatedWrite = max(2, (int) ($this->config['repeated_write_threshold'] ?? 3));
+        // A query that no application file caused (the session handler reading its row twice, the framework's cache or queue tables)
+        // is not something the developer can act on: only report it as "repeated" when the source of queries is not known at all.
+        $sourceKnown = (bool) App::config()->get('request-tracer.capture.query_source', true);
 
         foreach ($stats->shapes() as $shape) {
             $count = $shape['count'];
@@ -95,7 +98,7 @@ final class ProblemDetector
                     $this->flag($span, SpanFlag::Repeated);
                 }
                 $max = $shape['sets'] === [] ? 0 : max($shape['sets']);
-                if ($max >= $repeated) {
+                if ($max >= $repeated && ($shape['file'] !== null || ! $sourceKnown)) {
                     $this->add($session, $shape['span'], 'repeated_query', "The identical query ran {$max} times{$where}: {$sql}. Run it once and reuse the result.", $shape['file'], $shape['line']);
                     $this->flag($span, SpanFlag::Repeated);
                 }

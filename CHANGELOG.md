@@ -4,6 +4,10 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-11
+
+First release. Everything below shipped together; the phases are the order the work was done in.
+
 ### Phase 0 – scaffold
 - Package skeleton: `composer.json` (PHP `^8.1`, `illuminate/*` `^10 | ^11 | ^12 | ^13`, `nikic/php-parser ^4.18 | ^5.0`), service provider, `Brand`, facade, `trace()` helper, full config file.
 - Tooling: Testbench + Pest, PHPStan level 8 (Larastan), Pint, `.dev/` helper scripts for running every local PHP version.
@@ -65,3 +69,13 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 - Cheaper idle path: in `triggered` mode the trigger checks run before the exclusion patterns (about 25 µs per untriggered request).
 - Tests for the span cap and collapse, queued persistence, repeated requests in one process (no state or memory left behind), tenant/module resolvers (including a resolver that throws) and writes on two database connections.
 - `benchmarks/run.php` (five scenarios, each in its own process) and `docs/benchmarks.md` with results; docs: queues, commands and scheduled tasks.
+
+### Phase 7 – documentation and release
+- Docs 1 to 13: introduction, installation, quick start, configuration reference (every key), how capture works, Deep trace, production, large applications and ERPs, dashboard tour, jobs/commands/scheduled tasks, extending, comparison with Telescope / Debugbar / Clockwork, troubleshooting, FAQ, upgrading and contributing. `README.md`, `README.ar.md`, `CONTRIBUTING.md`, `RELEASING.md` (release checklist).
+- Removed the unimplemented `scope.modules` config key; added indexes on `tenant` and `module`.
+- Found by installing the package into a fresh Laravel 12 application and fixed:
+  - the Deep trace autoloader failed with "class not found" for the classes it uses itself the first time a class was loaded through it (PHP does not re-enter the autoloader for a class that is being autoloaded); it now steps aside for the package's own and php-parser classes and runs its code once before it is registered. Covered by a test that runs in a PHP process of its own.
+  - middleware that the container builds with a closure (Laravel's `StartSession`) had no step; it is now wrapped in a decorator, and its `terminate()` still runs.
+  - queries and log lines that no application file caused were attributed to a generated proxy file, and the framework's own double read of the `sessions` row was reported as a "repeated query"; generated code is now an internal frame, and repeated-query problems need an application file to point at.
+  - internal commands (`invoke-serialized-closure`, `schedule:finish`, `package:*`...) are excluded by default.
+  - `created_at` was read by the browser as its own local time: it is stored in UTC and returned as ISO 8601 with its offset (Carbon 2 and Carbon 3 disagree about `createFromTimestamp()`, which also skewed the retention cut-off by the UTC offset).

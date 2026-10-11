@@ -2,6 +2,8 @@
 
 The dashboard is a client of this API. It lives under `<dashboard.path>/api/v1` (default `/request-tracer/api/v1`), uses the same middleware as the dashboard (`web` + the `viewRequestTracer` gate), and authenticates with the session cookie; mutating requests need the CSRF token (`X-CSRF-TOKEN` / `X-XSRF-TOKEN`). Responses are JSON. Errors: `403` (gate), `404` (unknown trace/step), `422` (validation).
 
+`created_at` is an ISO 8601 timestamp with its offset (`2026-10-11T05:27:10+00:00`); it is stored in UTC and `from` / `to` are converted to UTC before they are compared.
+
 Step **payloads are never part of the tree**: `spans` returns structure only; `spans/{id}` returns one step's input/output (the dumper format described in *How capture works*).
 
 | Method & path | Purpose |

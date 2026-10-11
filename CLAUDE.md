@@ -63,4 +63,4 @@ benchmarks/                              request/sec comparison scripts
 
 ## Status
 
-See `CHANGELOG.md` for what each phase delivered and `docs/decisions.md` for open limitations.
+All phases (0 to 7) are done and released as `v0.1.0`; see `CHANGELOG.md` for what each phase delivered, `docs/decisions.md` for the decisions and known limitations, and `RELEASING.md` for the release checklist.

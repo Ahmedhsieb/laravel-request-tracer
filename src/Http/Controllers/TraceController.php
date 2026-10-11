@@ -7,6 +7,7 @@ namespace RequestTracer\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Carbon;
 use RequestTracer\DeepTrace\Compiler;
 use RequestTracer\Storage\TraceStorage;
 use RequestTracer\Support\Paths;
@@ -40,12 +41,12 @@ final class TraceController extends Controller
 
         $page = $this->storage->traces($filters, $request->query('cursor') ? (string) $request->query('cursor') : null, (int) $request->query('limit', 50));
 
-        return response()->json(['data' => $page['data'], 'next_cursor' => $page['next_cursor']]);
+        return response()->json(['data' => array_map($this->present(...), $page['data']), 'next_cursor' => $page['next_cursor']]);
     }
 
     public function show(string $trace): JsonResponse
     {
-        return response()->json(['data' => $this->find($trace)]);
+        return response()->json(['data' => $this->present($this->find($trace))]);
     }
 
     public function spans(string $trace): JsonResponse
@@ -109,6 +110,26 @@ final class TraceController extends Controller
         return response()->json(['deleted' => $this->storage->clear()]);
     }
 
+    /**
+     * The database stores `created_at` in UTC without saying so; the browser needs to know,
+     * or it reads the time as its own local time ("3 h ago" for a request that just happened).
+     *
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    private function present(array $row): array
+    {
+        if (isset($row['created_at']) && is_string($row['created_at'])) {
+            try {
+                $row['created_at'] = Carbon::parse($row['created_at'], 'UTC')->toIso8601String();
+            } catch (\Throwable) {
+                // keep what the database returned
+            }
+        }
+
+        return $row;
+    }
+
     /** @return array<string, mixed> */
     private function find(string $id): array
     {
@@ -133,7 +154,7 @@ final class TraceController extends Controller
             }
         }
 
-        $created = strtotime($traceCreatedAt) ?: 0;
+        $created = Carbon::parse($traceCreatedAt, 'UTC')->getTimestamp();
         $sources = [];
         $cache = [];
         $statements = [];

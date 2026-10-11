@@ -10,6 +10,8 @@ use RequestTracer\Attributes\NoTrace;
 use RequestTracer\Attributes\Trace;
 use RequestTracer\Support\ClassPatterns;
 use RequestTracer\Support\Failure;
+use RequestTracer\Support\Locator;
+use RequestTracer\Support\Paths;
 use RequestTracer\Tracer;
 
 /**
@@ -69,7 +71,11 @@ final class ProxyRegistry
                 return;                                   // already built (as the original class)
             }
             if ($container->bound($abstract) && ! $this->bindsItself($container, $abstract)) {
-                return;                                   // interface binding or a custom closure: the concrete class goes through here itself
+                if (($options['middleware'] ?? false) === true) {
+                    $this->decorateMiddleware($container, $abstract);   // built by a custom closure (StartSession): wrap the instance instead
+                }
+
+                return;                                   // other custom bindings: the concrete class goes through here itself
             }
 
             if (! class_exists($abstract)) {
@@ -89,6 +95,29 @@ final class ProxyRegistry
         } catch (\Throwable $e) {
             Failure::report($e, 'proxy registry ('.$abstract.')');
         }
+    }
+
+    /** Wrap what a custom closure binding builds in a decorator that records `handle()` as a middleware step. */
+    private function decorateMiddleware(Container $container, string $abstract): void
+    {
+        $concrete = $container->getBindings()[$abstract]['concrete'] ?? null;
+        if (! $concrete instanceof Closure || ! class_exists($abstract) || ! method_exists($abstract, 'handle')) {
+            return;
+        }
+
+        $method = new \ReflectionMethod($abstract, 'handle');
+        $file = Paths::relative($method->getFileName() ?: null);
+        $line = $method->getStartLine() ?: null;
+        $label = Locator::shortClass($abstract);
+        $terminable = method_exists($abstract, 'terminate');
+
+        $container->bind($abstract, static function (Container $c, array $parameters) use ($concrete, $label, $file, $line, $terminable): object {
+            $inner = $concrete($c, $parameters);
+
+            return $terminable
+                ? new TerminableMiddlewareDecorator($inner, $label, $file, $line)
+                : new MiddlewareDecorator($inner, $label, $file, $line);
+        }, $container->isShared($abstract));
     }
 
     /**
