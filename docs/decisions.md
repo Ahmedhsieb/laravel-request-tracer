@@ -109,3 +109,7 @@ A trace cannot be recorded after the fact, and storing every request just in cas
 
 ### D25 – The tables create themselves
 Asking for a migration, a publish and a config file before the first trace is the kind of step that makes people stop. The package ships its migration (so `php artisan migrate` includes it) and also creates the tables the first time a write fails because they are missing, using the same migration file, which does nothing when the tables exist.
+
+### D26 – The config merges section by section, and exclusions add
+Laravel's `mergeConfigFrom()` is shallow: a config file that mentions one key of a section replaces the whole section. For this package that meant that "add `admin/*` to the excluded paths" silently removed the login, webhook and queue-worker exclusions, and "mask `ssn`" removed the default masking keys: the opposite of what anybody means. `ConfigMerger` merges sections key by key; lists of things to leave out or mask add to the defaults (with `!entry` to take one away); lists that say what to look at (`code.paths`) replace them, because narrowing is the point. The dashboard's gate middleware is added to a configured middleware list if it is missing, so no config can open the dashboard by accident.
+

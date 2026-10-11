@@ -1,6 +1,12 @@
 # 4. Configuration reference
 
-You do not need a config file. Every key below has a default, and a published file only has to contain the keys you change (the package merges its defaults underneath). Publish the full file with `php artisan vendor:publish --tag=request-tracer-config`; it lives at `config/request-tracer.php`.
+You do not need a config file. Every key below has a default, and a published file only has to contain the keys you change. Publish the full file with `php artisan vendor:publish --tag=request-tracer-config`; it lives at `config/request-tracer.php`.
+
+How your file and the defaults combine:
+
+- **Sections merge key by key**, down to the last level: `'triggers' => ['sampling' => ['rate' => 0.2]]` changes the rate and keeps every other default.
+- **Lists that say what to look at replace the default**: `'code' => ['paths' => ['modules/Billing']]` means "only that folder".
+- **Lists of things to leave out or to mask add to the defaults**: `exclude.paths`, `exclude.routes`, `exclude.commands`, `exclude.jobs`, `masking.keys`, `masking.value_patterns`, `capture.ignore_events`, `capture.request_headers`, `capture.response_headers` and `problems.ignore_exceptions`. `'exclude' => ['paths' => ['admin/*']]` keeps `login`, the webhooks and the health checks excluded, and `'masking' => ['keys' => ['ssn']]` keeps `password` and `token` masked. To take a default away, write it with a `!`: `'paths' => ['!login']` traces the login page too.
 
 Rules that apply everywhere:
 
@@ -45,8 +51,8 @@ Running a request that already happened again, traced (dashboard: *Replay a requ
 | Key | Default | What it does |
 |---|---|---|
 | `scope.paths` | `[]` | When not empty, only requests whose **URL path** matches one of these patterns can be recorded (`api/*`). Not to be confused with `code.paths`, which are folders of your code. |
-| `exclude.paths` | login, logout, register, password reset, two-factor, OAuth, payment webhooks, health checks, `request-tracer*`, Ignition, Horizon, Telescope, Livewire | Requests that are **never** recorded, even with a valid header. The dashboard's own path is always excluded. |
-| `exclude.routes` | `[]` | Route names (`fnmatch`) that are never recorded. |
+| `exclude.paths` | built in: login, logout, register, password reset, two-factor, OAuth, payment webhooks, health checks, `request-tracer*`, Ignition, Horizon, Telescope, Livewire | URL **prefixes and patterns that are never recorded**, even with a valid header (`admin/*`, `api/internal/*`, `reports*`: `*` matches anything, no leading slash). **Yours are added to the built-in ones**; `'!login'` takes one away. The dashboard's own path is always excluded. A replay ignores this list. |
+| `exclude.routes` | `[]` | Route **names** (`fnmatch`, e.g. `horizon.*`, `admin.*`) that are never recorded. Handy when the routes of one area share a name prefix. |
 | `exclude.commands` | `queue:work`, `schedule:run`, `schedule:finish`, `serve`, `tinker`, `invoke-serialized-closure`, `migrate*`, `package:*`, `config:*`, `cache:*`, `horizon*`, `octane:*`, `request-tracer:*` and other internal commands | Artisan commands that are never recorded. |
 | `exclude.jobs` | `[]` | Job class names (`fnmatch`) that are never recorded. The tracer's own `RequestTracer\Jobs\*` are always excluded. |
 

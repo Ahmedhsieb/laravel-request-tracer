@@ -8,6 +8,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Foundation\CachesConfiguration;
 use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -43,6 +44,7 @@ use RequestTracer\Storage\PayloadCodec;
 use RequestTracer\Storage\TraceStorage;
 use RequestTracer\Support\App;
 use RequestTracer\Support\Brand;
+use RequestTracer\Support\ConfigMerger;
 use RequestTracer\Support\Failure;
 use RequestTracer\Support\Paths;
 
@@ -66,7 +68,7 @@ final class RequestTracerServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/'.Brand::NAME.'.php', Brand::NAME);
+        $this->mergeConfig();
 
         $this->app->singleton(Tracer::class);
         $this->app->alias(Tracer::class, Brand::CONTAINER_KEY);
@@ -93,6 +95,18 @@ final class RequestTracerServiceProvider extends ServiceProvider
                 (int) ($config['insert_chunk'] ?? 500),
             );
         });
+    }
+
+    /** The application's config file only has to hold what it changes: see ConfigMerger. */
+    private function mergeConfig(): void
+    {
+        if ($this->app instanceof CachesConfiguration && $this->app->configurationIsCached()) {
+            return;                                                   // the cached file already holds the merged result
+        }
+        $config = $this->app->make('config');
+        /** @var array<string, mixed> $defaults */
+        $defaults = require __DIR__.'/../config/'.Brand::NAME.'.php';
+        $config->set(Brand::NAME, ConfigMerger::merge($defaults, (array) $config->get(Brand::NAME, [])));
     }
 
     public function boot(): void
@@ -209,11 +223,25 @@ final class RequestTracerServiceProvider extends ServiceProvider
         Route::group([
             'domain' => $config['domain'] ?? null,
             'prefix' => trim((string) ($config['path'] ?? Brand::NAME), '/'),
-            'middleware' => (array) ($config['middleware'] ?? ['web', Authorize::class]),
+            'middleware' => $this->dashboardMiddleware($config),
             'as' => Brand::NAME.'.',
         ], function (): void {
             $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         });
+    }
+
+    /**
+     * The dashboard's middleware, always with the gate: a config that lists its own middleware must not be able to open the
+     * dashboard to everybody by leaving Authorize out.
+     *
+     * @param  array<string, mixed>  $config
+     * @return list<string>
+     */
+    private function dashboardMiddleware(array $config): array
+    {
+        $middleware = array_values(array_filter((array) ($config['middleware'] ?? ['web']), 'is_string'));
+
+        return in_array(Authorize::class, $middleware, true) ? $middleware : [...$middleware, Authorize::class];
     }
 
     /** Prune old traces on a schedule, unless the application opted out. */

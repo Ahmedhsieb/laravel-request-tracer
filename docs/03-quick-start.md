@@ -38,6 +38,15 @@ To trace another folder, or one file, or to leave something out, say so in `conf
 
 You never list classes one by one. See [configuration](04-configuration.md#code).
 
+To keep some **URLs** out of the traces (an admin area, an internal API, a noisy endpoint), add them to `exclude`. They are added to the built-in exclusions (login, webhooks, health checks), nothing is lost:
+
+```php
+'exclude' => [
+    'paths' => ['admin/*', 'api/internal/*', 'reports*'],   // URL patterns, no leading slash
+    'routes' => ['horizon.*'],                              // or route names
+],
+```
+
 ## Step 4: a request that already happened
 
 The request you want to understand happened when nothing was listening? Run it again, traced:
