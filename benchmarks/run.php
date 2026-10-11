@@ -207,11 +207,13 @@ function runScenario(string $scenario, int $requests, int $warmup): array
     }
 
     $traces = $scenario === 'absent' || $scenario === 'disabled' ? 0 : (int) $app['db']->connection('bench')->table('tracer_traces')->count();
-    $last = $traces === 0 ? null : $app['db']->connection('bench')->table('tracer_traces')->orderByDesc('id')->first(['spans_count', 'queries_count']);
+    $last = $traces === 0 ? null : $app['db']->connection('bench')->table('tracer_traces')->orderByDesc('id')->first(['id', 'spans_count', 'queries_count']);
+    $lines = $last === null ? 0 : (int) $app['db']->connection('bench')->table('tracer_lines')->where('trace_id', $last->id)->count();
     @unlink($database);
 
     return [
         'spans_per_trace' => (int) ($last->spans_count ?? 0),
+        'deep_lines_per_trace' => $lines,
         'queries_per_trace' => (int) ($last->queries_count ?? 0),
         'handle_median_ms' => percentile($handle, 50),
         'handle_p95_ms' => percentile($handle, 95),

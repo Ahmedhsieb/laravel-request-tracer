@@ -46,7 +46,7 @@ return new class extends Migration
             $table->boolean('truncated')->default(false);
             $table->string('laravel_version', 16)->nullable();
             $table->string('environment', 32)->nullable();
-            $table->string('mode', 16)->nullable();                  // how recording was triggered: always | token | watch | sample
+            $table->string('mode', 16)->nullable();                  // how recording was triggered: always | token | watch | sample | job | command | schedule
             $table->char('parent_trace_id', 26)->nullable();         // a job trace links back to the trace that dispatched it
             $table->timestamp('created_at')->useCurrent();
 
@@ -56,6 +56,8 @@ return new class extends Migration
             $table->index('user_id');
             $table->index('problems_count');
             $table->index('parent_trace_id');
+            $table->index('tenant');
+            $table->index('module');
         });
 
         $schema->create($this->table('spans'), function (Blueprint $table) {

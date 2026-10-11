@@ -74,7 +74,8 @@ final class TraceBuilder
             'environment' => $this->app->environment(),
             'mode' => $session->trigger,
             'parent_trace_id' => $session->parentTraceId,
-            'created_at' => Carbon::createFromTimestamp((int) floor($session->clock->wallStart)),
+            // always UTC: Carbon 2 and Carbon 3 disagree about the zone of createFromTimestamp(), and the database has no zone column
+            'created_at' => Carbon::createFromTimestampUTC((int) floor($session->clock->wallStart)),
         ];
 
         $writes = array_map(static fn (array $w): array => array_intersect_key($w, array_flip(

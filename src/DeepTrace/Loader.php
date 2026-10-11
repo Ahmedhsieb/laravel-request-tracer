@@ -48,6 +48,10 @@ final class Loader
     {
         if (self::$instance === null) {
             self::$instance = new self(new Compiler);
+            // Run the autoloader's own code once before it is registered: the classes it uses (config repository, Arr, ClassPatterns,
+            // DeepQueue...) are then loaded the normal way. Loaded for the first time from inside the autoloader they would fail,
+            // because PHP does not re-enter the autoloader for a class that is already being autoloaded.
+            self::$instance->autoload('RequestTracerLoaderWarmUp');
             self::$instance->register();
         }
     }
@@ -74,6 +78,12 @@ final class Loader
     public function autoload(string $class): void
     {
         if (isset($this->seen[$class])) {
+            return;
+        }
+        // This loader sits in front of Composer's, so it is asked for every class, including the ones it needs itself (ClassPatterns,
+        // DeepQueue, Paths, the php-parser). PHP refuses to re-enter the autoloader for a class that is being autoloaded, so touching
+        // one of those classes from in here would fail with "class not found" the first time. They are never traced: step aside.
+        if ((str_starts_with($class, 'RequestTracer\\') && ! str_starts_with($class, 'RequestTracer\\Tests\\')) || str_starts_with($class, 'PhpParser\\')) {
             return;
         }
         $this->seen[$class] = true;

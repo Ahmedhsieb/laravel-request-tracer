@@ -76,3 +76,21 @@ The span-lines endpoint therefore compiles the function again (read only, nothin
 
 ### D14 – The dashboard has no router and no UI library
 The app is a few screens, so it uses the History API directly (`<base>/trace/<id>`) and a small store. That keeps the committed `dist/` at about 140 KB (51 KB gzip), and the only runtime dependency is Vue.
+
+### D15 – Background work is recorded on the same terms as requests, with different triggers
+A request has a header to carry a trigger; a job or command has not. In `triggered` mode a job is recorded when the trace that dispatched it was recorded (the queue payload carries a stamp), and a command or scheduled task when the process has `REQUEST_TRACER=1`. `always` mode records everything not excluded. Scheduled artisan commands run in child processes and are recorded there as commands, so only closures, invokables and `->job()` dispatches become `schedule` traces. A job that runs inside another trace (`sync` queue, `Artisan::call()`) is part of that trace.
+
+### D16 – The queue payload stamp is registered on every boot
+`Queue::createPayloadUsing()` callbacks are static. A "registered once per process" flag looks right but breaks when the framework clears the callbacks (its test teardown does). The callback is a static closure that reads the current tracer, so registering it on every boot is harmless; in production the provider boots once per process.
+
+### D17 – Cheap checks first
+In `triggered` mode the decision looks for a trigger (header, watch list, sampling) before it evaluates the exclusion patterns, because the common case is "no trigger" and the patterns cost a regular expression each. Excluded paths still win whenever something did trigger.
+
+### D18 – Middleware built by a closure is decorated, not subclassed
+Laravel registers `StartSession` with a closure, and a generated subclass cannot be used when a closure decides how the instance is built. For middleware (and only middleware) the binding is wrapped: the closure still builds the object, and a small decorator forwards `handle()` inside a `middleware` step. The decorator defines `terminate()` only when the middleware does (the kernel finds it with `method_exists()`), so terminable middleware keeps working. Services bound to closures are still left alone: wrapping them would break type checks against the class.
+
+### D19 – `created_at` is UTC
+Carbon 2 and Carbon 3 disagree about the zone of `createFromTimestamp()`, and the table has no zone column, so the value is always written in UTC, compared in UTC (retention, `from`/`to` filters) and returned as ISO 8601 with its offset. Found by running the dashboard in a real application in another time zone than the browser.
+
+### D20 – The Deep trace autoloader steps aside for what it uses itself
+It is registered in front of Composer's, so it is asked for every class. PHP does not re-enter the autoloader for a class that is already being autoloaded, so using such a class from inside the autoloader fails. The loader returns immediately for the package's own and php-parser classes and runs its code once before it is registered, which loads everything else it needs the normal way. A test runs the real order in a PHP process of its own, because the test suite itself has those classes loaded already.

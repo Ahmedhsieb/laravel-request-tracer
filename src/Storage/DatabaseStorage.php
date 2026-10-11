@@ -7,6 +7,7 @@ namespace RequestTracer\Storage;
 use DateTimeInterface;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use RequestTracer\Span;
 use RequestTracer\TraceData;
@@ -25,7 +26,11 @@ final class DatabaseStorage implements TraceStorage
         $db = $this->connections->resolve();
 
         $db->transaction(function () use ($db, $data): void {
-            $db->table($this->t('traces'))->insert($data->trace);
+            $trace = $data->trace;
+            if ($trace['created_at'] instanceof DateTimeInterface) {
+                $trace['created_at'] = self::utc($trace['created_at']);
+            }
+            $db->table($this->t('traces'))->insert($trace);
 
             $traceId = $data->id();
             $this->insertChunked($db, 'spans', array_map(fn (Span $s): array => $this->spanRow($traceId, $s), $data->spans));
@@ -181,7 +186,7 @@ final class DatabaseStorage implements TraceStorage
         $deleted = 0;
 
         while (true) {
-            $ids = $this->idList($this->table('traces')->where('created_at', '<', $olderThan)->orderBy('id')->limit($this->chunk)->pluck('id'));
+            $ids = $this->idList($this->table('traces')->where('created_at', '<', self::utc($olderThan))->orderBy('id')->limit($this->chunk)->pluck('id'));
             if ($ids === []) {
                 break;
             }
@@ -295,10 +300,10 @@ final class DatabaseStorage implements TraceStorage
             $query->where('problems_count', '>', 0);
         }
         if (! empty($filters['from'])) {
-            $query->where('created_at', '>=', $filters['from']);
+            $query->where('created_at', '>=', self::utc($filters['from']));
         }
         if (! empty($filters['to'])) {
-            $query->where('created_at', '<=', $filters['to']);
+            $query->where('created_at', '<=', self::utc($filters['to']));
         }
     }
 
@@ -394,5 +399,15 @@ final class DatabaseStorage implements TraceStorage
     private function t(string $name): string
     {
         return $this->prefix.$name;
+    }
+
+    /** `created_at` is stored in UTC; anything compared with it is converted first. */
+    private static function utc(mixed $moment): string
+    {
+        try {
+            return Carbon::parse($moment instanceof DateTimeInterface ? Carbon::instance($moment) : (string) $moment)->utc()->format('Y-m-d H:i:s');
+        } catch (\Throwable) {
+            return '0001-01-01 00:00:00';
+        }
     }
 }

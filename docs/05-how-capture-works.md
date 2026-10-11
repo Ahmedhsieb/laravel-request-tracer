@@ -116,7 +116,7 @@ Proxies hook into *container resolution*. They cannot see:
 | Not traced | Why |
 |---|---|
 | `new Foo()` | the container is never asked |
-| classes bound to a custom closure (`bind(Foo::class, fn () => new Foo(...))`) | the closure builds the object |
+| classes bound to a custom closure (`bind(Foo::class, fn () => new Foo(...))`) | the closure builds the object. **Middleware is the exception**: the instance the closure builds is wrapped in a decorator, so Laravel's own `StartSession` still gets its step (and its `terminate()` still runs) |
 | private and protected methods, and calls made through `$this->helper()` inside the class | an override only sees calls that arrive from outside; use Deep trace for what happens inside |
 | `static` methods | cannot be overridden on an instance |
 | final classes and final methods | PHP forbids subclassing / overriding. The dashboard lists them under *Not traceable* with the reason (`App\Foo — not traceable: final class`) |
