@@ -19,6 +19,7 @@ export interface Meta {
   listening: boolean
   listen_command: string
   replay: { enabled: boolean }
+  journal: { enabled: boolean; hours: number; max_rows: number }
   code: { paths: string[]; except: string[]; line_by_line: boolean }
   recording: {
     mode: RecordingMode
@@ -194,6 +195,37 @@ export interface SpanLines {
   sources: SourceFunction[]
 }
 
+/** One line of the request journal: a request that happened, traced or not. */
+export interface JournalEntry {
+  id: string
+  method: string
+  url: string
+  route_name: string | null
+  status: number | null
+  duration_ms: number
+  user_id: string | null
+  failure: string | null
+  has_body: boolean
+  body_cut: boolean
+  masked: boolean
+  trace_id: string | null
+  created_at: string
+  /** only in the full entry */
+  headers?: Record<string, string>
+  body?: string | null
+}
+
+export interface JournalPage {
+  data: JournalEntry[]
+  next_cursor: string | null
+}
+
+export interface JournalFilters {
+  /** `failed` (a 5xx or an exception), `errors` (4xx and up) or a status code */
+  status?: string
+  search?: string
+}
+
 /** What the replay dialog sends: a pasted cURL command, or the pieces of a request. */
 export interface ReplayInput {
   curl?: string
@@ -248,6 +280,9 @@ export interface Api {
   spanLines(id: string, span: number): Promise<SpanLines>
   writes(id: string): Promise<WriteRow[]>
   problems(id: string): Promise<ProblemRow[]>
+  journal(filters: JournalFilters, cursor?: string | null): Promise<JournalPage>
+  journalEntry(id: string): Promise<JournalEntry>
+  clearJournal(): Promise<void>
   /** Run a request that already happened again, traced; database changes are rolled back. */
   replay(input: ReplayInput): Promise<ReplayResult>
   issueToken(options: { ttl?: number; user_id?: string; route?: string }): Promise<IssuedToken>

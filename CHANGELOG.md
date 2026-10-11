@@ -4,6 +4,13 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-11
+
+- **The request journal** (opt-in: `journal.enabled` / `REQUEST_TRACER_JOURNAL=true`): one light row per request (method, URL, allow-listed headers, masked body, user, status, duration, the exception), so a request that nobody traced can still be found and **replayed with a full trace**. Dashboard: a *Journal* tab next to *Traces* with *Failed* and search filters; clicking a row opens the replay form filled in (a *Trace* button when the request was traced as well). Terminal: `request-tracer:replay --journal=failed|last|<id>`. API: `GET journal`, `GET journal/{id}`, `DELETE journal`.
+- Secrets are masked before the journal stores anything (by key name and value pattern; `Authorization` and cookies are never kept), so a replay of such a request carries the mask, and the entry and the form say so. A body larger than `journal.body_max_bytes` is not kept.
+- It trims itself (about every hundredth write) and `request-tracer:prune` trims it; its table is created the first time it is needed. A replay is never noted, nor is the dashboard, an excluded path or an excluded route.
+- Measured cost of the journal: one `INSERT` per request after the response was sent, 2.1 ms on MySQL and 5.4 ms on a SQLite file (Windows laptop).
+
 ## [0.2.1] - 2026-10-11
 
 - **A config file only has to hold what it changes, for real.** Laravel's `mergeConfigFrom()` merges the first level only, so `'exclude' => ['paths' => ['admin/*']]` replaced the whole `exclude` section and silently dropped the built-in exclusions (login, webhooks, the queue worker, the tracer's own commands), and `'masking' => ['keys' => ['ssn']]` dropped the default masking keys. The package now merges section by section (`ConfigMerger`): sections merge key by key, `code.paths` and other "what to look at" lists replace the default, and the lists of things to exclude or mask (`exclude.*`, `masking.keys`, `masking.value_patterns`, `capture.*` allowlists, `problems.ignore_exceptions`) **add** to the defaults; `'!login'` takes a default away.

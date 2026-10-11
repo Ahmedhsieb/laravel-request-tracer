@@ -1,4 +1,4 @@
-import type { Dump, ReplayInput } from '../api/types'
+import type { Dump, JournalEntry, ReplayInput } from '../api/types'
 import { toPlain } from './value'
 
 /** What the replay dialog edits. Headers are one "Name: value" per line. */
@@ -10,9 +10,11 @@ export interface ReplayForm {
   asUser: string
   /** fields of the recorded request were masked (passwords, tokens): they would be replayed as the mask itself */
   masked: boolean
+  /** the body was too large to be kept in the journal: it is empty here, and the replay will not send it */
+  bodyCut: boolean
 }
 
-export const emptyForm = (): ReplayForm => ({ method: 'GET', url: '', headers: '', body: '', asUser: '', masked: false })
+export const emptyForm = (): ReplayForm => ({ method: 'GET', url: '', headers: '', body: '', asUser: '', masked: false, bodyCut: false })
 
 const NOISE = new Set(['host', 'content-length', 'connection', 'accept-encoding'])
 
@@ -52,6 +54,31 @@ export function formFromRequest(dump: Dump, userId: string | null): ReplayForm |
     body,
     asUser: userId ?? '',
     masked: JSON.stringify(request).includes('••••••••'),
+    bodyCut: false,
+  }
+}
+
+/** The replay form for an entry of the request journal: what was kept of the request, and the user it ran as. */
+export function formFromJournal(entry: JournalEntry): ReplayForm {
+  const headerLines = Object.entries(entry.headers ?? {}).map(([name, value]) => `${name}: ${value}`)
+  let body = entry.body ?? ''
+  const type = (entry.headers?.['content-type'] ?? '').toLowerCase()
+  if (body !== '' && (type.includes('json') || body.trimStart().startsWith('{') || body.trimStart().startsWith('['))) {
+    try {
+      body = JSON.stringify(JSON.parse(body), null, 2)
+    } catch {
+      // keep it as it was stored
+    }
+  }
+
+  return {
+    method: entry.method.toUpperCase(),
+    url: entry.url,
+    headers: headerLines.join('\n'),
+    body,
+    asUser: entry.user_id ?? '',
+    masked: entry.masked,
+    bodyCut: entry.body_cut,
   }
 }
 

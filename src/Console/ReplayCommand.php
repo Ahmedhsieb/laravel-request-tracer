@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace RequestTracer\Console;
 
 use Illuminate\Console\Command;
+use RequestTracer\Journal\Journal;
+use RequestTracer\Journal\JournalStorage;
 use RequestTracer\Recording\Listening;
 use RequestTracer\Replay\CurlParser;
 use RequestTracer\Replay\Replayer;
@@ -22,6 +24,7 @@ final class ReplayCommand extends Command
     protected $signature = 'request-tracer:replay
                             {request? : "POST /orders", "GET /orders?page=2" or a full URL}
                             {--curl= : A cURL command to repeat (browser: network tab, "Copy as cURL (bash)")}
+                            {--journal= : An entry of the request journal: its id, `last` or `failed` (the newest request that failed)}
                             {--data= : The request body (JSON or form data)}
                             {--header=* : A header, "Name: value" (repeat the option for more)}
                             {--as= : Act as the user with this id (no login needed)}
@@ -78,6 +81,8 @@ final class ReplayCommand extends Command
                 throw new \InvalidArgumentException('The payload file could not be read.');
             }
             $request = ReplayRequest::fromArray($decoded);
+        } elseif (is_string($this->option('journal')) && $this->option('journal') !== '') {
+            $request = $this->fromJournal((string) $this->option('journal'));
         } elseif (is_string($this->option('curl')) && $this->option('curl') !== '') {
             $request = CurlParser::parse((string) $this->option('curl'));
         } elseif (is_string($this->argument('request')) && $this->argument('request') !== '') {
@@ -98,6 +103,22 @@ final class ReplayCommand extends Command
         $request = new ReplayRequest($request->method, $request->url, $headers, $request->body ?? (is_string($data) && $data !== '' ? $data : null), $request->asUser);
 
         return $as !== null ? $request->withUser($as) : $request;
+    }
+
+    private function fromJournal(string $which): ReplayRequest
+    {
+        $storage = App::container()->make(JournalStorage::class);
+        $entry = match ($which) {
+            'last' => $storage->latest(),
+            'failed' => $storage->latest(true),
+            default => $storage->find($which),
+        };
+        if ($entry === null) {
+            throw new \InvalidArgumentException($which === 'last' || $which === 'failed' ? 'The journal has no such request yet (is `journal.enabled` on?).' : 'There is no journal entry with id '.$which.'.');
+        }
+
+        // the user is who it was; a masked field cannot be sent again, which the replay of a trace says too
+        return Journal::toReplayRequest($entry);
     }
 
     private function failWith(string $message): int

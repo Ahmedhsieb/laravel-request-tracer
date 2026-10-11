@@ -36,6 +36,7 @@ const SCENARIOS = [
     'absent' => 'Package not installed',
     'disabled' => 'Installed, enabled = false',
     'idle' => 'Installed, nobody is listening',
+    'journal' => 'Installed, nobody is listening, the request journal is on',
     'calls' => 'Listening: every call of the project, with input and output',
     'lines' => 'Listening: + every line of the project (the default)',
 ];
@@ -137,6 +138,7 @@ function runScenario(string $scenario, int $requests, int $warmup): array
             $config->set('request-tracer.enabled', $this->scenario !== 'disabled');
             $config->set('request-tracer.local_environments', ['local']);
             $config->set('request-tracer.mode', 'triggered');
+            $config->set('request-tracer.journal.enabled', $this->scenario === 'journal');
             $config->set('request-tracer.storage.separate_connection', true);
             // the project's own code: the services of the example application (what `code.paths` => ['app'] is for a real project)
             $config->set('request-tracer.code.paths', [str_replace('\\', '/', dirname(__DIR__)).'/tests/Fixtures/Services']);
@@ -217,6 +219,7 @@ function runScenario(string $scenario, int $requests, int $warmup): array
         $decideUs = (hrtime(true) - $t0) / 1e3 / $rounds;
     }
 
+    $journalRows = $scenario === 'journal' ? (int) $app['db']->connection('bench')->table('tracer_journal')->count() : 0;
     $traces = $scenario === 'absent' || $scenario === 'disabled' ? 0 : (int) $app['db']->connection('bench')->table('tracer_traces')->count();
     $last = $traces === 0 ? null : $app['db']->connection('bench')->table('tracer_traces')->orderByDesc('id')->first(['id', 'spans_count', 'queries_count']);
     $lines = $last === null ? 0 : (int) $app['db']->connection('bench')->table('tracer_lines')->where('trace_id', $last->id)->count();
@@ -233,6 +236,7 @@ function runScenario(string $scenario, int $requests, int $warmup): array
         'peak_mb' => memory_get_peak_usage(true) / 1048576,
         'decide_us' => $decideUs,
         'traces_stored' => $traces,
+        'journal_rows' => $journalRows,
         'requests' => $requests,
     ];
 }

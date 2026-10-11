@@ -18,6 +18,9 @@ Step **payloads are never part of the tree**: `spans` returns structure only; `s
 | `GET traces/{id}/writes` | rows written: `table, operation, row_key, before, after, transaction (none/committed/rolled_back/open), rows` |
 | `GET traces/{id}/problems` | `kind, message, file, line, span_id` |
 | `DELETE traces/{id}` / `DELETE traces` | delete one / all traces |
+| `GET journal` | the request journal, newest first. Query: `limit` (≤200), `cursor`, `status` (`failed`, `errors` or a status code), `search` (URL, user, error). Returns `{data, next_cursor}`; a row has `id, method, url, route_name, status, duration_ms, user_id, failure, has_body, body_cut, masked, trace_id, created_at` (no headers, no body) |
+| `GET journal/{id}` | one entry in full: the row plus `headers` and `body` (masked), what the replay form is filled in from |
+| `DELETE journal` | empty the journal |
 | `POST replay` | Run a request that already happened again, traced. Body: `curl` (a cURL command) **or** `method`, `url`, `headers` (object), `body`; optional `as_user` (the id of the user to act as). The request runs in a PHP process of its own with its database changes rolled back. `200` with `{data: {trace_id, status, error: null}}`; `422` with `data.error` when it failed (no such user, not a cURL command, ...); `403` where replay is off. |
 | `POST tokens` | `{ttl?, user_id?, route?}` → `{token, expires_at, header, example}` |
 | `GET watch` / `POST watch` / `DELETE watch/{user}` | the watch list: `{user_id, minutes?}` |

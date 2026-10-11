@@ -20,19 +20,21 @@ PHP 8.4.15, Laravel 13.35, Windows 11 laptop, SQLite file database, 500 requests
 
 | Scenario | handle median | handle p95 | terminate median | overhead vs. not installed | peak memory |
 |---|---:|---:|---:|---:|---:|
-| Package not installed | 14.04 ms | 17.80 ms | 0.14 ms | - | 36 MB |
-| Installed, `enabled = false` | 13.79 ms | 17.50 ms | 0.14 ms | -0.24 ms | 38 MB |
-| Installed, nobody is listening | 14.24 ms | 19.39 ms | 0.15 ms | +0.20 ms | 40 MB |
-| Listening: every call of the project, with input and output (`code.line_by_line = false`) | 19.77 ms | 26.30 ms | 7.48 ms | +5.73 ms | 54 MB |
-| Listening: + every line of the project (the default) | 21.58 ms | 28.54 ms | 9.89 ms | +7.54 ms | 54 MB |
+| Package not installed | 15.34 ms | 21.35 ms | 0.14 ms | - | 36 MB |
+| Installed, `enabled = false` | 14.32 ms | 17.69 ms | 0.16 ms | -1.01 ms | 38 MB |
+| Installed, nobody is listening | 14.98 ms | 20.21 ms | 0.21 ms | -0.35 ms | 40 MB |
+| Installed, nobody is listening, **the request journal is on** | 14.99 ms | 18.39 ms | 5.70 ms | -0.34 ms | 40 MB |
+| Listening: every call of the project, with input and output (`code.line_by_line = false`) | 19.81 ms | 24.92 ms | 7.50 ms | +4.48 ms | 54 MB |
+| Listening: + every line of the project (the default) | 22.04 ms | 28.53 ms | 9.89 ms | +6.70 ms | 54 MB |
 
-Decision cost on a request nothing triggers (nobody listening, measured in isolation): **25 to 65 µs**, depending on how fast the file system answers a `stat()` (the Windows laptop is at the slow end; the figure includes the stat of the heartbeat file, one header lookup and a cache read for the watch list).
+Decision cost on a request nothing triggers (nobody listening, measured in isolation): **25 to 65 µs** (57 µs in the run above), depending on how fast the file system answers a `stat()` (the Windows laptop is at the slow end; the figure includes the stat of the heartbeat file, one header lookup and a cache read for the watch list).
 
 ### Reading the table
 
 - **Installed and idle costs nothing you can measure.** The differences in the first three rows are inside the noise of a laptop (between -1 and +1 ms from run to run, in both directions). The precise figure is the decision itself, in microseconds. With `enabled = false` no listener, middleware, autoloader or container hook is registered at all.
-- **While listening, every call of the project adds about 5 to 6 ms to the response** for this flow, and **line by line adds 2 ms more** (7 to 8 ms in total), because the files of the project are the compiled copies and every statement reports to the recorder. Line by line costs in proportion to the lines that run, not to the number of steps, so measure it on your own code. It is paid by the person who is listening, and by requests that arrive while they listen.
+- **While listening, every call of the project adds about 5 to 6 ms to the response** for this flow, and **line by line adds 2 ms more** (about 7 ms in total), because the files of the project are the compiled copies and every statement reports to the recorder. Line by line costs in proportion to the lines that run, not to the number of steps, so measure it on your own code. It is paid by the person who is listening, and by requests that arrive while they listen.
 - **Another 7 to 10 ms is spent after the response was sent**, in `terminate()`: building the trace, masking and compressing payloads and writing five tables in chunks. The user does not wait for it, but the PHP worker is busy for that long. With `storage.queue.enabled` the write moves to a queue worker and the worker is only busy for the time it takes to serialise and dispatch the job.
+- **The request journal (off by default) adds one insert after the response was sent**: about 5 ms of `terminate()` on this SQLite file, and the response itself is not slower (the row is written in `terminate()`, the request is only read, masked and kept in memory until then). Measured separately, one journal insert took **2.1 ms on MySQL** and **5.4 ms on a SQLite file**; a remote database is slower. It writes one row per request, so on a very busy site, keep `journal.hours` short.
 - **Memory**: about +16 MB peak while recording, all of it released at the end of the request (see the leak test in `tests/Order/HardeningTest.php`).
 
 ## What this does *not* tell you

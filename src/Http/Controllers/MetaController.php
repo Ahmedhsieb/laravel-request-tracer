@@ -39,6 +39,11 @@ final class MetaController extends Controller
             'listening' => Listening::active(),
             'listen_command' => 'php artisan '.Brand::NAME.':listen',
             'replay' => ['enabled' => Replayer::allowed()],
+            'journal' => [
+                'enabled' => (bool) $tracer->config('journal.enabled', false),
+                'hours' => (float) $tracer->config('journal.hours', 1),
+                'max_rows' => (int) $tracer->config('journal.max_rows', 500),
+            ],
             'code' => [
                 'paths' => array_values(array_filter((array) $tracer->config('code.paths', ['app']), 'is_string')),
                 'except' => array_values(array_filter((array) $tracer->config('code.except', []), 'is_string')),

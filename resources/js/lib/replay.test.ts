@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Dump } from '../api/types'
-import { emptyForm, formFromRequest, inputFromForm, parseHeaders } from './replay'
+import type { Dump, JournalEntry } from '../api/types'
+import { emptyForm, formFromJournal, formFromRequest, inputFromForm, parseHeaders } from './replay'
 
 const request = (over: Record<string, Dump> = {}): Dump => ({
   $: 'obj', c: 'Illuminate\\Http\\Request', kind: 'request',
@@ -62,5 +62,37 @@ describe('inputFromForm', () => {
 describe('parseHeaders', () => {
   it('reads "Name: value" lines, keeps colons inside values, and skips lines without a name', () => {
     expect(parseHeaders('Authorization: Bearer a:b\r\n: nameless\nplain')).toEqual({ Authorization: 'Bearer a:b' })
+  })
+})
+
+describe('formFromJournal', () => {
+  const entry = (over: Partial<JournalEntry> = {}): JournalEntry => ({
+    id: '01J', method: 'post', url: '/api/orders?x=1', route_name: 'orders.store', status: 500, duration_ms: 12, user_id: '42', failure: 'RuntimeException: boom',
+    has_body: true, body_cut: false, masked: true, trace_id: null, created_at: '2026-10-11T10:00:00+00:00',
+    headers: { 'content-type': 'application/json', accept: 'application/json' }, body: '{"items":[1],"card_number":"••••••••"}', ...over,
+  })
+
+  it('fills the form from the entry: method, URL with query, headers, the JSON body laid out, the user', () => {
+    const form = formFromJournal(entry())
+
+    expect(form.method).toBe('POST')
+    expect(form.url).toBe('/api/orders?x=1')
+    expect(form.headers).toBe('content-type: application/json\naccept: application/json')
+    expect(JSON.parse(form.body)).toEqual({ items: [1], card_number: '••••••••' })
+    expect(form.body).toContain('\n')
+    expect(form.asUser).toBe('42')
+    expect(form.masked).toBe(true)
+    expect(form.bodyCut).toBe(false)
+  })
+
+  it('keeps a form body as it was stored and says when the body was too large to keep', () => {
+    const form = formFromJournal(entry({ headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'a=1&b=2', masked: false }))
+    expect(form.body).toBe('a=1&b=2')
+    expect(form.masked).toBe(false)
+
+    const cut = formFromJournal(entry({ body: null, body_cut: true, user_id: null }))
+    expect(cut.body).toBe('')
+    expect(cut.bodyCut).toBe(true)
+    expect(cut.asUser).toBe('')
   })
 })

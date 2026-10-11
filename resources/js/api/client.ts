@@ -1,5 +1,5 @@
 import type {
-  Api, IssuedToken, Meta, Payload, ProblemRow, QueueEntry, ReplayInput, ReplayResult, SpanLines, SpanRow, TraceFilters, TracePage, TraceSummary, WatchEntry, WriteRow,
+  Api, IssuedToken, JournalEntry, JournalFilters, JournalPage, Meta, Payload, ProblemRow, QueueEntry, ReplayInput, ReplayResult, SpanLines, SpanRow, TraceFilters, TracePage, TraceSummary, WatchEntry, WriteRow,
 } from './types'
 
 /** What the Blade view puts on `window.__REQUEST_TRACER__`. */
@@ -104,6 +104,18 @@ export class HttpApi implements Api {
 
   problems(id: string): Promise<ProblemRow[]> {
     return this.data('GET', `/traces/${encodeURIComponent(id)}/problems`)
+  }
+
+  journal(filters: JournalFilters, cursor?: string | null): Promise<JournalPage> {
+    return this.request<JournalPage>('GET', '/journal', { status: filters.status, search: filters.search, cursor: cursor ?? undefined })
+  }
+
+  journalEntry(id: string): Promise<JournalEntry> {
+    return this.data('GET', `/journal/${encodeURIComponent(id)}`)
+  }
+
+  async clearJournal(): Promise<void> {
+    await this.request('DELETE', '/journal')
   }
 
   replay(input: ReplayInput): Promise<ReplayResult> {

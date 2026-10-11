@@ -52,6 +52,10 @@ php artisan request-tracer:replay "POST /orders" --data='{"items":[1,2]}' --as=4
 
 The application handles it as if it had arrived from outside, and **its database changes are rolled back**, e-mails and queued jobs are not sent. Calls to other services (payments, APIs) are real, so replay is off in the production environment unless you switch it on.
 
+### Do not know what the request was?
+
+Turn the **request journal** on (`REQUEST_TRACER_JOURNAL=true`). It notes every request in one light row (URL, masked body, user, status, error), traced or not, for an hour. In the dashboard's *Journal* tab pick the one that failed and it **replays itself**: same URL, same body, same user, full trace. `php artisan request-tracer:replay --journal=failed` does it from the terminal. It is off by default, because it keeps request bodies for that hour; secrets are masked before they are stored.
+
 ### In production
 
 Same two steps, on the server. The dashboard stays closed until you say who may open it:

@@ -1,5 +1,5 @@
 import type {
-  Api, Dump, IssuedToken, LineRow, Meta, Payload, ProblemRow, QueueEntry, ReplayInput, ReplayResult, SourceFunction, SpanLines, SpanRow, TraceFilters, TracePage,
+  Api, Dump, IssuedToken, JournalEntry, JournalFilters, JournalPage, LineRow, Meta, Payload, ProblemRow, QueueEntry, ReplayInput, ReplayResult, SourceFunction, SpanLines, SpanRow, TraceFilters, TracePage,
   TraceSummary, WatchEntry, WriteRow,
 } from './types'
 
@@ -22,6 +22,7 @@ export const DEMO_META: Meta = {
   listening: true,
   listen_command: 'php artisan request-tracer:listen',
   replay: { enabled: true },
+  journal: { enabled: true, hours: 1, max_rows: 500 },
   code: { paths: ['app'], except: ['app/Legacy'], line_by_line: true },
   recording: { mode: 'triggered', header: 'X-Request-Tracer', watch_list: true, sampling: { enabled: false, rate: 0.01 }, token_ttl: 300 },
   user: { id: 1, name: 'Amira Hassan' },
@@ -326,6 +327,32 @@ function simplePayload(spanId: number): Payload {
   return { input: { value: map([['id', spanId]]) }, output: { value: map([['ok', true]]) } }
 }
 
+// ---------------------------------------------------------------------------------------------- the request journal
+
+function journalEntry(n: number, over: Partial<JournalEntry>): JournalEntry {
+  return {
+    id: `01J8DEMOJ0URNAL${String(n).padStart(11, '0')}`, method: 'GET', url: '/', route_name: null, status: 200, duration_ms: 90, user_id: '42', failure: null,
+    has_body: false, body_cut: false, masked: false, trace_id: null, created_at: ago(60 * n), ...over,
+  }
+}
+
+const JOURNAL: JournalEntry[] = [
+  journalEntry(1, { method: 'POST', url: '/orders', route_name: 'orders.store', status: 302, duration_ms: 412, has_body: true, masked: true, trace_id: ORDER_TRACE_ID, created_at: ago(24) }),
+  journalEntry(2, { method: 'POST', url: '/api/payments', route_name: 'payments.charge', status: 502, duration_ms: 30_012, user_id: '17', has_body: true, masked: true, failure: 'GuzzleHttp\\Exception\\ConnectException: cURL error 28: Connection timed out after 30001 milliseconds' }),
+  journalEntry(3, { url: '/api/invoices/9912', route_name: 'invoices.show', status: 500, duration_ms: 231, user_id: '17', failure: 'RuntimeException: Invoice 9912 has no ledger entry.' }),
+  journalEntry(4, { url: '/products?page=2', route_name: 'products.index', duration_ms: 64, user_id: null }),
+  journalEntry(5, { method: 'PUT', url: '/api/orders/1049', route_name: 'orders.update', status: 422, duration_ms: 48, has_body: true }),
+  journalEntry(6, { method: 'DELETE', url: '/api/orders/1031', route_name: 'orders.destroy', status: 403, duration_ms: 21, user_id: '9' }),
+  journalEntry(7, { method: 'POST', url: '/api/import', route_name: 'import.store', status: 200, duration_ms: 2_480, has_body: false, body_cut: true }),
+  journalEntry(8, { url: '/dashboard', route_name: 'dashboard', duration_ms: 1_240 }),
+]
+
+const JOURNAL_BODIES = new Map<string, string>([
+  [JOURNAL[0]!.id, '{"items":[{"product_id":301,"qty":2},{"product_id":302,"qty":3}],"coupon":null,"card_number":"••••••••"}'],
+  [JOURNAL[1]!.id, '{"order_id":1049,"amount":"184.50","card_number":"••••••••"}'],
+  [JOURNAL[4]!.id, '{"qty":0}'],
+])
+
 // ---------------------------------------------------------------------------------------------- the API
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
@@ -410,6 +437,36 @@ export class DemoApi implements Api {
     await sleep(30)
 
     return this.base(id) === ORDER_TRACE_ID ? ORDER_PROBLEMS : simpleProblems(this.find(id))
+  }
+
+  async journal(filters: JournalFilters, cursor?: string | null): Promise<JournalPage> {
+    await sleep(40)
+    const needle = (filters.search ?? '').trim().toLowerCase()
+    let rows = JOURNAL.filter((e) => {
+      if (filters.status === 'failed' && !((e.status ?? 0) >= 500 || e.failure !== null)) return false
+      if (filters.status === 'errors' && (e.status ?? 0) < 400) return false
+      if (filters.status !== undefined && /^\d+$/.test(filters.status) && String(e.status) !== filters.status) return false
+      if (needle === '') return true
+
+      return [e.url, e.user_id, e.failure, e.route_name].some((v) => (v ?? '').toLowerCase().includes(needle))
+    })
+    if (cursor !== undefined && cursor !== null) rows = rows.filter((e) => e.id < cursor)
+
+    return { data: rows, next_cursor: null }
+  }
+
+  async journalEntry(id: string): Promise<JournalEntry> {
+    await sleep(20)
+    const found = JOURNAL.find((e) => e.id === id)
+    if (found === undefined) throw new Error(`No journal entry ${id} in the demo data.`)
+    const body = JOURNAL_BODIES.get(id) ?? null
+
+    return { ...found, headers: body === null ? { accept: 'application/json' } : { accept: 'application/json', 'content-type': 'application/json' }, body }
+  }
+
+  async clearJournal(): Promise<void> {
+    await sleep(20)
+    JOURNAL.length = 0
   }
 
   async replay(input: ReplayInput): Promise<ReplayResult> {

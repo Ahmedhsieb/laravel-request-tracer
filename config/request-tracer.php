@@ -267,6 +267,18 @@ return [
     ],
 
     /*
+     * The request journal: one light row per request, so a request nobody traced can still be found ("what hit us at 14:03?")
+     * and replayed with a full trace (dashboard: Journal, then Replay). Off by default. It costs one INSERT per request, after the
+     * response was sent. Secrets are masked before anything is stored, which means a replay of such a request carries the mask.
+     */
+    'journal' => [
+        'enabled' => env('REQUEST_TRACER_JOURNAL', false),
+        'hours' => 1,                                           // entries older than this are dropped
+        'max_rows' => 500,                                      // and so is everything beyond the newest this many
+        'body_max_bytes' => 16384,                              // a larger body is not kept (the entry says so)
+    ],
+
+    /*
      * Retention (request-tracer:prune, scheduled automatically when enabled).
      */
     'retention' => [
