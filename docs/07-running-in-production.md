@@ -23,10 +23,12 @@ On a non-local environment the default `mode` is **`triggered`**. A request is r
    * *Signed header* — from the dashboard (**Record a request**) or `php artisan request-tracer:token --ttl=300 --route='api/orders*'`. Send it as `X-Request-Tracer: <token>`. Tokens are HMAC-signed with the app key, expire in at most one hour, and can be limited to a path pattern or to one authenticated user.
    * *Watch list* — "record Ann's requests for the next 30 minutes". One cache read per request while the feature is on (`triggers.watch_list.enabled`).
    * *Sampling* — `triggers.sampling.enabled` with a small `rate`. Sampled requests are only **kept** when a user is authenticated (`require_auth`).
+   * *Jobs and commands* — a job is recorded only when the request that dispatched it was recorded; a command or scheduled task only when the process was started with `REQUEST_TRACER=1`. See [queues, commands and scheduled tasks](10-queues-commands-scheduled-tasks.md).
 5. **Trim what is traced**: leave `proxies.namespaces` and `deep_trace.namespaces` empty until you need them; list the routes that must never be recorded in `exclude`.
 6. **Retention**: `retention.hours` (24) and `retention.max_rows` (5 000) are enforced by `request-tracer:prune`, which is scheduled hourly automatically (run `php artisan schedule:run` as usual). Turn the automatic schedule off with `retention.schedule => false`.
 7. **Check the masking list** (`masking.keys`) against your own field names. See *What is masked* below.
-8. **Run the benchmarks** on your hardware: [benchmarks](benchmarks.md).
+8. **Busy PHP workers?** Set `storage.queue.enabled = true` so traces are written by a queue worker instead of in `terminate()` (you must then run a worker).
+9. **Run the benchmarks** on your hardware: [benchmarks](benchmarks.md).
 
 ## What is recorded, when
 

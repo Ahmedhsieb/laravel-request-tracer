@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { ProblemRow, SpanRow, TraceSummary, WriteRow } from '../api/types'
-import { absoluteTime, formatBytes, formatMs, formatUs, plural } from '../lib/format'
+import { absoluteTime, formatBytes, formatMs, formatUs, plural, shortClass } from '../lib/format'
 import { TYPE_LABEL, methodTone, statusTone, timeByType, typeVar } from '../lib/spans'
 import { buildTree, findNode, type TreeNode } from '../lib/tree'
 import { useStore } from '../store'
@@ -35,7 +35,7 @@ const sliceLabel = computed(() => `Time by type: ${slices.value.map((s) => `${TY
 const shownId = computed(() => pinnedId.value ?? hoverId.value)
 const shownNode = computed(() => (shownId.value === null ? null : findNode(roots.value, shownId.value)))
 const tablesWritten = computed(() => trace.value?.tables_written?.length ?? new Set(writes.value.map((w) => w.table)).size)
-const childTraces = computed(() => spans.value.filter((s) => typeof s.meta?.['trace'] === 'string').map((s) => ({ span: s, id: String(s.meta?.['trace']) })))
+const children = ref<TraceSummary[]>([])
 
 const tabs = computed(() => [
   { id: 'flow' as const, label: 'Flow', count: spans.value.length, hot: false },
@@ -71,6 +71,10 @@ async function load(): Promise<void> {
     spans.value = s
     writes.value = w
     problems.value = p
+    children.value = []
+    void store.api.traces({ parent_trace_id: t.id }).then((page) => {
+      children.value = page.data
+    }).catch(() => undefined)                       // the link to jobs is a convenience: a failure must not hide the trace
     const initial = s.find((x) => x.meta?.['deep'] === true) ?? s.find((x) => x.type === 'controller')
     pinnedId.value = initial?.id ?? null
     entering.value = true
@@ -194,8 +198,9 @@ onBeforeUnmount(() => {
         <SpanTree ref="tree" :roots="roots" :total-us="totalUs" :pinned="pinnedId" :entering="entering" @hover="hoverId = $event" @select="select" />
         <div>
           <StepDetail :trace-id="trace.id" :node="shownNode" :pinned="pinnedId !== null && shownId === pinnedId" :total-us="totalUs" />
-          <div v-if="childTraces.length > 0" style="margin-top: 10px">
-            <button v-for="c in childTraces" :key="c.id" class="btn small" type="button" @click="store.open(c.id)">Open the trace of {{ c.span.label.split('\\').pop() }}</button>
+          <div v-if="children.length > 0" class="children">
+            <span class="muted">Started by this request:</span>
+            <button v-for="c in children" :key="c.id" class="btn small" type="button" @click="store.open(c.id)">{{ shortClass(c.path ?? c.kind) }} ({{ formatMs(c.duration_ms) }})</button>
           </div>
         </div>
       </div>

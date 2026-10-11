@@ -273,6 +273,9 @@ code, pre, .mono { font-family: var(--mono); font-size: 12.5px; }
 
 /* ---------------------------------------------------------------- step detail */
 
+/* jobs started by the request */
+.children { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+
 .detail { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); position: sticky; top: 8px; }
 .detail-head { padding: 12px 14px; border-bottom: 1px solid var(--border); display: grid; gap: 6px; }
 .detail-head .title { display: flex; align-items: center; gap: 8px; min-width: 0; }

@@ -56,3 +56,12 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 - Accessibility: 44 px hit areas, visible focus ring, tested 4.5:1 colour contrast, all animation disabled under `prefers-reduced-motion`, no horizontal scroll at 375 px.
 - Backend: one-line `meta.summary` for steps (`Returns Order #1057`, `Threw …`), and `sources[].statements` in the span-lines API so only lines that carry a probe can be shown as "not run".
 - Tests: 127 frontend tests (formatting, tree, value, code view, contrast and stylesheet rules).
+
+### Phase 6 – hardening, background work, benchmarks
+- Queued jobs, artisan commands and scheduled closures/jobs are traced as `job`, `command` and `schedule` traces (`BackgroundDecider`, `CommandCollector`, worker listeners in `JobCollector`). Production default: a job is recorded only when the request that dispatched it was recorded, a command only with `REQUEST_TRACER=1`.
+- Job → dispatching request link (`parent_trace_id`, from a stamp in the queue payload) in both directions in the dashboard ("Dispatched by a request" and "Started by this request").
+- A trace is stored when the job is processed, throws or fails; a command that dies without `CommandFinished` is stored by a shutdown hook; `sync` jobs and nested `Artisan::call()` stay part of the outer trace; the tracer never traces its own queued writes.
+- Fixed: the queue payload stamp was registered once per process, which the framework's test teardown defeats; it is now registered on every boot.
+- Cheaper idle path: in `triggered` mode the trigger checks run before the exclusion patterns (about 25 µs per untriggered request).
+- Tests for the span cap and collapse, queued persistence, repeated requests in one process (no state or memory left behind), tenant/module resolvers (including a resolver that throws) and writes on two database connections.
+- `benchmarks/run.php` (five scenarios, each in its own process) and `docs/benchmarks.md` with results; docs: queues, commands and scheduled tasks.

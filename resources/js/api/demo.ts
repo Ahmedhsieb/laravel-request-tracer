@@ -83,7 +83,7 @@ const ORDER_SPANS: SpanRow[] = [
   span(16, 7, 'query', SQL.insertItem, 258_000, 24_000, { connection: 'mysql', count: 6, meta: { op: 'insert', table: 'order_items', rows: 6 }, file: ORDER_FILE, line: 42 }),
   span(17, 7, 'query', SQL.stock, 284_000, 9_000, { connection: 'mysql', count: 6, meta: { op: 'update', table: 'products', rows: 6 }, file: ORDER_FILE, line: 43 }),
   span(18, 7, 'event', 'App\\Events\\OrderPlaced', 330_000, 40_000, { file: ORDER_FILE, line: 47, meta: { summary: '2 listeners' } }),
-  span(19, 18, 'job', 'App\\Jobs\\SendOrderConfirmation', 332_000, 800, { meta: { summary: 'Queued on redis · default', trace: JOB_TRACE_ID } }),
+  span(19, 18, 'job', 'App\\Jobs\\SendOrderConfirmation', 332_000, 800, { meta: { summary: 'Queued on redis · default' } }),
   span(20, 18, 'cache', 'forget orders:user:42', 345_000, 600, { meta: { summary: 'Cache miss → forgotten' } }),
   span(21, 5, 'log', 'info: Order created', 390_000, 100, { meta: { summary: 'context: order_id 1057' }, has_output: false }),
 ]
@@ -344,6 +344,7 @@ export class DemoApi implements Api {
       if (filters.slow === true && t.duration_ms < DEMO_META.slow_ms) return false
       if (filters.module !== undefined && filters.module !== '' && t.module !== filters.module) return false
       if (filters.tenant !== undefined && filters.tenant !== '' && t.tenant !== filters.tenant) return false
+      if (filters.parent_trace_id !== undefined && t.parent_trace_id !== filters.parent_trace_id) return false
       if (needle === '') return true
 
       return [t.path, t.route_name, t.id, t.method, t.module].some((v) => (v ?? '').toLowerCase().includes(needle))

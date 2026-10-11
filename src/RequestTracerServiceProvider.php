@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use RequestTracer\Collectors\CacheCollector;
 use RequestTracer\Collectors\Collector;
+use RequestTracer\Collectors\CommandCollector;
 use RequestTracer\Collectors\EventCollector;
 use RequestTracer\Collectors\ExceptionCollector;
 use RequestTracer\Collectors\HttpClientCollector;
@@ -58,6 +59,7 @@ final class RequestTracerServiceProvider extends ServiceProvider
         CacheCollector::class,
         EventCollector::class,
         JobCollector::class,
+        CommandCollector::class,
     ];
 
     public function register(): void
