@@ -10,12 +10,12 @@ Outside the `local` environment nobody may open it until you define the gate (`v
 
 Work through this list; the first "no" is the answer.
 
-1. Is the tracer on? `php artisan tinker --execute="dump(config('request-tracer.enabled'), config('request-tracer.mode'));"` (`REQUEST_TRACER_ENABLED`, `REQUEST_TRACER_MODE`).
-2. Is the environment local? If not, the mode is `triggered`: nothing is recorded without a signed header, a watched user or sampling.
-3. Does the request path match `exclude.paths` (login, webhooks, health checks, the dashboard itself) or `exclude.routes`? Is `scope.paths` set and not matching?
-4. Did you run the migration? A missing table is logged, not shown: look at `storage/logs/request-tracer.log`.
-5. Is another middleware answering before the tracer's? The package prepends its middleware to the global stack; a custom kernel that replaces the stack must keep it.
-6. Is the trace written on a connection the application cannot reach (`REQUEST_TRACER_DB_CONNECTION`)? Same log.
+1. Is `php artisan request-tracer:listen` running? The dashboard header says **Listening** (green) or **Not listening** (orange). Nothing is recorded while it is not, in any environment. (Or set `REQUEST_TRACER_MODE=always` to record without the command, locally.)
+2. Is the listen command on the same machine as the web server? The heartbeat is a file in `storage/framework/request-tracer`: a command running on your laptop does not switch on a server.
+3. Is the tracer on? `php artisan tinker --execute="dump(config('request-tracer.enabled'), config('request-tracer.mode'));"` (`REQUEST_TRACER_ENABLED`, `REQUEST_TRACER_MODE`).
+4. Does the request path match `exclude.paths` (login, webhooks, health checks, the dashboard itself) or `exclude.routes`? Is `scope.paths` set and not matching? (A replay ignores these.)
+5. Look at `storage/logs/request-tracer.log`: a trace that could not be stored (a database that cannot be written, a full disk) is logged there, never shown.
+6. Is another middleware answering before the tracer's? The package prepends its middleware to the global stack; a custom kernel that replaces the stack must keep it.
 7. With `storage.queue.enabled`, is a queue worker running?
 
 ### My signed header is ignored
@@ -24,11 +24,11 @@ Invalid tokens are ignored **silently**, on purpose. Check: the token was issued
 
 ### I see the request, but not my services
 
-Layer 2 needs the namespace: add it to `proxies.namespaces` (`App\Services`, `App\Domain\*`). Then remember that a proxy can only see calls on an object resolved from the container. Objects created with `new`, static calls, private methods and final classes are not visible; the Problems tab lists the "not traceable" ones it noticed. You can always wrap a value with `trace($value, 'label')`.
+Is the file inside `code.paths` (default: `app`) and not named in `code.except`? Models, controllers, commands, service providers, form requests, jobs and exceptions get no container proxy (the framework builds them itself) but are traced line by line. Otherwise remember that a proxy can only see calls on an object resolved from the container. Objects created with `new`, static calls, private methods and final classes are not visible; the Problems tab lists the "not traceable" ones it noticed. You can always wrap a value with `trace($value, 'label')`.
 
 ### "Inside the code" is empty or says the step was not traced
 
-The class has to be compiled before it is loaded: list it under `deep_trace.namespaces` (or press *Trace this file line by line* and send the request again). Common reasons it does not apply: the class was loaded earlier in the same process (a service provider or a config file referenced it before the package's autoloader ran, or `opcache.preload`), `deep_trace.enabled` is `false`, or the file is in `vendor/`. A file that cannot be compiled is used unchanged and reported in the Problems tab.
+The file has to be compiled before it is loaded, which happens for files in `code.paths` while somebody listens. Common reasons it does not apply: nobody was listening when the class was first loaded in a long-running worker (Octane, `queue:work`: restart it), the class was loaded earlier in the same process (a service provider or a config file referenced it before the package's autoloader ran, or `opcache.preload`), `code.line_by_line` or `deep_trace.enabled` is `false`, the file is outside `code.paths` or named in `code.except`, or it is in `vendor/`. For a file outside the folders, press *Trace this file line by line* and send the request again. A file that cannot be compiled is used unchanged and reported in the Problems tab.
 
 ### Lines show up as "not run" that did
 
@@ -36,7 +36,7 @@ The class has to be compiled before it is loaded: list it under `deep_trace.name
 
 ### Everything is slow
 
-Check what is on: `proxies.namespaces` that cover very hot code, `deep_trace.namespaces` that name classes inside loops, or `mode = always` somewhere that is not local. Compare with [benchmarks](benchmarks.md). Lower `limits.max_spans` or add `#[NoTrace]` to the hot classes.
+Check what is on: a listen command somebody left running, `code.paths` that cover very hot code (put it in `code.except`), or `mode = always` somewhere that is not local. Compare with [benchmarks](benchmarks.md). Lower `limits.max_spans` or add `#[NoTrace]` to the hot classes.
 
 ### The database is growing
 

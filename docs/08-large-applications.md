@@ -8,7 +8,7 @@ Record **few requests, with the detail you chose**, not every request with all t
 
 ## 1. Keep production in `triggered` mode
 
-This is the default outside `local`. A request costs about 25 µs unless somebody asked for it ([benchmarks](benchmarks.md)). Ask for a request with a signed header, for one user with the watch list, or for a small share with sampling. See [Running in production](07-running-in-production.md).
+This is the default everywhere. A request costs 25 to 65 µs unless somebody asked for it ([benchmarks](benchmarks.md)). Ask for everything with `request-tracer:listen`, for one request with a signed header, for one user with the watch list, or for a small share with sampling. See [Running in production](07-running-in-production.md).
 
 ## 2. Say which module and tenant a trace belongs to
 
@@ -44,23 +44,20 @@ final class ResolveModule
 
 The module appears in the dashboard's module filter and next to each request; both columns are indexed. A resolver that throws is ignored and the request is unaffected. If you prefer closures, register them in a service provider: `Tracer::resolveTenantUsing(fn ($request) => ...)`.
 
-## 3. Opt in only the code you are looking at
+## 3. Point it at the code you are looking at
 
-Layer 2 (proxies) and Deep trace are opt-in by namespace. On a large codebase, **start narrow**:
+By default the whole `app/` folder is traced. On a large codebase, **narrow it to the folders involved** while you investigate, and leave the heavy or noisy parts out:
 
 ```php
-'proxies' => [
-    'namespaces' => ['App\Modules\Purchasing\Services', 'App\Modules\Inventory\Services'],
-    'exclude' => ['App\Modules\*\Services\Cached*'],
-],
-'deep_trace' => [
-    'namespaces' => ['App\Modules\Purchasing\Services\PurchaseOrderService'],
+'code' => [
+    'paths'  => ['app/Modules/Purchasing', 'app/Modules/Inventory', 'app/Support/Money.php'],
+    'except' => ['app/Modules/Purchasing/Legacy', 'App\Modules\*\Services\Cached*'],
 ],
 ```
 
-Wildcards work in the middle of a pattern (`App\Modules\*\Services`). Widen the list when you need to, not before. Proxies cost one subclass per class (generated once and cached under `storage/framework/request-tracer`); Deep trace costs in proportion to the lines that run, which is why it is a list of **classes**, not a namespace like `App\`.
+Folders and single files both work, nothing is listed class by class, and `except` takes folders, files and class patterns (`*` stands for one namespace segment inside a pattern, and anything below at the end). Widen the list when you need to, not before. Every class in the folders gets a step with input and output and is compiled for line by line; both happen only while somebody listens, so the cost is paid by the people looking at a trace, not by your users.
 
-Do not trace code that runs thousands of times per request (a money formatter, a cache key builder): `#[NoTrace]` on the class, or `proxies.exclude`, keeps it out.
+Do not trace code that runs thousands of times per request (a money formatter, a cache key builder): put it in `except`, or `#[NoTrace]` on the class. The Deep trace cap (`deep_trace.max_hits`) keeps a hot loop to one row per probe, but the probes still run.
 
 ## 4. Let the limits protect you
 
@@ -90,10 +87,10 @@ Jobs are linked to the request that dispatched them, and commands can be recorde
 
 ## 8. A rollout that works
 
-1. Install on staging, `mode = always`, one module's namespaces in `proxies.namespaces`.
+1. Install on staging and run `php artisan request-tracer:listen`, with one module's folder in `code.paths`.
 2. Define the gate for the people who debug, and the two resolvers.
-3. Go to production with the defaults (`triggered`), the gate, the resolvers and no namespaces. Check `Record a request` works.
-4. When an incident needs it: add the one or two namespaces involved, send a request with a header, read the trace, remove the namespaces again.
+3. Go to production with the defaults, the gate and the resolvers. Check that `php artisan request-tracer:listen` on the server makes requests appear.
+4. When an incident needs it: narrow `code.paths` to the one or two folders involved, run `request-tracer:listen` on the server (or replay the failing request on staging with the cURL you have), read the trace, stop listening.
 
 ## What it will not do for you
 

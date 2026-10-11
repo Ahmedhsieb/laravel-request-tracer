@@ -12,13 +12,16 @@ Switch them off with `collectors.jobs` and `collectors.commands` in `config/requ
 
 ## Who decides what is recorded
 
-The rules are the same idea as for requests: **in production nothing is recorded unless somebody asked for it.**
+The rules are the same idea as for requests: **nothing is recorded unless somebody asked for it.**
 
-| Mode | Job | Command / scheduled task |
+| Situation | Job | Command / scheduled task |
 |---|---|---|
-| `always` (the default in `local`) | recorded | recorded |
-| `triggered` (the default elsewhere) | recorded **only if the request or job that dispatched it was recorded** | recorded **only if the process was started with `REQUEST_TRACER=1`** |
-| `off` | never | never |
+| `php artisan request-tracer:listen` is running | recorded | recorded |
+| `mode = always` (opt-in) | recorded | recorded |
+| otherwise (`triggered`, the default) | recorded **only if the request or job that dispatched it was recorded** | recorded **only if the process was started with `REQUEST_TRACER=1`** |
+| `mode = off` | never | never |
+
+So `request-tracer:listen` is enough for a whole project: while it runs, the web requests, the jobs a worker processes, the commands you run and the scheduler's tasks on that machine are all traced, and the job is linked to the request that dispatched it.
 
 In every mode `exclude.jobs` and `exclude.commands` (fnmatch patterns) win. The defaults already exclude the long-running and internal commands: `queue:work`, `queue:listen`, `schedule:run`, `schedule:work`, `schedule:finish`, `serve`, `tinker`, `invoke-serialized-closure`, `migrate*`, `package:*`, `config:*`, `cache:*`, `horizon*`, `octane:*`, `request-tracer:*` and a few more. The tracer's own queued writes (`RequestTracer\Jobs\*`) are never recorded.
 

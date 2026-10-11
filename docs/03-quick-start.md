@@ -1,52 +1,56 @@
 # 3. Quick start
 
-Ten minutes from `composer require` to the first trace you can learn something from. This page uses the `local` environment; at the end it shows the production version.
+Five minutes from `composer require` to the first trace you can learn something from.
 
-## Step 1: install
+## Step 1: install and listen
 
 ```bash
 composer require your-vendor/laravel-request-tracer
-php artisan request-tracer:install --migrate
+php artisan request-tracer:listen
 ```
+
+Leave the second command running in a terminal, the way you leave `queue:work` running. It prints a line for every request, job and command it traces, with a link to the dashboard.
+
+Nothing else is needed: no config file, no migration, nothing to publish.
 
 ## Step 2: look at one request
 
-Use your application as usual, or run `php artisan serve` and open any page. Then open `/request-tracer`.
+Use your application as usual (or `php artisan serve` and open a page), then open `/request-tracer`.
 
 You see a list of requests, newest first. Click one.
 
 - **Flow** is the tree of what ran. Hover a step to preview it, click to pin it. The panel on the right shows its **Input** and **Output** in `dd()` format.
-- **Database** shows which tables the request wrote and what changed.
+- **Database** shows which tables the request wrote and what changed (the row before and after).
 - **Problems** lists what looks wrong, with a link to the step in the flow.
 
 ## Step 3: see inside your own code
 
-By default you see framework events (queries, events, HTTP calls) plus the controller. To see your services, name their namespaces:
+Everything in `app/` is already traced: every service, listener, middleware and helper class gets a step with its arguments and return value. Pin the step of one of your classes and choose **Inside the code**: each line has a dot (green ran, purple was a false condition, grey did not run), hover a line for the variables, or press **Replay** to walk through the lines in the order they ran. More in [Deep trace](06-deep-trace-guide.md).
+
+To trace another folder, or one file, or to leave something out, say so in `config/request-tracer.php` (publish it first with `php artisan vendor:publish --tag=request-tracer-config`). Only the keys you change need to be there:
 
 ```php
-// config/request-tracer.php
-'proxies' => [
-    'namespaces' => ['App\Services', 'App\Domain\*'],
+'code' => [
+    'paths' => ['app', 'modules/Billing/src', 'lib/Money.php'],
+    'except' => ['app/Legacy', 'App\Reports\*'],
 ],
 ```
 
-Reload the page that uses them. Every call to a class in those namespaces is now a step with its arguments and return value.
+You never list classes one by one. See [configuration](04-configuration.md#code).
 
-> The trace is only as detailed as you ask. Namespaces opt classes in; the attribute `#[Trace]` opts in one class or method; `trace($value, 'label')` records any value anywhere.
+## Step 4: a request that already happened
 
-## Step 4: line by line (Deep trace)
+The request you want to understand happened when nothing was listening? Run it again, traced:
 
-Pick the class whose `if` statements you want to understand:
+- **Dashboard:** *Replay a request*. Paste a cURL command (in the browser's Network tab, right-click the request, *Copy → Copy as cURL (bash)*), or fill in the method, URL, headers and body. On a trace you already have, *Replay this request* fills the form in for you.
+- **Terminal:**
 
-```php
-'deep_trace' => [
-    'namespaces' => ['App\Services\OrderService'],
-],
-```
+  ```bash
+  php artisan request-tracer:replay "POST /api/orders" --data='{"items":[{"product_id":1,"qty":2}]}' --as=42
+  php artisan request-tracer:replay --curl="curl 'https://shop.test/api/orders' -H 'content-type: application/json' --data-raw '{...}'"
+  ```
 
-Reload the page, open the trace, pin the `OrderService::create` step and choose **Inside the code**. Each line has a dot: green ran, purple was a false condition, grey never ran. Hover a line for the variables, or press **Replay** to walk through the lines in the order they ran. More in [Deep trace](06-deep-trace-guide.md).
-
-No config edit needed to try it on one file: in the dashboard, open a step that has no line data and press **Trace this file line by line**; the next request that runs the file is traced.
+`--as=42` runs it as the user with id 42, with no login. The request goes through your application's own HTTP kernel, with all its middleware, and the new trace opens in the dashboard. **Database changes are rolled back**, e-mails go nowhere and queued jobs are dropped. Calls to other services (payment gateways, APIs) are real, which is why replay is off in the production environment unless you turn it on. Fields that were masked when the request was recorded (passwords, tokens) cannot be sent again: the form tells you to fill them in.
 
 ## Step 5: add a value of your own
 
@@ -56,23 +60,20 @@ return trace($this->calculate($order), 'order total');
 
 `trace()` returns the value unchanged. While recording, it shows up as a step with that label and the value in `dd()` format. When nothing is recording it costs one boolean check.
 
-## The production version
+## Stopping
 
-In production nothing is recorded by default. To look at one request:
+Press Ctrl+C in the terminal where `request-tracer:listen` runs. Within a few seconds nothing is recorded any more, and the package costs 25 to 65 µs per request.
 
-1. Define the gate ([Installation](02-installation.md#3-open-the-dashboard)) and open the dashboard.
-2. Click **Record a request**, choose how long the header should be valid (and optionally which user or route), and copy the header.
-3. Send one request with it:
+## In production
 
-   ```bash
-   curl -H 'X-Request-Tracer: <token>' https://shop.example.com/orders
-   ```
+The same two steps, run on the server: `php artisan request-tracer:listen` in an SSH session. The dashboard needs a gate before anybody can open it:
 
-   or from the command line: `php artisan request-tracer:token --ttl=300 --route='orders*'`.
-4. The request appears in the list. Anyone without the header is not recorded, and costs the application about 25 µs.
+```php
+Gate::define('viewRequestTracer', fn ($user) => in_array($user->email, ['ops@example.com']));
+```
 
-To follow a user for a while instead, use **Watch a user** in the same dialog. More on triggers, retention and masking in [Running in production](07-running-in-production.md).
+If you cannot run the command where the application runs, one request can be traced with a signed header instead (dashboard: *Record from outside*, or `php artisan request-tracer:token`). More on that, retention and masking in [Running in production](07-running-in-production.md).
 
 ## Something not showing up?
 
-See [Troubleshooting](13-troubleshooting-faq-upgrade.md): the most common reasons are a missing gate, a request on an excluded path (`login`, `webhooks/*`, health checks), `mode` set to `triggered` in a non-local environment, or a namespace that is not listed under `proxies.namespaces`.
+See [Troubleshooting](13-troubleshooting-faq-upgrade.md). The usual reasons: the listen command is not running (the dashboard header says *Not listening*), the request path is excluded (`login`, `webhooks/*`, health checks), or the class is outside `code.paths`.

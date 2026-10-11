@@ -12,7 +12,7 @@ Used for every release. Replace `X.Y.Z` with the version. The first release is `
 - [ ] `RequestTracer\DeepTrace\Loader::PACKAGE_VERSION` equals `X.Y.Z` (it is part of the compiled-code cache key).
 - [ ] Every new config key is in `docs/04-configuration.md`; `docs/decisions.md` is up to date; the benchmark table in `docs/benchmarks.md` was re-run if capture code changed (`php benchmarks/run.php --requests=500`).
 - [ ] Screenshots listed in `docs/images/README.md` are captured, or the placeholders are still acceptable for this release.
-- [ ] Try it in fresh applications, one per supported Laravel version (10, 11, 12, 13): `composer require` from the branch, `php artisan request-tracer:install --migrate`, open `/request-tracer`, record a request, check Flow, Database and Problems; send one request with a signed header in `APP_ENV=production`.
+- [ ] Try it in fresh applications, one per supported Laravel version (10, 11, 12, 13): `composer require` from the branch and nothing else (no config, no migration, no publish); open `/request-tracer` (no trace yet, header says *Not listening*); run `php artisan request-tracer:listen`, use a page that calls a class of `app/`, and check the trace (steps, line by line, the listen output); `php artisan request-tracer:replay "POST /…"` leaves the database unchanged; stop listening and check nothing is recorded; in `APP_ENV=production` the dashboard answers 403 until a gate is defined and one request with a signed header is recorded (`.dev/fresh-app.sh` does all of this).
 
 ## Tagging
 

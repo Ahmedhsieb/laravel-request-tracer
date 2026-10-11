@@ -8,7 +8,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use RequestTracer\DeepTrace\Loader;
+use RequestTracer\Recording\Listening;
 use RequestTracer\Recording\RecordingDecider;
+use RequestTracer\Replay\Replayer;
 use RequestTracer\Support\Brand;
 use RequestTracer\Tracer;
 
@@ -34,6 +36,14 @@ final class MetaController extends Controller
             'is_production' => ! $decider->isLocal(),
             'mode' => $mode,
             'enabled' => $tracer->enabled(),
+            'listening' => Listening::active(),
+            'listen_command' => 'php artisan '.Brand::NAME.':listen',
+            'replay' => ['enabled' => Replayer::allowed()],
+            'code' => [
+                'paths' => array_values(array_filter((array) $tracer->config('code.paths', ['app']), 'is_string')),
+                'except' => array_values(array_filter((array) $tracer->config('code.except', []), 'is_string')),
+                'line_by_line' => (bool) $tracer->config('code.line_by_line', true) && (bool) $tracer->config('deep_trace.enabled', true),
+            ],
             'recording' => [
                 'mode' => $mode,
                 'header' => (string) $tracer->config('triggers.header', Brand::HEADER),

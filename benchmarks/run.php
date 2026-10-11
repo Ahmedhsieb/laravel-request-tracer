@@ -23,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Orchestra\Testbench\Concerns\CreatesApplication;
+use RequestTracer\Recording\Listening;
 use RequestTracer\Recording\RecordingDecider;
 use RequestTracer\RequestTracerServiceProvider;
 use RequestTracer\Tests\Fixtures\Http\OrderController;
@@ -34,9 +35,9 @@ require __DIR__.'/../vendor/autoload.php';
 const SCENARIOS = [
     'absent' => 'Package not installed',
     'disabled' => 'Installed, enabled = false',
-    'idle' => 'Installed, triggered mode, nothing triggers it',
-    'layers12' => 'Recording every request: framework collectors + container proxies',
-    'deep' => 'Recording every request: + Deep trace of OrderService',
+    'idle' => 'Installed, nobody is listening',
+    'calls' => 'Listening: every call of the project, with input and output',
+    'lines' => 'Listening: + every line of the project (the default)',
 ];
 
 $options = getopt('', ['scenario::', 'requests::', 'warmup::', 'json']);
@@ -99,6 +100,13 @@ function runScenario(string $scenario, int $requests, int $warmup): array
     @unlink($database);
     touch($database);
 
+    // "somebody is listening": the heartbeat the listen command would keep touching
+    $listening = in_array($scenario, ['calls', 'lines'], true);
+    Listening::useFile(sys_get_temp_dir().'/rt-bench-listen-'.getmypid());
+    if ($listening) {
+        Listening::beat();
+    }
+
     $factory = new class($scenario, $database)
     {
         use CreatesApplication;
@@ -128,12 +136,12 @@ function runScenario(string $scenario, int $requests, int $warmup): array
 
             $config->set('request-tracer.enabled', $this->scenario !== 'disabled');
             $config->set('request-tracer.local_environments', ['local']);
-            $config->set('request-tracer.mode', in_array($this->scenario, ['layers12', 'deep'], true) ? 'always' : 'triggered');
+            $config->set('request-tracer.mode', 'triggered');
             $config->set('request-tracer.storage.separate_connection', true);
-            $config->set('request-tracer.proxies.namespaces', ['RequestTracer\Tests\Fixtures\Services']);
+            // the project's own code: the services of the example application (what `code.paths` => ['app'] is for a real project)
+            $config->set('request-tracer.code.paths', [str_replace('\\', '/', dirname(__DIR__)).'/tests/Fixtures/Services']);
+            $config->set('request-tracer.code.line_by_line', $this->scenario === 'lines');
             $config->set('request-tracer.proxies.cache_path', sys_get_temp_dir().'/rt-bench-proxies');
-            $config->set('request-tracer.deep_trace.enabled', $this->scenario === 'deep');
-            $config->set('request-tracer.deep_trace.namespaces', ['RequestTracer\Tests\Fixtures\Services\OrderService']);
             $config->set('request-tracer.deep_trace.cache_path', sys_get_temp_dir().'/rt-bench-compiled');
         }
 
@@ -175,6 +183,9 @@ function runScenario(string $scenario, int $requests, int $warmup): array
     $handle = [];
     $terminate = [];
     for ($i = 0; $i < $warmup + $requests; $i++) {
+        if ($listening) {
+            Listening::beat();
+        }
         $request = Request::create('/api/orders', 'POST', $payload, [], [], ['HTTP_ACCEPT' => 'application/json']);
 
         $t0 = hrtime(true);
@@ -210,6 +221,7 @@ function runScenario(string $scenario, int $requests, int $warmup): array
     $last = $traces === 0 ? null : $app['db']->connection('bench')->table('tracer_traces')->orderByDesc('id')->first(['id', 'spans_count', 'queries_count']);
     $lines = $last === null ? 0 : (int) $app['db']->connection('bench')->table('tracer_lines')->where('trace_id', $last->id)->count();
     @unlink($database);
+    Listening::stop();
 
     return [
         'spans_per_trace' => (int) ($last->spans_count ?? 0),

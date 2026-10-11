@@ -7,12 +7,14 @@ namespace RequestTracer\Recording;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use RequestTracer\RecordingState;
+use RequestTracer\Replay\Replayer;
 use RequestTracer\Support\App;
 
 /**
  * Decides, at the very start of a request, whether it is recorded (brief section 7).
  *
- * Order: master switch → mode → excluded paths → `always` mode → (triggered mode:) signed header → watch list / sampling.
+ * Order: master switch → mode → `always` mode → (triggered mode:) signed header → somebody is listening → watch list / sampling,
+ * and the excluded paths win over every trigger.
  *
  * The header is valid immediately. The watch list and sampling need to know *who* the user is, which is only known after the
  * session middleware ran, so those requests are recorded "tentatively" (in memory) and confirmed when the user authenticates;
@@ -22,7 +24,7 @@ use RequestTracer\Support\App;
  */
 class RecordingDecider
 {
-    /** always | triggered | off */
+    /** always | triggered | off. `triggered` (the default everywhere) records while somebody listens, or when a signed header, a watched user or a sample asks for it. */
     public function mode(): string
     {
         $mode = App::config()->get('request-tracer.mode');
@@ -30,7 +32,7 @@ class RecordingDecider
             return $mode;
         }
 
-        return $this->isLocal() ? 'always' : 'triggered';
+        return 'triggered';
     }
 
     public function isLocal(): bool
@@ -48,6 +50,9 @@ class RecordingDecider
         $mode = $this->mode();
         if ($mode === 'off') {
             return Decision::off();
+        }
+        if (Replayer::active()) {
+            return new Decision(RecordingState::On, 'replay');      // asked for, so neither the excluded paths nor the mode apply
         }
         if ($mode === 'always') {
             return $this->excluded($request) ? Decision::off() : new Decision(RecordingState::On, 'always');
@@ -76,7 +81,12 @@ class RecordingDecider
             }
         }
 
-        // (b) watch list and (c) sampling: both are confirmed once a user has authenticated
+        // (b) somebody is running `php artisan request-tracer:listen`
+        if (Listening::active()) {
+            return new Decision(RecordingState::On, 'listen');
+        }
+
+        // (c) watch list and (d) sampling: both are confirmed once a user has authenticated
         $hints = [];
         if ($config->get('request-tracer.triggers.watch_list.enabled', true) && App::container()->make(WatchList::class)->any()) {
             $hints['watch'] = true;

@@ -1,5 +1,5 @@
 import type {
-  Api, IssuedToken, Meta, Payload, ProblemRow, QueueEntry, SpanLines, SpanRow, TraceFilters, TracePage, TraceSummary, WatchEntry, WriteRow,
+  Api, IssuedToken, Meta, Payload, ProblemRow, QueueEntry, ReplayInput, ReplayResult, SpanLines, SpanRow, TraceFilters, TracePage, TraceSummary, WatchEntry, WriteRow,
 } from './types'
 
 /** What the Blade view puts on `window.__REQUEST_TRACER__`. */
@@ -49,8 +49,10 @@ export class HttpApi implements Api {
     if (!response.ok) {
       let message = `${response.status} ${response.statusText}`
       try {
-        const json = (await response.json()) as { message?: string }
-        if (typeof json.message === 'string' && json.message !== '') message = json.message
+        const json = (await response.json()) as { message?: string; data?: { error?: string } }
+        // a replay that failed answers 422 with the reason in data.error
+        if (typeof json.data?.error === 'string' && json.data.error !== '') message = json.data.error
+        else if (typeof json.message === 'string' && json.message !== '') message = json.message
       } catch {
         // not JSON: keep the status line
       }
@@ -102,6 +104,10 @@ export class HttpApi implements Api {
 
   problems(id: string): Promise<ProblemRow[]> {
     return this.data('GET', `/traces/${encodeURIComponent(id)}/problems`)
+  }
+
+  replay(input: ReplayInput): Promise<ReplayResult> {
+    return this.data('POST', '/replay', undefined, input)
   }
 
   issueToken(options: { ttl?: number; user_id?: string; route?: string }): Promise<IssuedToken> {

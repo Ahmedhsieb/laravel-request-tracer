@@ -27,7 +27,9 @@ use RequestTracer\Collectors\RequestCollector;
 use RequestTracer\Collectors\TransactionCollector;
 use RequestTracer\Collectors\ValidationCollector;
 use RequestTracer\Console\InstallCommand;
+use RequestTracer\Console\ListenCommand;
 use RequestTracer\Console\PruneCommand;
+use RequestTracer\Console\ReplayCommand;
 use RequestTracer\Console\TokenCommand;
 use RequestTracer\DeepTrace\Loader;
 use RequestTracer\Http\Middleware\Authorize;
@@ -99,6 +101,7 @@ final class RequestTracerServiceProvider extends ServiceProvider
         $this->registerLogChannel();
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', Brand::NAME);
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');          // `php artisan migrate` creates the tables; so does the package, when they are missing
         $this->publishResources();
         $this->registerCommands();
 
@@ -179,7 +182,7 @@ final class RequestTracerServiceProvider extends ServiceProvider
     private function registerCommands(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([PruneCommand::class, InstallCommand::class, TokenCommand::class]);
+            $this->commands([ListenCommand::class, ReplayCommand::class, PruneCommand::class, InstallCommand::class, TokenCommand::class]);
         }
     }
 

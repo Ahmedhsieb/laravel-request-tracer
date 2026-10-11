@@ -1,5 +1,6 @@
 import { computed, inject, markRaw, reactive, ref, shallowRef, type InjectionKey } from 'vue'
 import type { Api, Meta, TraceFilters, TraceSummary } from './api/types'
+import type { ReplayForm } from './lib/replay'
 
 export type Chip = 'all' | 'problems' | 'slow'
 
@@ -22,6 +23,8 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   const cursor = ref<string | null>(null)
   const selected = ref<string | null>(readSelected())
   const toastText = ref<string | null>(null)
+  const replayOpen = ref(false)
+  const replayInitial = shallowRef<ReplayForm | null>(null)
 
   let timer: ReturnType<typeof setInterval> | null = null
   let debounce: ReturnType<typeof setTimeout> | null = null
@@ -139,6 +142,16 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
     debounce = setTimeout(() => void reload(), delay)
   }
 
+  /** Open the "replay a request" dialog, empty or filled in from a recorded request. */
+  function openReplay(initial: ReplayForm | null = null): void {
+    replayInitial.value = initial
+    replayOpen.value = true
+  }
+
+  function closeReplay(): void {
+    replayOpen.value = false
+  }
+
   function toast(text: string): void {
     toastText.value = text
     if (toastTimer !== null) clearTimeout(toastTimer)
@@ -148,7 +161,7 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   }
 
   // reactive() unwraps the refs, so templates (and callers) use `store.meta`, not `store.meta.value`
-  return reactive({ api: markRaw(api), basePath, meta, traces, fresh, search, chip, module, modules, loading, loadingMore, error, cursor, selected, toastText, start, stop, reload, more, open, close, refilter, toast })
+  return reactive({ api: markRaw(api), basePath, meta, traces, fresh, search, chip, module, modules, loading, loadingMore, error, cursor, selected, toastText, replayOpen, replayInitial, start, stop, reload, more, open, close, refilter, toast, openReplay, closeReplay })
 }
 
 export type Store = ReturnType<typeof createStore>

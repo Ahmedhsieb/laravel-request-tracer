@@ -4,6 +4,19 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-11
+
+Simpler to install, run and point. Changes behaviour: nothing records on its own any more (see below), and the configuration moved to `code.paths` / `code.except` for what is traced.
+
+### Simpler to install, run and point
+- **Two steps**: `composer require` and `php artisan request-tracer:listen`. No config file, no migration, nothing to publish: the tables create themselves the first time they are needed (the shipped migration is idempotent, so `php artisan migrate` and a published copy still work), the dashboard is served from the package, and every key has a default.
+- **`request-tracer:listen`** works like `queue:work`: while it runs, requests, queued jobs, artisan commands and scheduled tasks are traced, and each trace is printed in the terminal as it is stored. Stop it and recording stops within seconds. It works through a heartbeat file that every PHP process on the machine checks with one `stat()`. The dashboard header shows *Listening* / *Not listening*, with the command to copy.
+- **Nothing records on its own, local included** (changed: the `local` environment used to record every request). `triggered` is the default everywhere; `always` is an explicit opt-in.
+- **The scope is folders**: `code.paths` (default `app`) and `code.except`. Everything inside is traced, with input and output and line by line, and nothing is listed class by class. Files and class patterns work too. Compiled copies are only used while somebody listens, so a request nobody traces runs your original files. Container proxies skip what the framework builds or calls itself (models, controllers, commands, providers, form requests, jobs, exceptions, kernels), which are still traced line by line. `proxies.namespaces` and `deep_trace.namespaces` remain as extras.
+- **Replay** (`request-tracer:replay` and the dashboard's *Replay a request* / *Replay this request*): run a request that already happened again, traced, from a pasted cURL command, a described request or a recorded trace. It runs in a process of its own through the application's HTTP kernel, as the user you name, with a CSRF token; database changes are rolled back, mail and queued jobs go nowhere. Off in the `production` environment unless `replay.enabled` is `true`.
+- Docs, README and the dashboard's empty states describe the two-step flow.
+
+
 ## [0.1.0] - 2026-10-11
 
 First release. Everything below shipped together; the phases are the order the work was done in.

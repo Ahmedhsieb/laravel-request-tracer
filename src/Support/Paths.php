@@ -38,6 +38,12 @@ final class Paths
         }
     }
 
+    /** The project's base path (forward slashes, no trailing slash), or '' before the application booted. */
+    public static function base(): string
+    {
+        return self::$base ?? '';
+    }
+
     public static function normalize(string $path): string
     {
         return rtrim(str_replace('\\', '/', $path), '/');

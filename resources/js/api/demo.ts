@@ -1,5 +1,5 @@
 import type {
-  Api, Dump, IssuedToken, LineRow, Meta, Payload, ProblemRow, QueueEntry, SourceFunction, SpanLines, SpanRow, TraceFilters, TracePage,
+  Api, Dump, IssuedToken, LineRow, Meta, Payload, ProblemRow, QueueEntry, ReplayInput, ReplayResult, SourceFunction, SpanLines, SpanRow, TraceFilters, TracePage,
   TraceSummary, WatchEntry, WriteRow,
 } from './types'
 
@@ -15,10 +15,14 @@ const NOW = Date.now()
 export const DEMO_META: Meta = {
   name: 'Request Tracer',
   version: '0.1.0',
-  environment: 'production',
-  is_production: true,
+  environment: 'local',
+  is_production: false,
   mode: 'triggered',
   enabled: true,
+  listening: true,
+  listen_command: 'php artisan request-tracer:listen',
+  replay: { enabled: true },
+  code: { paths: ['app'], except: ['app/Legacy'], line_by_line: true },
   recording: { mode: 'triggered', header: 'X-Request-Tracer', watch_list: true, sampling: { enabled: false, rate: 0.01 }, token_ttl: 300 },
   user: { id: 1, name: 'Amira Hassan' },
   slow_ms: 500,
@@ -94,9 +98,12 @@ const ORDER = model('App\\Models\\Order', 1057, [['user_id', 42], ['status', 'pe
 const QUOTE = obj('App\\Support\\Quote', [['subtotal', '161.84'], ['tax', '22.66'], ['total', '184.50'], ['currency', 'EGP']])
 
 const request = obj('Illuminate\\Http\\Request', [
-  ['method', 'POST'], ['url', 'https://shop.example.com/orders'],
-  ['headers', map([['content-type', 'application/x-www-form-urlencoded'], ['cookie', mask], ['x-request-tracer', mask], ['user-agent', 'Mozilla/5.0']])],
+  ['method', 'POST'],
+  ['path', '/orders'],
+  ['query', map([])],
   ['input', map([['items', ITEMS], ['coupon', null], ['card_number', mask], ['_token', mask]])],
+  ['files', list([])],
+  ['headers', map([['accept', list(['application/json'])], ['content-type', list(['application/json'])], ['user-agent', list(['Mozilla/5.0'])]])],
 ], 'request')
 
 const ORDER_PAYLOADS = new Map<number, Payload>([
@@ -353,8 +360,15 @@ export class DemoApi implements Api {
     return { data, next_cursor: null }
   }
 
+  /** A replay in the demo is a copy of the order trace: the id it got maps back to the data it shows. */
+  private readonly replays = new Map<string, TraceSummary>()
+
+  private base(id: string): string {
+    return this.replays.has(id) ? ORDER_TRACE_ID : id
+  }
+
   private find(id: string): TraceSummary {
-    const found = TRACES.find((t) => t.id === id)
+    const found = this.replays.get(id) ?? TRACES.find((t) => t.id === id)
     if (found === undefined) throw new Error(`No trace ${id} in the demo data.`)
 
     return found
@@ -369,19 +383,19 @@ export class DemoApi implements Api {
   async spans(id: string): Promise<SpanRow[]> {
     await sleep(60)
 
-    return id === ORDER_TRACE_ID ? ORDER_SPANS : simpleSpans(this.find(id))
+    return this.base(id) === ORDER_TRACE_ID ? ORDER_SPANS : simpleSpans(this.find(id))
   }
 
   async payload(id: string, spanId: number): Promise<Payload> {
     await sleep(30)
-    if (id === ORDER_TRACE_ID) return ORDER_PAYLOADS.get(spanId) ?? simplePayload(spanId)
+    if (this.base(id) === ORDER_TRACE_ID) return ORDER_PAYLOADS.get(spanId) ?? simplePayload(spanId)
 
     return simplePayload(spanId)
   }
 
   async spanLines(id: string, spanId: number): Promise<SpanLines> {
     await sleep(30)
-    if (id === ORDER_TRACE_ID && spanId === 7) return { lines: ORDER_LINES, sources: [ORDER_SOURCE] }
+    if (this.base(id) === ORDER_TRACE_ID && spanId === 7) return { lines: ORDER_LINES, sources: [ORDER_SOURCE] }
 
     return { lines: [], sources: [] }
   }
@@ -389,13 +403,32 @@ export class DemoApi implements Api {
   async writes(id: string): Promise<WriteRow[]> {
     await sleep(30)
 
-    return id === ORDER_TRACE_ID ? ORDER_WRITES : []
+    return this.base(id) === ORDER_TRACE_ID ? ORDER_WRITES : []
   }
 
   async problems(id: string): Promise<ProblemRow[]> {
     await sleep(30)
 
-    return id === ORDER_TRACE_ID ? ORDER_PROBLEMS : simpleProblems(this.find(id))
+    return this.base(id) === ORDER_TRACE_ID ? ORDER_PROBLEMS : simpleProblems(this.find(id))
+  }
+
+  async replay(input: ReplayInput): Promise<ReplayResult> {
+    await sleep(700)
+    const text = (input.curl ?? `${input.method ?? 'GET'} ${input.url ?? ''}`).trim()
+    if (text === '' || (input.curl === undefined && (input.url ?? '') === '')) {
+      return { trace_id: null, status: null, error: 'Paste a cURL command, or give a method and a URL.' }
+    }
+    if (input.curl !== undefined && !input.curl.trimStart().toLowerCase().startsWith('curl')) {
+      return { trace_id: null, status: null, error: 'That does not look like a cURL command (it should start with "curl").' }
+    }
+
+    // the demo "runs" the order request again: same steps, a new trace marked as a replay
+    const id = `01J8DEMO0REPLAY${String(this.replays.size + 1).padStart(11, '0')}`
+    const copy = TRACES[0]!
+    this.replays.set(id, { ...copy, id, mode: 'replay', created_at: new Date().toISOString(), user_id: input.as_user ?? copy.user_id })
+    TRACES.unshift(this.replays.get(id)!)
+
+    return { trace_id: id, status: 302, error: null }
   }
 
   async issueToken(options: { ttl?: number; user_id?: string; route?: string }): Promise<IssuedToken> {

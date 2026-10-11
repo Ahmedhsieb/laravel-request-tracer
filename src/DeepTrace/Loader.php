@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace RequestTracer\DeepTrace;
 
 use Composer\Autoload\ClassLoader;
+use RequestTracer\Recording\Listening;
 use RequestTracer\Support\App;
 use RequestTracer\Support\Brand;
 use RequestTracer\Support\ClassPatterns;
+use RequestTracer\Support\CodeScope;
 use RequestTracer\Support\Failure;
 use RequestTracer\Support\Files;
 use RequestTracer\Support\Paths;
@@ -25,7 +27,7 @@ use RequestTracer\Support\Paths;
  */
 final class Loader
 {
-    public const PACKAGE_VERSION = '0.1.0';
+    public const PACKAGE_VERSION = '0.2.0';
 
     /** @var array<string, string> compiled file => original file (process-wide, constant once set) */
     private static array $origins = [];
@@ -52,6 +54,11 @@ final class Loader
             // DeepQueue...) are then loaded the normal way. Loaded for the first time from inside the autoloader they would fail,
             // because PHP does not re-enter the autoloader for a class that is already being autoloaded.
             self::$instance->autoload('RequestTracerLoaderWarmUp');
+            Failure::guard(static function (): void {
+                CodeScope::includesFile(__FILE__);
+                CodeScope::classAllowed('RequestTracerLoaderWarmUp');
+                Listening::wanted();
+            }, 'warming up the deep trace loader');
             self::$instance->register();
         }
     }
@@ -101,7 +108,9 @@ final class Loader
 
             $byNamespace = $namespaces !== [] && ClassPatterns::matches($class, $namespaces);
             $queued = ! $queue->isEmpty();
-            if (! $byNamespace && $files === [] && ! $queued && ! $scan) {
+            // the project's own code (`code.paths`, default: app/) is compiled while somebody is listening, or the process was told to trace
+            $scoped = (bool) $config->get('request-tracer.code.line_by_line', true) && Listening::wanted();
+            if (! $byNamespace && $files === [] && ! $queued && ! $scan && ! $scoped) {
                 return;
             }
 
@@ -112,6 +121,7 @@ final class Loader
             $real = Paths::normalize(realpath($file) ?: $file);
 
             $wanted = $byNamespace
+                || ($scoped && CodeScope::includesFile($real) && CodeScope::classAllowed($class))
                 || ($files !== [] && in_array($real, $files, true))
                 || ($queued && $queue->contains($real))
                 || ($scan && $this->hasDeepAttribute($real));

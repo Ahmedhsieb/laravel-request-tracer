@@ -7,6 +7,7 @@ namespace RequestTracer\Storage;
 use DateTimeInterface;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use RequestTracer\Span;
@@ -22,6 +23,19 @@ final class DatabaseStorage implements TraceStorage
     ) {}
 
     public function store(TraceData $data): void
+    {
+        try {
+            $this->write($data);
+        } catch (QueryException $e) {
+            // the tables are missing on a fresh install: create them once and try again
+            if (! TableInstaller::ensure()) {
+                throw $e;
+            }
+            $this->write($data);
+        }
+    }
+
+    private function write(TraceData $data): void
     {
         $db = $this->connections->resolve();
 
@@ -48,6 +62,24 @@ final class DatabaseStorage implements TraceStorage
     }
 
     public function traces(array $filters = [], ?string $cursor = null, int $limit = 50): array
+    {
+        try {
+            return $this->listTraces($filters, $cursor, $limit);
+        } catch (QueryException $e) {
+            // the dashboard is the first thing a new user opens: create the tables instead of failing
+            if (! TableInstaller::ensure()) {
+                throw $e;
+            }
+
+            return $this->listTraces($filters, $cursor, $limit);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{data: list<array<string, mixed>>, next_cursor: string|null}
+     */
+    private function listTraces(array $filters, ?string $cursor, int $limit): array
     {
         $limit = max(1, min(200, $limit));
         $query = $this->table('traces')->orderByDesc('id');

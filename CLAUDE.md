@@ -20,6 +20,7 @@ On CI / a normal machine just drop the prefix.
 | Other Laravel | `composer require "laravel/framework:10.*" "orchestra/testbench:^8.0" --no-update && composer update` |
 | Frontend | `npm ci`, `npm run dev` (demo mode, no backend), `npm run build` (writes `dist/`, commit it), `npm run lint`, `npm run typecheck`, `npm test` |
 | Benchmarks | `php benchmarks/run.php` (see `docs/benchmarks.md`) |
+| Fresh-app smoke test | `.dev/fresh-app.sh l12 8.4 "^12.0" 8121` (creates a Laravel app, `composer require`, listen, replay, production checks) |
 
 Git: one branch per phase `phase/<n>-<slug>`, merge to `main` when tests + analysis are green, add a `CHANGELOG.md` entry per phase.
 
@@ -33,7 +34,10 @@ Git: one branch per phase `phase/<n>-<slug>`, merge to `main` when tests + analy
 6. **No dependency beyond what Laravel ships, except `nikic/php-parser ^4.18|^5.0`.**
 7. **PHP 8.1 syntax only** in package code: no readonly classes, typed class constants, `#[\Override]`, `json_validate`, `array_find`, property hooks, etc. CI runs `php -l` on 8.1 and PHPStan with `phpVersion: 80100`.
 8. Dashboard + API are behind the `viewRequestTracer` gate (open only in `local` when the app defines no gate). Never record unauthenticated requests unless the signed header is valid. Invalid tokens are ignored silently (debug log).
-9. Production default: recording OFF; per-request triggers only (signed header, watch list, sampling).
+9. **Nothing records on its own, in any environment** (local included): only while `request-tracer:listen` runs (a heartbeat file, checked with one `stat()`), or for a signed header, a watched user, a sample, a replay, or a process started with `REQUEST_TRACER=1`. `mode=always` is an explicit opt-in.
+10. **Installing is `composer require`.** No config, migration or publish step may become necessary: every key has a default, the tables create themselves, the dashboard is served from the package.
+11. **The scope is folders** (`code.paths`, default `app`, minus `code.except`): everything inside is traced, nothing is listed class by class. Compiled copies are only loaded while recording is wanted (`Listening::wanted()`).
+12. **Replay never leaves database changes behind** and never sends mail or queued jobs; it is off in the `production` environment unless `replay.enabled` says so.
 
 ## Conventions
 
@@ -54,7 +58,9 @@ src/DeepTrace/                           compiler + probes
 src/Dumper/                              Symfony VarCloner → stored structure, masking
 src/Storage/                             TraceStorage + database driver
 src/Http/ routes/                        API + dashboard
-src/Console/                             prune, install, ...
+src/Console/                             listen, replay, prune, install, token
+src/Replay/                              run a request again (cURL parser, transactions, replayer)
+src/Recording/                           when to record: decider, listening heartbeat, tokens, watch list
 resources/js/                            Vue SPA   → dist/ (committed build)
 tests/Fixtures/                          example Order app used by the end-to-end test
 benchmarks/                              request/sec comparison scripts

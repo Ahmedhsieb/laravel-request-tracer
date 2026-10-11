@@ -134,10 +134,13 @@ code, pre, .mono { font-family: var(--mono); font-size: 12.5px; }
   border: 1px solid var(--border); color: var(--muted); background: var(--bg);
 }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--mode-color, var(--muted)); position: relative; flex: none; }
+/* listening / always: tracing now (pulsing green). idle: the app is not being traced until the listen command runs (calm orange, no pulse) */
+.mode.listening { --mode-color: var(--green); color: var(--text); }
 .mode.always { --mode-color: var(--green); color: var(--text); }
-.mode.triggered { --mode-color: var(--orange); color: var(--text); }
+.mode.idle { --mode-color: var(--orange); color: var(--text); }
 .mode.off { --mode-color: var(--muted); }
-.mode.always .dot::after, .mode.triggered .dot::after {
+.listen-hint code { color: var(--accent); }
+.mode.listening .dot::after, .mode.always .dot::after {
   content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--mode-color); opacity: 0;
 }
 
@@ -433,7 +436,7 @@ table.grid { border-collapse: collapse; width: 100%; font: 12.5px var(--mono); }
   .span-row { transition: transform .12s ease, background-color .12s; }
   .span-row:hover { transform: translateX(3px); }
   .req.fresh { animation: slide-in .5s ease-out both; }
-  .mode.always .dot::after, .mode.triggered .dot::after { animation: pulse-ring 1.8s ease-out infinite; }
+  .mode.listening .dot::after, .mode.always .dot::after { animation: pulse-ring 1.8s ease-out infinite; }
   .skeleton { animation: shimmer 1.4s linear infinite; }
   .card, .problem, .metric { animation: fade-up .3s ease-out both; }
 }
