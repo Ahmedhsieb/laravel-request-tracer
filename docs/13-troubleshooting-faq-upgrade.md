@@ -4,7 +4,7 @@
 
 ### The dashboard says 403
 
-Outside the `local` environment nobody may open it until you define the gate (`viewRequestTracer` by default, `dashboard.gate`). See [Installation](02-installation.md#3-open-the-dashboard). In `local`, the gate is opened for you only when your application has not defined one; if you defined it, it applies.
+Outside the `local` environment nobody may open it until you define the gate (`viewRequestTracer` by default, `dashboard.gate`). See [Installation](02-installation.md#use). In `local`, the gate is opened for you only when your application has not defined one; if you defined it, it applies.
 
 ### The dashboard is empty
 
