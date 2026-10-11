@@ -6,6 +6,7 @@ namespace RequestTracer\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use RequestTracer\Journal\Journal;
 use RequestTracer\Support\Failure;
 use RequestTracer\Tracer;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,10 +19,11 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class RecordRequest
 {
-    public function __construct(private readonly Tracer $tracer) {}
+    public function __construct(private readonly Tracer $tracer, private readonly Journal $journal) {}
 
     public function handle(Request $request, Closure $next): mixed
     {
+        $this->journal->capture($request);
         $started = false;
         if ($this->tracer->enabled()) {
             $started = Failure::guard(fn (): bool => $this->tracer->beginRequest($request), 'starting request trace', false);
@@ -39,6 +41,7 @@ final class RecordRequest
 
     public function terminate(Request $request, Response $response): void
     {
+        $this->journal->record($request, $response, $this->tracer->session());       // before the trace is stored and forgotten: it knows the trace id
         Failure::guard(fn () => $this->tracer->finish(), 'storing trace');
     }
 }

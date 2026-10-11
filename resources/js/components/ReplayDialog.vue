@@ -87,8 +87,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           <label>Body (JSON or form data)
             <textarea v-model="form.body" class="field mono" rows="6" spellcheck="false" style="padding: 10px"></textarea>
           </label>
+          <p v-if="form.bodyCut" class="tone-warn" role="status" style="margin: 0">
+            The body of this request was too large to keep, so it is empty here: paste it if you have it.
+          </p>
           <p v-if="form.masked" class="tone-warn" role="status" style="margin: 0">
-            Some values of this request were masked when it was recorded (passwords, tokens). They are shown as <code>••••••••</code> and would be sent like that:
+            Some values of this request were masked when it was noted (passwords, tokens). They are shown as <code>••••••••</code> and would be sent like that:
             replace them before you run it.
           </p>
         </template>

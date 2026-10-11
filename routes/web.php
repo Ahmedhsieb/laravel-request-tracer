@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use RequestTracer\Http\Controllers\AssetController;
 use RequestTracer\Http\Controllers\DashboardController;
+use RequestTracer\Http\Controllers\JournalController;
 use RequestTracer\Http\Controllers\MetaController;
 use RequestTracer\Http\Controllers\ToolsController;
 use RequestTracer\Http\Controllers\TraceController;
@@ -29,6 +30,10 @@ Route::prefix('api/v1')->name('api.')->group(function (): void {
     Route::get('traces/{trace}/lines', [TraceController::class, 'lines'])->name('traces.lines');
     Route::get('traces/{trace}/writes', [TraceController::class, 'writes'])->name('traces.writes');
     Route::get('traces/{trace}/problems', [TraceController::class, 'problems'])->name('traces.problems');
+
+    Route::get('journal', [JournalController::class, 'index'])->name('journal.index');
+    Route::delete('journal', [JournalController::class, 'clear'])->name('journal.clear');
+    Route::get('journal/{entry}', [JournalController::class, 'show'])->name('journal.show');
 
     Route::post('tokens', [ToolsController::class, 'issueToken'])->name('tokens.issue');
     Route::post('replay', [ToolsController::class, 'replay'])->name('replay');

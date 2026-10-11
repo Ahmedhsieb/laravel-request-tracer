@@ -1,6 +1,6 @@
 import { computed, inject, markRaw, reactive, ref, shallowRef, type InjectionKey } from 'vue'
-import type { Api, Meta, TraceFilters, TraceSummary } from './api/types'
-import type { ReplayForm } from './lib/replay'
+import type { Api, JournalEntry, Meta, TraceFilters, TraceSummary } from './api/types'
+import { formFromJournal, type ReplayForm } from './lib/replay'
 
 export type Chip = 'all' | 'problems' | 'slow'
 
@@ -24,6 +24,14 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   const selected = ref<string | null>(readSelected())
   const toastText = ref<string | null>(null)
   const replayOpen = ref(false)
+  // the request journal: which view of the left pane is open, and its list
+  const view = ref<'traces' | 'journal'>('traces')
+  const journal = shallowRef<JournalEntry[]>([])
+  const journalStatus = ref<'all' | 'failed'>('all')
+  const journalSearch = ref('')
+  const journalLoading = ref(false)
+  const journalCursor = ref<string | null>(null)
+  const journalError = ref<string | null>(null)
   const replayInitial = shallowRef<ReplayForm | null>(null)
 
   let timer: ReturnType<typeof setInterval> | null = null
@@ -82,7 +90,13 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
 
   /** Looks for requests recorded since the last look; new rows slide in at the top. */
   async function poll(): Promise<void> {
-    if (document.hidden || loading.value) return
+    if (document.hidden) return
+    if (view.value === 'journal') {
+      if (!journalLoading.value) void reloadJournal()
+
+      return
+    }
+    if (loading.value) return
     const mine = generation
     try {
       const page = await api.traces(filters())
@@ -142,7 +156,46 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
     debounce = setTimeout(() => void reload(), delay)
   }
 
-  /** Open the "replay a request" dialog, empty or filled in from a recorded request. */
+  async function reloadJournal(): Promise<void> {
+    journalLoading.value = true
+    journalError.value = null
+    try {
+      const page = await api.journal({ status: journalStatus.value === 'failed' ? 'failed' : undefined, search: journalSearch.value.trim() === '' ? undefined : journalSearch.value.trim() })
+      journal.value = page.data
+      journalCursor.value = page.next_cursor
+    } catch (e) {
+      journalError.value = e instanceof Error ? e.message : String(e)
+    } finally {
+      journalLoading.value = false
+    }
+  }
+
+  async function moreJournal(): Promise<void> {
+    if (journalCursor.value === null) return
+    try {
+      const page = await api.journal({ status: journalStatus.value === 'failed' ? 'failed' : undefined, search: journalSearch.value.trim() === '' ? undefined : journalSearch.value.trim() }, journalCursor.value)
+      journal.value = [...journal.value, ...page.data]
+      journalCursor.value = page.next_cursor
+    } catch (e) {
+      journalError.value = e instanceof Error ? e.message : String(e)
+    }
+  }
+
+  function showView(next: 'traces' | 'journal'): void {
+    view.value = next
+    if (next === 'journal') void reloadJournal()
+  }
+
+  /** Open the replay dialog filled in from a journal entry: the whole entry is fetched (headers and body come only with it). */
+  async function replayJournalEntry(entry: JournalEntry): Promise<void> {
+    try {
+      openReplay(formFromJournal(await api.journalEntry(entry.id)))
+    } catch (e) {
+      toast(e instanceof Error ? e.message : String(e))
+    }
+  }
+
+  /** Open the replay dialog, empty or filled in from a recorded request. */
   function openReplay(initial: ReplayForm | null = null): void {
     replayInitial.value = initial
     replayOpen.value = true
@@ -161,7 +214,7 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   }
 
   // reactive() unwraps the refs, so templates (and callers) use `store.meta`, not `store.meta.value`
-  return reactive({ api: markRaw(api), basePath, meta, traces, fresh, search, chip, module, modules, loading, loadingMore, error, cursor, selected, toastText, replayOpen, replayInitial, start, stop, reload, more, open, close, refilter, toast, openReplay, closeReplay })
+  return reactive({ api: markRaw(api), basePath, meta, traces, fresh, search, chip, module, modules, loading, loadingMore, error, cursor, selected, toastText, replayOpen, replayInitial, view, journal, journalStatus, journalSearch, journalLoading, journalCursor, journalError, start, stop, reload, more, open, close, refilter, toast, openReplay, closeReplay, reloadJournal, moreJournal, showView, replayJournalEntry })
 }
 
 export type Store = ReturnType<typeof createStore>

@@ -194,6 +194,19 @@ Masking happens while a value is converted, before anything is stored. Add your 
 | `http_failed_min_status` | `400` | An outgoing HTTP response with this status or above is a failed call. |
 | `ignore_exceptions` | validation, authentication, authorization, model-not-found, token mismatch, HTTP exceptions | Uncaught exceptions that are normal control flow: no problem is raised for them (a 5xx HTTP exception still is). |
 
+## `journal`
+
+The request journal: one light row per request, so a request that **nobody traced** can still be found and run again with a full trace. **Off by default.** See [Using the dashboard](09-using-the-dashboard.md#the-journal).
+
+| Key | Default | What it does |
+|---|---|---|
+| `enabled` | `false` (`REQUEST_TRACER_JOURNAL`) | Note every request (method, URL, allow-listed headers, body, user, status, duration, how it failed). Costs one `INSERT` per request, after the response was sent: about 2 ms on MySQL and 5 ms on a SQLite file on the laptop it was measured on. |
+| `hours` | `1` | Entries older than this are dropped. |
+| `max_rows` | `500` | …and so is everything beyond the newest this many. The journal trims itself (roughly every hundredth write) and `request-tracer:prune` trims it too. |
+| `body_max_bytes` | `16384` | A larger body is not kept (the entry says so), because half a body cannot be replayed. |
+
+Secrets are masked before anything is stored, by the same rules as in a trace (`masking.keys`, `masking.value_patterns`; `Authorization` and cookies are never kept, because only the headers of `capture.request_headers` are). A replay of such a request therefore carries the mask instead of the secret, and the dashboard says so. `exclude.paths`, `exclude.routes` and the dashboard's own path keep a request out of the journal as they do for traces; a replay is not noted.
+
 ## `retention`
 
 | Key | Default | What it does |

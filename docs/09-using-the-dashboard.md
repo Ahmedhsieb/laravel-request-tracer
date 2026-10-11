@@ -79,3 +79,20 @@ What a replay does and does not do:
 - Files, caches and other stores outside the database are not rolled back.
 
 From the terminal: `php artisan request-tracer:replay "POST /orders" --data='{"items":[1]}' --as=42`, or `--curl="curl '...' ..."`.
+
+## The journal
+
+You do not always know what the request looked like. A user says "it failed around 3 pm", and nothing was listening. **The journal** is for that: switch it on (`REQUEST_TRACER_JOURNAL=true`) and every request is noted in one light row, whether it is traced or not. The left pane then has two tabs, **Traces** and **Journal**.
+
+Each journal row shows the method, the URL with its query string, the status, who made the request (user id, or *guest*), how long it took, and, for a failure, the exception (`RuntimeException: Invoice 9912 has no ledger entry.`) or `HTTP 500`. Filter with **Failed** (a 5xx or an exception) and the search box (URL, user, error).
+
+**Click a row** and the replay form opens filled in from it: method, URL, headers, the body, and the user it ran as. Press **Replay it** and you get the full trace, line by line, of what that request does now (database changes rolled back, see above). If the request was traced when it happened, the row has a **Trace** button that opens that trace instead.
+
+From the terminal, without opening the dashboard: `php artisan request-tracer:replay --journal=failed` (the newest request that failed), `--journal=last`, or `--journal=<id>`.
+
+Things to know:
+
+- **Secrets are masked before the journal stores them**, so a replay of a request with a password in it sends the mask. The row says *masked*, and the form warns you: replace the value, or accept that the request fails where it needs the secret. Most business requests (orders, imports, searches) have none and replay exactly.
+- A body larger than `journal.body_max_bytes` is not kept (*no body* on the row): the replay sends none.
+- It is not a trace: nothing about what happened *inside* the request is kept. That is the point of the replay, which runs the request again with the **current** code and the **current** data; if either changed since, the result can differ from what happened then.
+- It keeps the last hour and at most 500 requests by default (`journal.hours`, `journal.max_rows`). It costs an `INSERT` per request after the response was sent, which is why it is off until you turn it on.

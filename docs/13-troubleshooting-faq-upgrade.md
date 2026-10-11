@@ -56,6 +56,8 @@ Check what is on: a listen command somebody left running, `code.paths` that cove
 
 **What does it store about the user?** The user id, a keyed hash of the IP address, and whatever you put in the tenant and module columns. Request headers are an allowlist; `Authorization` and `Cookie` are never stored.
 
+**Can I go back to a request nobody traced, when I do not know what it looked like?** Only if something noted it when it happened. Turn the [request journal](09-using-the-dashboard.md#the-journal) on (`REQUEST_TRACER_JOURNAL=true`): it keeps one light row per request for an hour, and any row can be replayed with a full trace. Without it there is nothing to go back to: a request's body and headers are not kept anywhere.
+
 **Can I delete a trace?** Yes: `DELETE /request-tracer/api/v1/traces/{id}` (the API is behind the same gate), or `php artisan request-tracer:prune --hours=0` to remove everything.
 
 **Why `0.x`?** The stored format and the API may still change between minor versions. The changelog says so when it happens.

@@ -61,6 +61,8 @@ The request you want to understand happened when nothing was listening? Run it a
 
 `--as=42` runs it as the user with id 42, with no login. The request goes through your application's own HTTP kernel, with all its middleware, and the new trace opens in the dashboard. **Database changes are rolled back**, e-mails go nowhere and queued jobs are dropped. Calls to other services (payment gateways, APIs) are real, which is why replay is off in the production environment unless you turn it on. Fields that were masked when the request was recorded (passwords, tokens) cannot be sent again: the form tells you to fill them in.
 
+**Do not know what the request looked like?** Turn the [request journal](09-using-the-dashboard.md#the-journal) on (`REQUEST_TRACER_JOURNAL=true`). It notes every request in one light row; in the dashboard's *Journal* tab pick the one that failed, and it replays itself, with the same URL, body and user. From the terminal: `php artisan request-tracer:replay --journal=failed`.
+
 ## Step 5: add a value of your own
 
 ```php

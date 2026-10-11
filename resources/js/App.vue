@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useStore } from './store'
 import AppHeader from './components/AppHeader.vue'
+import JournalList from './components/JournalList.vue'
+import ListTabs from './components/ListTabs.vue'
 import RequestList from './components/RequestList.vue'
 import ReplayDialog from './components/ReplayDialog.vue'
 import TraceView from './components/TraceView.vue'
@@ -12,7 +14,9 @@ const store = useStore()
   <AppHeader />
   <main class="shell" :class="{ selected: store.selected !== null }">
     <aside class="list-pane" aria-label="Recorded requests">
-      <RequestList />
+      <ListTabs v-if="store.meta?.journal.enabled" />
+      <JournalList v-if="store.view === 'journal' && store.meta?.journal.enabled" />
+      <RequestList v-else />
     </aside>
     <section class="detail-pane" aria-live="polite">
       <TraceView v-if="store.selected !== null" :key="store.selected" :trace-id="store.selected" />

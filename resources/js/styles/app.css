@@ -276,6 +276,12 @@ code, pre, .mono { font-family: var(--mono); font-size: 12.5px; }
 
 /* ---------------------------------------------------------------- step detail */
 
+/* the journal: a request per row, with a small button next to it when it was traced as well */
+.journal-row { display: flex; align-items: stretch; border-bottom: 1px solid var(--border); }
+.journal-row .req { flex: 1; min-width: 0; border-bottom: 0; }
+.journal-row > .btn { align-self: center; margin-right: 8px; }
+.list-tabs { margin: 10px 12px 0; align-self: flex-start; }
+
 /* jobs started by the request */
 .children { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 
