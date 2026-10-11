@@ -6,14 +6,33 @@ import RecordDialog from './RecordDialog.vue'
 const store = useStore()
 const dialog = ref(false)
 
-const modeLabel = computed(() => {
-  switch (store.meta?.mode) {
-    case 'always': return 'Recording every request'
-    case 'triggered': return 'Recording on trigger'
-    case 'off': return 'Recording is off'
-    default: return 'Checking…'
-  }
+/** listening: the listen command runs now; idle: nothing records until it does (or a signed header / watched user asks) */
+const state = computed<'listening' | 'always' | 'off' | 'idle' | 'checking'>(() => {
+  const meta = store.meta
+  if (meta === null) return 'checking'
+  if (meta.mode === 'off') return 'off'
+  if (meta.mode === 'always') return 'always'
+
+  return meta.listening ? 'listening' : 'idle'
 })
+
+const modeLabel = computed(() => ({
+  listening: 'Listening: tracing everything now',
+  always: 'Recording every request',
+  off: 'Recording is off',
+  idle: 'Not listening',
+  checking: 'Checking…',
+})[state.value])
+
+async function copyCommand(): Promise<void> {
+  const command = store.meta?.listen_command ?? 'php artisan request-tracer:listen'
+  try {
+    await navigator.clipboard.writeText(command)
+    store.toast('Copied: run it in your project, then use your app')
+  } catch {
+    store.toast(command)
+  }
+}
 </script>
 
 <template>
@@ -33,9 +52,12 @@ const modeLabel = computed(() => {
 
     <span v-if="store.api.demo" class="badge" style="--badge: var(--purple)">demo data</span>
 
-    <span v-if="store.meta" class="mode" :class="store.meta.mode" role="status">
+    <span v-if="store.meta" class="mode" :class="state" role="status">
       <i class="dot" aria-hidden="true"></i>{{ modeLabel }}
     </span>
+    <button v-if="state === 'idle'" class="btn small ghost listen-hint" type="button" :title="'Copy the command that starts tracing'" @click="copyCommand">
+      <code>{{ store.meta?.listen_command }}</code> <span>Copy</span>
+    </button>
 
     <span class="spacer"></span>
 
@@ -45,7 +67,8 @@ const modeLabel = computed(() => {
       <option v-for="m in store.modules" :key="m" :value="m">{{ m }}</option>
     </select>
 
-    <button v-if="store.meta?.mode !== 'off'" class="btn primary" type="button" @click="dialog = true">Record a request</button>
+    <button v-if="store.meta?.replay.enabled" class="btn primary" type="button" @click="store.openReplay()">Replay a request</button>
+    <button v-if="store.meta && store.meta.mode !== 'off'" class="btn ghost" type="button" title="For a server where you cannot run the listen command: a signed header, or watch a user" @click="dialog = true">Record from outside</button>
 
     <span v-if="store.meta?.user" class="user">{{ store.meta.user.name }}</span>
   </header>

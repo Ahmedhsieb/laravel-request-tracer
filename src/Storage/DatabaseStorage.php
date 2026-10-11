@@ -63,6 +63,24 @@ final class DatabaseStorage implements TraceStorage
 
     public function traces(array $filters = [], ?string $cursor = null, int $limit = 50): array
     {
+        try {
+            return $this->listTraces($filters, $cursor, $limit);
+        } catch (QueryException $e) {
+            // the dashboard is the first thing a new user opens: create the tables instead of failing
+            if (! TableInstaller::ensure()) {
+                throw $e;
+            }
+
+            return $this->listTraces($filters, $cursor, $limit);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{data: list<array<string, mixed>>, next_cursor: string|null}
+     */
+    private function listTraces(array $filters, ?string $cursor, int $limit): array
+    {
         $limit = max(1, min(200, $limit));
         $query = $this->table('traces')->orderByDesc('id');
 

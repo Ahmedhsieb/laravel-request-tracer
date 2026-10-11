@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use RequestTracer\Console\ListenCommand;
@@ -153,6 +155,18 @@ it('can run its migration twice without harm (a published copy plus the one the 
 
     $migration->up();
     $migration->up();
+
+    expect(Schema::hasTable('tracer_traces'))->toBeTrue();
+});
+
+it('opens the dashboard on a fresh install, before a single trace exists, instead of failing on missing tables', function () {
+    foreach (['problems', 'writes', 'lines', 'spans', 'traces'] as $table) {
+        Schema::dropIfExists('tracer_'.$table);
+    }
+    TableInstaller::reset();
+    Gate::define('viewRequestTracer', fn (?Authenticatable $user = null) => true);
+
+    $this->getJson('/request-tracer/api/v1/traces')->assertOk()->assertJsonPath('data', []);
 
     expect(Schema::hasTable('tracer_traces'))->toBeTrue();
 });

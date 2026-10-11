@@ -15,6 +15,11 @@ export interface Meta {
   is_production: boolean
   mode: RecordingMode
   enabled: boolean
+  /** somebody is running `php artisan request-tracer:listen` right now */
+  listening: boolean
+  listen_command: string
+  replay: { enabled: boolean }
+  code: { paths: string[]; except: string[]; line_by_line: boolean }
   recording: {
     mode: RecordingMode
     header: string
@@ -189,6 +194,22 @@ export interface SpanLines {
   sources: SourceFunction[]
 }
 
+/** What the replay dialog sends: a pasted cURL command, or the pieces of a request. */
+export interface ReplayInput {
+  curl?: string
+  method?: string
+  url?: string
+  headers?: Record<string, string>
+  body?: string
+  as_user?: string
+}
+
+export interface ReplayResult {
+  trace_id: string | null
+  status: number | null
+  error: string | null
+}
+
 export interface IssuedToken {
   token: string
   expires_at: number
@@ -227,6 +248,8 @@ export interface Api {
   spanLines(id: string, span: number): Promise<SpanLines>
   writes(id: string): Promise<WriteRow[]>
   problems(id: string): Promise<ProblemRow[]>
+  /** Run a request that already happened again, traced; database changes are rolled back. */
+  replay(input: ReplayInput): Promise<ReplayResult>
   issueToken(options: { ttl?: number; user_id?: string; route?: string }): Promise<IssuedToken>
   watchList(): Promise<WatchEntry[]>
   watch(userId: string, minutes: number): Promise<WatchEntry[]>

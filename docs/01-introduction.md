@@ -20,21 +20,32 @@ When something in a Laravel application behaves strangely, the usual move is `dd
 ## What it is not
 
 - It is not a profiler for CPU hot spots, and it does not replace an APM for fleet-wide metrics.
-- It does not record every request in production. In production **nothing is recorded unless you ask**: a signed header for one request, a watch list for one user, or a small sample. See [Running in production](07-running-in-production.md).
+- It does not record anything on its own, in any environment: **nothing is recorded unless you ask** (the listen command, a signed header for one request, a watch list for one user, or a small sample). See [Running in production](07-running-in-production.md).
 - It is not magic: it sees what the framework tells it about (queries, events, HTTP calls, jobs) plus the classes you opt in. [How capture works](05-how-capture-works.md) lists exactly what is seen and what is not.
 
-## Four layers, you choose how deep
+## How you use it
 
-1. **Framework collectors**: queries, events, HTTP calls, cache, logs, exceptions, validation, model writes. Nothing to configure.
-2. **Container proxies**: list the namespaces of your services (`App\Services`, `App\Domain\*`) and every call to them becomes a step with input and output.
-3. **Attributes**: `#[Trace]` on any class or method, `#[NoTrace]` to opt out.
-4. **The `trace()` helper**: wrap any value, `return trace($total, 'order total');`, and it appears as a step and is returned unchanged.
+```bash
+composer require your-vendor/laravel-request-tracer
+php artisan request-tracer:listen
+```
 
-**Deep trace** is a separate switch on top: classes you name are compiled with probes so the dashboard can show the lines. See [Deep trace](06-deep-trace-guide.md).
+No config, no migration, nothing to publish. `request-tracer:listen` works like `queue:work`: while it runs, everything the project does is traced (requests, queued jobs, artisan commands, scheduled tasks); stop it and nothing is recorded. Open `/request-tracer` to look.
+
+**What is traced is simple to say**: every call in your `app/` folder, with input and output, and, line by line, every condition, block and variable inside it. To look at other folders or single files, or to leave something out, change two lists (`code.paths`, `code.except`). You never name classes one by one.
+
+The request you care about already happened? **Replay it**: paste its cURL command, and the application runs it again, traced, with its database changes rolled back.
+
+Underneath there are four ways code gets seen, and all of them are on by default for the project:
+
+1. **Framework collectors**: queries, events, HTTP calls, cache, logs, exceptions, validation, model writes.
+2. **Container proxies**: every class of the project that the container builds becomes a step with input and output.
+3. **Line by line (Deep trace)**: the files of the project are compiled with probes while somebody listens.
+4. **Attributes and the helper**: `#[Trace]` / `#[NoTrace]`, and `trace($value, 'label')` for any value anywhere.
 
 ## Safe by design
 
-- **Off costs nothing.** With `enabled = false` nothing is registered. In production the idle cost is about 25 µs per request ([benchmarks](benchmarks.md)).
+- **Off costs nothing.** With `enabled = false` nothing is registered, and when nobody listens the cost is 25 to 65 µs per request ([benchmarks](benchmarks.md)).
 - **It never breaks a request.** Every tracer code path is guarded; a failure is logged to its own channel and swallowed. Traces are written after the response was sent.
 - **Secrets are masked before they are stored**, not after. Headers use an allowlist.
 - **The dashboard is closed** outside the `local` environment until you define the `viewRequestTracer` gate.

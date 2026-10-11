@@ -63,7 +63,12 @@ function status(t: TraceSummary): string {
   <div v-else-if="store.traces.length === 0" class="empty">
     <p><strong>Nothing recorded yet.</strong></p>
     <p v-if="store.chip !== 'all' || store.search !== ''">No request matches the filter.</p>
-    <p v-else>Send a request with a signed header (“Record a request”) and it shows up here.</p>
+    <template v-else>
+      <p>Nothing is traced until you ask. In your project, run:</p>
+      <p><code>{{ store.meta?.listen_command ?? 'php artisan request-tracer:listen' }}</code></p>
+      <p>then use your app: every request, job and command shows up here while it runs.</p>
+      <p v-if="store.meta?.replay.enabled"><button class="btn small" type="button" @click="store.openReplay()">Or replay a request that already happened</button></p>
+    </template>
   </div>
 
   <ul v-else class="requests">
@@ -73,6 +78,7 @@ function status(t: TraceSummary): string {
         <span class="path" :title="title(t)">{{ t.kind === 'request' ? t.path : (t.path ?? t.kind) }}</span>
         <span class="status" :class="`tone-${statusTone(t.status)}`">{{ status(t) }}</span>
         <span class="note">
+          <span v-if="t.mode === 'replay'" class="badge" style="--badge: var(--purple); margin-right: 6px">replay</span>
           <template v-if="problemNote(t, slowMs)">
             <span :class="`tone-${problemNote(t, slowMs)?.tone}`">{{ problemNote(t, slowMs)?.text }}</span>
           </template>

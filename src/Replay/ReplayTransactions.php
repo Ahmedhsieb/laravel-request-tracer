@@ -35,11 +35,6 @@ final class ReplayTransactions
         }
     }
 
-    public function holds(Connection $connection): bool
-    {
-        return isset($this->open[spl_object_id($connection)]);
-    }
-
     public function rollBack(): void
     {
         foreach (array_reverse($this->open, true) as $id => $connection) {

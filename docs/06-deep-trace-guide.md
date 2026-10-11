@@ -2,25 +2,34 @@
 
 Deep trace answers "did this condition pass? did the request enter this block? what is `$x` at this line?" **without editing your code**. It works the way Blade compiles views: a copy of the file with probes in it is loaded instead of the original, and only while a request is being recorded do the probes do anything.
 
-## Enabling it
+## What is traced, and when
+
+**Everything in `app/`** (the folders and files of `code.paths`, minus `code.except`), **while somebody is listening** (`php artisan request-tracer:listen`), while a replay runs, when a request carries a valid signed header, or when the process was started with `REQUEST_TRACER=1`. You do not list classes:
 
 ```php
-// config/request-tracer.php
+// config/request-tracer.php: only what you change has to be there
+'code' => [
+    'paths'        => ['app', 'modules/Billing/src', 'lib/Money.php'],   // folders or single files, relative to the project
+    'except'       => ['app/Legacy', 'App\Reports\*'],                   // leave these out; nothing else is
+    'line_by_line' => true,                                                // false: calls with input/output only
+],
 'deep_trace' => [
-    'enabled'    => true,
-    'namespaces' => ['App\Services\OrderService', 'App\Domain\Billing'],   // class patterns, like proxies.namespaces
-    'files'      => [base_path('app/Legacy/Pricing.php')],                  // or absolute paths
-    'max_hits'   => 20000,                                                  // probe hits per trace, then recording stops
+    'max_hits' => 20000,                                                   // probe hits per trace, then recording stops
 ],
 ```
 
-Three more ways to opt a file in:
+A file of `code.paths` is compiled the first time it is loaded **while recording is wanted**. In any other request your original file is loaded, so a request nobody traces is not affected at all, and nothing has to be compiled in advance. The compiled copy is cached; later requests reuse it.
 
-* **Dashboard**: open a step that has no line data and press *Trace this file line by line*. The file is queued for the next recorded request (`deep_trace.queue_ttl`, default one hour) and removed from the queue once a recorded request has used it.
+A class can also leave itself out with `#[NoTrace]`, or be put in by hand:
+
+* **Dashboard**: open a step that has no line data and press *Trace this file line by line*. The file is queued for the next recorded request (`deep_trace.queue_ttl`, default one hour) and removed from the queue once a recorded request has used it. Useful for a file outside `code.paths`.
 * **`#[Trace(deep: true)]`** on a class, when `deep_trace.attribute_scan` is on (off by default: it reads every class under `proxies.attribute_namespaces` once per process).
+* **`deep_trace.namespaces`** / **`deep_trace.files`**: classes or files that are compiled all the time, even when nobody listens. Rarely needed now.
 * Queue it from code: `RequestTracer\DeepTrace\Loader::queue()->add($absolutePath, 3600)`.
 
-Deep trace needs no proxies: probes record against the span that is open when they run (the service span if the class is proxied, otherwise the nearest one). Proxies and Deep trace complement each other: the proxy gives you the *call* (arguments in, value out, duration), Deep trace gives you the *inside*.
+A long-running worker (Octane, `queue:work`) keeps the classes it had loaded before the listen command started as they were, uncompiled, until it restarts. PHP-FPM and `artisan serve` load the classes again for every request, so for them it just works.
+
+Deep trace needs no proxies: probes record against the span that is open when they run (the service span if the class is proxied, otherwise the nearest one). Proxies and Deep trace complement each other: the proxy gives you the *call* (arguments in, value out, duration), Deep trace gives you the *inside*. Models, controllers, commands and a few other classes the framework builds itself get no proxy but are still traced line by line.
 
 ## How it works
 

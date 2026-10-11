@@ -1,6 +1,6 @@
 # 4. Configuration reference
 
-Publish the file with `php artisan vendor:publish --tag=request-tracer-config` (or `request-tracer:install`). It lives at `config/request-tracer.php`; every key below exists in it with its default.
+You do not need a config file. Every key below has a default, and a published file only has to contain the keys you change (the package merges its defaults underneath). Publish the full file with `php artisan vendor:publish --tag=request-tracer-config`; it lives at `config/request-tracer.php`.
 
 Rules that apply everywhere:
 
@@ -13,15 +13,38 @@ Rules that apply everywhere:
 | Key | Default | What it does |
 |---|---|---|
 | `enabled` | `true` (`REQUEST_TRACER_ENABLED`) | Master switch. When `false` the package registers **no** middleware, listener, autoloader, container hook or dashboard route: one boolean is read and nothing else happens. The `request-tracer:*` commands stay available. |
-| `mode` | `null` (`REQUEST_TRACER_MODE`) | `always` records every request that is not excluded; `triggered` records only requests with a valid signed header, a watched user or a sampled request; `off` never records (the dashboard still shows what is stored). `null` means `always` in a local environment and `triggered` everywhere else. |
-| `local_environments` | `['local']` | Environments that count as local: recording is on by default and the dashboard is open without a gate. |
+| `mode` | `null` (`REQUEST_TRACER_MODE`) | `null` or `triggered` (the default **everywhere**, local included): things are recorded only **while `php artisan request-tracer:listen` is running**, or for a request that carries a signed header, belongs to a watched user, or was sampled. `always` records every request that is not excluded, with no command needed. `off` never records (the dashboard still shows what is stored). |
+| `local_environments` | `['local']` | Environments that count as local: the dashboard is open without a gate there. |
 | `log_channel` | `'request-tracer'` | Where the tracer's own failures are logged. A `single` channel writing `storage/logs/request-tracer.log` is created when your logging config has none with this name. |
+
+## `code`
+
+Which of your own code is looked into. **Everything inside these folders and files is traced** while the tracer records: every call with its input and output, and line by line every condition, block and variable. You never list classes one by one.
+
+| Key | Default | What it does |
+|---|---|---|
+| `paths` | `['app']` | Folders or files, relative to the project (or absolute): `'app'`, `'modules/Billing/src'`, `'lib/Money.php'`. Vendor code is never looked into, whatever the paths say. An empty list traces nothing by folder. |
+| `except` | `[]` | What to leave out. A folder (`'app/Legacy'`), a file (`'app/Support/Money.php'`) or classes (`'App\Reports\*'`, `'App\Services\Heavy*'`: an entry with a backslash and no slash is a class pattern). `#[NoTrace]` on a class does the same from inside the code. |
+| `line_by_line` | `true` | `false` keeps the steps with input and output but turns the per-line view off (cheaper). |
+
+Two details. Line-by-line tracing compiles a copy of a file the first time it is loaded **while somebody listens** (or the process was started with `REQUEST_TRACER=1`), so a request that nobody traces runs your original files. And container proxies (the steps with input and output) are not given to what the framework builds or calls itself: models, controllers (they have a step of their own), console commands, service providers, form requests, queued jobs, mailables, notifications, exceptions and the kernels. Those files are still traced line by line.
+
+`proxies.namespaces`, `deep_trace.namespaces` and `deep_trace.files` (below) still work, as extras that are traced even when they are outside `code.paths`.
+
+## `replay`
+
+Running a request that already happened again, traced (dashboard: *Replay a request*; terminal: `request-tracer:replay`). See [Using the dashboard](09-using-the-dashboard.md#replay-a-request-that-already-happened).
+
+| Key | Default | What it does |
+|---|---|---|
+| `enabled` | `null` | `null` allows replay everywhere except the `production` environment; `true` allows it everywhere; `false` never. Database changes of a replay are rolled back and e-mails and queued jobs go nowhere, but calls to other services are real: that is why production is off by default. |
+| `timeout` | `120` | Seconds a replay may run. |
 
 ## `scope` and `exclude`
 
 | Key | Default | What it does |
 |---|---|---|
-| `scope.paths` | `[]` | When not empty, only requests whose path matches one of these patterns can be recorded (`api/*`). |
+| `scope.paths` | `[]` | When not empty, only requests whose **URL path** matches one of these patterns can be recorded (`api/*`). Not to be confused with `code.paths`, which are folders of your code. |
 | `exclude.paths` | login, logout, register, password reset, two-factor, OAuth, payment webhooks, health checks, `request-tracer*`, Ignition, Horizon, Telescope, Livewire | Requests that are **never** recorded, even with a valid header. The dashboard's own path is always excluded. |
 | `exclude.routes` | `[]` | Route names (`fnmatch`) that are never recorded. |
 | `exclude.commands` | `queue:work`, `schedule:run`, `schedule:finish`, `serve`, `tinker`, `invoke-serialized-closure`, `migrate*`, `package:*`, `config:*`, `cache:*`, `horizon*`, `octane:*`, `request-tracer:*` and other internal commands | Artisan commands that are never recorded. |
@@ -98,10 +121,12 @@ Each key switches one built-in collector. A key mapped to a class name registers
 
 ## `proxies` (layer 2)
 
+The default (`code.paths`) already gives every class in your project a step. These keys add to that.
+
 | Key | Default | What it does |
 |---|---|---|
-| `namespaces` | `[]` | Classes in these namespaces become steps when the container resolves them. Patterns: `App\Services`, `App\*\Services`, `App\Domain\*`. |
-| `exclude` | `[]` | Class names or namespace patterns that are never proxied. |
+| `namespaces` | `[]` | Extra classes that become steps when the container resolves them, even outside `code.paths`. Patterns: `App\Services`, `App\*\Services`, `App\Domain\*`. |
+| `exclude` | `[]` | Class names or namespace patterns that are never proxied (`code.except` does this for the whole feature). |
 | `middleware` | `true` | A step around every middleware's `handle()`. |
 | `attribute_namespaces` | `['App\\']` | Classes under these prefixes are proxied when they carry `#[Trace]`. |
 | `vendor_methods` | `false` | Also trace public methods a proxied class inherits from vendor code. |
@@ -112,7 +137,7 @@ Each key switches one built-in collector. A key mapped to a class name registers
 | Key | Default | What it does |
 |---|---|---|
 | `enabled` | `true` | Allow line-by-line tracing at all. When `false` no autoloader is registered. |
-| `namespaces` | `[]` | Classes (or namespaces) compiled with probes. Be specific: `App\Services\OrderService`, not `App\`. |
+| `namespaces` | `[]` | Extra classes (or namespaces) compiled with probes **all the time**, even when nobody listens and even outside `code.paths`. Leave it empty: `code.paths` covers your project, and only while recording. |
 | `files` | `[]` | Absolute paths compiled with probes. |
 | `attribute_scan` | `false` | Also read classes under `proxies.attribute_namespaces` for `#[Trace(deep: true)]` (one file read per class, so off by default). |
 | `cache_path` | `null` | Where compiled copies are cached (default `storage/framework/request-tracer/compiled`). |

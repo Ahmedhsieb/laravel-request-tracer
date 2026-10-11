@@ -8,7 +8,6 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use RequestTracer\Storage\ConnectionResolver;
 use RequestTracer\Support\App;
 use RequestTracer\Tracer;
 use Symfony\Component\Process\PhpExecutableFinder;
@@ -81,14 +80,11 @@ class Replayer
             $tracer->lastStoredId = null;
 
             $response = $kernel->handle($request);
-            // When the trace is written on the very connection the request used (in-memory SQLite), undo the request first, or the trace goes with it.
-            if ($transactions->holds(App::container()->make(ConnectionResolver::class)->resolve())) {
-                $transactions->rollBack();
-                $kernel->terminate($request, $response);
-            } else {
-                $kernel->terminate($request, $response);
-                $transactions->rollBack();
-            }
+            // Undo the request *before* terminate() stores the trace: with SQLite (one writer at a time) or in-memory databases the
+            // trace's own write would otherwise wait for, or be thrown away with, the transaction of the request. Work the application
+            // defers to the end of the request therefore runs after the rollback.
+            $transactions->rollBack();
+            $kernel->terminate($request, $response);
 
             return ['trace_id' => $tracer->lastStoredId, 'status' => $response->getStatusCode(), 'error' => null];
         } catch (\Throwable $e) {

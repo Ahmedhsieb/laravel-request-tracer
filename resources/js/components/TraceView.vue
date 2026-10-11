@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { ProblemRow, SpanRow, TraceSummary, WriteRow } from '../api/types'
 import { absoluteTime, formatBytes, formatMs, formatUs, plural, shortClass } from '../lib/format'
 import { TYPE_LABEL, methodTone, statusTone, timeByType, typeVar } from '../lib/spans'
+import { emptyForm, formFromRequest, type ReplayForm } from '../lib/replay'
 import { buildTree, findNode, type TreeNode } from '../lib/tree'
 import { useStore } from '../store'
 import DatabaseTab from './DatabaseTab.vue'
@@ -93,6 +94,21 @@ async function load(): Promise<void> {
   }
 }
 
+/** Open the replay dialog filled in with this request (the recorded method, path, query, headers and body). */
+async function replayThis(): Promise<void> {
+  const t = trace.value
+  if (t === null) return
+  const root = spans.value.find((s) => s.parent_id === null)
+  let form: ReplayForm | null = null
+  try {
+    const payload = root === undefined ? null : await store.api.payload(t.id, root.id)
+    form = payload?.input ? formFromRequest(payload.input.value, t.user_id) : null
+  } catch {
+    // fall back to what the list knows about the request
+  }
+  store.openReplay(form ?? { ...emptyForm(), method: t.method ?? 'GET', url: t.path ?? '/', asUser: t.user_id ?? '' })
+}
+
 function select(id: number): void {
   pinnedId.value = pinnedId.value === id ? null : id
 }
@@ -148,7 +164,9 @@ onBeforeUnmount(() => {
       <span class="badge method" :class="methodTone(trace.method)">{{ trace.method ?? trace.kind }}</span>
       <h1>{{ trace.path ?? trace.kind }}</h1>
       <span v-if="trace.status !== null" class="mono" :class="`tone-${statusTone(trace.status)}`">{{ trace.status }}</span>
+      <span v-if="trace.mode === 'replay'" class="badge" style="--badge: var(--purple)" title="This trace is a replay: the request was run again, and its database changes were rolled back">replay</span>
       <button class="copy btn small ghost" type="button" @click="copyLink">Copy link</button>
+      <button v-if="store.meta?.replay.enabled && trace.kind === 'request'" class="btn small" type="button" title="Run this request again, traced from the first line" @click="replayThis">Replay this request</button>
     </div>
     <div class="trace-meta">
       <span>{{ absoluteTime(trace.created_at) }}</span>

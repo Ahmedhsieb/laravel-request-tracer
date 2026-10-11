@@ -16,24 +16,22 @@ It needs the development dependencies (it uses Testbench to boot the application
 
 ## Results
 
-PHP 8.4.15, Laravel 13.35, Windows 11 laptop, SQLite file database, 500 requests per scenario after 30 warm-up requests. The table is one run on an otherwise idle machine; the ranges in the text are over five runs.
+PHP 8.4.15, Laravel 13.35, Windows 11 laptop, SQLite file database, 500 requests per scenario after 30 warm-up requests, on an otherwise idle machine. "The project's code" is the services folder of the example application (the equivalent of `code.paths => ['app']` in a real project); each recorded request has 47 steps and 15 queries, and the line-by-line scenario adds 53 line rows.
 
 | Scenario | handle median | handle p95 | terminate median | overhead vs. not installed | peak memory |
 |---|---:|---:|---:|---:|---:|
-| Package not installed | 13.95 ms | 17.19 ms | 0.13 ms | - | 36 MB |
-| Installed, `enabled = false` | 13.92 ms | 18.14 ms | 0.13 ms | -0.03 ms | 38 MB |
-| Installed, `triggered` mode, nothing triggers it | 14.13 ms | 17.91 ms | 0.14 ms | +0.18 ms | 40 MB |
-| Recording every request: framework collectors + container proxies | 19.23 ms | 23.68 ms | 7.69 ms | +5.28 ms | 54 MB |
-| Recording every request: + Deep trace of `OrderService` | 20.25 ms | 25.18 ms | 8.71 ms | +6.30 ms | 52 MB |
+| Package not installed | 14.04 ms | 17.80 ms | 0.14 ms | - | 36 MB |
+| Installed, `enabled = false` | 13.79 ms | 17.50 ms | 0.14 ms | -0.24 ms | 38 MB |
+| Installed, nobody is listening | 14.24 ms | 19.39 ms | 0.15 ms | +0.20 ms | 40 MB |
+| Listening: every call of the project, with input and output (`code.line_by_line = false`) | 19.77 ms | 26.30 ms | 7.48 ms | +5.73 ms | 54 MB |
+| Listening: + every line of the project (the default) | 21.58 ms | 28.54 ms | 9.89 ms | +7.54 ms | 54 MB |
 
-Decision cost on a request nothing triggers (triggered mode, measured in isolation, array cache for the watch list): **21 to 28 µs**.
-
-Each recorded request of the Deep trace scenario stores 47 steps, 15 queries and 31 line rows; the benchmark checks that these line rows exist, so the Deep trace row measures Deep trace, not a scenario where it silently did not apply.
+Decision cost on a request nothing triggers (nobody listening, measured in isolation): **25 to 65 µs**, depending on how fast the file system answers a `stat()` (the Windows laptop is at the slow end; the figure includes the stat of the heartbeat file, one header lookup and a cache read for the watch list).
 
 ### Reading the table
 
-- **Installed but idle costs nothing you can measure.** The differences in the first three rows are inside the noise of a laptop (between -1 and +1 ms from run to run, in both directions). The precise figure is the decision itself: about 25 µs per request, which is one header lookup, one cache read for the watch list and a config read. With `enabled = false` no listener, middleware, autoloader or container hook is registered at all.
-- **Recording adds about 4.5 to 5.5 ms to the response** for this flow (47 steps, 15 queries) with the framework collectors and container proxies, and about **1 to 2 ms more** with Deep trace on one class (6 to 7 ms in total). Deep trace costs in proportion to the lines that run, not to the number of steps, so measure it on your own code.
+- **Installed and idle costs nothing you can measure.** The differences in the first three rows are inside the noise of a laptop (between -1 and +1 ms from run to run, in both directions). The precise figure is the decision itself, in microseconds. With `enabled = false` no listener, middleware, autoloader or container hook is registered at all.
+- **While listening, every call of the project adds about 5 to 6 ms to the response** for this flow, and **line by line adds 2 ms more** (7 to 8 ms in total), because the files of the project are the compiled copies and every statement reports to the recorder. Line by line costs in proportion to the lines that run, not to the number of steps, so measure it on your own code. It is paid by the person who is listening, and by requests that arrive while they listen.
 - **Another 7 to 10 ms is spent after the response was sent**, in `terminate()`: building the trace, masking and compressing payloads and writing five tables in chunks. The user does not wait for it, but the PHP worker is busy for that long. With `storage.queue.enabled` the write moves to a queue worker and the worker is only busy for the time it takes to serialise and dispatch the job.
 - **Memory**: about +16 MB peak while recording, all of it released at the end of the request (see the leak test in `tests/Order/HardeningTest.php`).
 
@@ -46,4 +44,4 @@ Each recorded request of the Deep trace scenario stores 47 steps, 15 queries and
 
 ## Production defaults follow from this
 
-In production the package starts in `triggered` mode: the idle cost above is all a request pays. A recording is switched on per request (signed header), per user for a while (watch list) or for a small share of authenticated traffic (sampling, off by default), so the recording cost is only ever paid on requests somebody wanted to look at.
+Nothing records on its own: the idle cost above is all a request pays until somebody runs `request-tracer:listen`, sends a signed header, watches a user or turns sampling on. The recording cost is only ever paid on requests somebody wanted to look at.

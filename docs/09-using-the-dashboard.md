@@ -9,13 +9,14 @@ Want to look around first? Run `npm run dev` in the package folder (or add `?dem
 | Item | Meaning |
 |---|---|
 | Environment badge | Orange in production, green elsewhere. |
-| Recording indicator | A pulsing dot: **Recording every request** (`always`), **Recording on trigger** (`triggered`, the production default) or **Recording is off**. |
+| Status chip | **Listening: tracing everything now** (green, pulsing): `php artisan request-tracer:listen` is running. **Not listening** (orange): nothing is being traced; the command to start it sits next to the chip, with a Copy button. **Recording every request** (`mode = always`) or **Recording is off**. |
 | Module filter | Appears when your traces carry a module (see the module resolver). |
-| Record a request | Makes a signed header for one request (valid for seconds to an hour, optionally for one user or route) or puts a user on the watch list. Hidden when recording is off. |
+| Replay a request | Runs a request that already happened again, traced. See below. Hidden where replay is off (the production environment, by default). |
+| Record from outside | For a server where you cannot run the listen command: a signed header for one request, or watch a user for a while. Hidden when recording is off. |
 
 ## The request list
 
-Newest first. Each row shows the method (or `JOB` / `COMMAND` for queued jobs and artisan commands, see [queues, commands and scheduled tasks](10-queues-commands-scheduled-tasks.md)), path, status, duration, age, and a short note: *4 problems*, *exception*, *slow* or the module. The list refreshes every `dashboard.poll_seconds`; new requests slide in at the top. Filter with the search box (path, route name, id) or the chips **With problems** and **Slow** (`dashboard.slow_ms`).
+Newest first. Each row shows the method (or `JOB` / `COMMAND` for queued jobs and artisan commands, see [queues, commands and scheduled tasks](10-queues-commands-scheduled-tasks.md)), path, status, duration, age, and a short note: *4 problems*, *exception*, *slow* or the module. The list refreshes every `dashboard.poll_seconds`; a trace from a replay carries a *replay* badge; new requests slide in at the top. Filter with the search box (path, route name, id) or the chips **With problems** and **Slow** (`dashboard.slow_ms`).
 
 ## A request
 
@@ -57,3 +58,24 @@ Uncaught and caught exceptions, N+1 queries, repeated and slow queries, slow ste
 ## Keyboard and accessibility
 
 Every control is at least 44 px, has a visible focus ring and a text label; colours meet 4.5:1 contrast; animations stop when the system asks for reduced motion; the layout works from 375 px wide (an open request takes the whole screen, "← All requests" goes back).
+
+## Replay a request that already happened
+
+The request you need to understand happened while nothing was listening? Run it again, traced:
+
+1. **Replay a request** (header), then either **Paste cURL** (browser: Network tab, right-click the request, *Copy → Copy as cURL (bash)*; Postman and bug reports have one too) or **Describe it** (method, URL or path, headers, body).
+2. Optionally the id of the user to **act as**: the request runs as that user, with no login.
+3. **Replay it**. The new trace opens, marked *replay*.
+
+On any trace, **Replay this request** opens the same dialog filled in from what was recorded: method, path and query, headers and body. Values that were masked when the request was recorded (passwords, tokens) cannot be recovered, so the dialog warns you and shows the mask where the secret was: replace it before you run.
+
+What a replay does and does not do:
+
+- The request goes through your application's **own HTTP kernel**, middleware and all, in a PHP process of its own, so its code is compiled for line-by-line tracing from the first class.
+- **Database changes are rolled back** (a transaction on every connection the request touches). The trace still shows what the request wrote, in the Database tab.
+- **E-mails** go to the `array` mailer, **queued jobs** are dropped and **broadcasts** are not sent.
+- **Calls to other services** (payment gateways, APIs, anything over the HTTP client or a socket) **are real**. That is why replay is off in the `production` environment unless `request-tracer.replay.enabled` is `true`.
+- POSTs get a valid CSRF token automatically. Multipart uploads are not replayed.
+- Files, caches and other stores outside the database are not rolled back.
+
+From the terminal: `php artisan request-tracer:replay "POST /orders" --data='{"items":[1]}' --as=42`, or `--curl="curl '...' ..."`.

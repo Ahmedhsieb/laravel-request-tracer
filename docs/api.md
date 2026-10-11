@@ -8,7 +8,7 @@ Step **payloads are never part of the tree**: `spans` returns structure only; `s
 
 | Method & path | Purpose |
 |---|---|
-| `GET meta` | environment, `is_production`, recording mode, trigger settings, signed-in user, thresholds, mask string |
+| `GET meta` | environment, `is_production`, recording mode, **`listening`** (the listen command is running), `listen_command`, **`replay.enabled`**, **`code`** (`paths`, `except`, `line_by_line`), trigger settings, signed-in user, thresholds, mask string |
 | `GET traces` | list, newest first. Query: `limit` (≤200), `cursor`, `search`, `status` (`200` or `5xx`), `min_ms`, `max_ms`, `slow`, `has_problems`, `user_id`, `tenant`, `module`, `kind` (`request`/`job`/`command`/`schedule`), `method`, `route_name`, `from`, `to`, `parent_trace_id`, `deep_search` (also match step labels). Returns `{data, next_cursor}`; each row has `problem_kinds` |
 | `GET traces/{id}` | one trace summary (`tables_written`, `tables_read`, `notes`, counters) |
 | `GET traces/{id}/spans` | the step list without payloads: `id, parent_id, type, label, file, line, start_us, duration_us, memory_delta, flag, connection, count, meta, has_input, has_output` |
@@ -18,6 +18,7 @@ Step **payloads are never part of the tree**: `spans` returns structure only; `s
 | `GET traces/{id}/writes` | rows written: `table, operation, row_key, before, after, transaction (none/committed/rolled_back/open), rows` |
 | `GET traces/{id}/problems` | `kind, message, file, line, span_id` |
 | `DELETE traces/{id}` / `DELETE traces` | delete one / all traces |
+| `POST replay` | Run a request that already happened again, traced. Body: `curl` (a cURL command) **or** `method`, `url`, `headers` (object), `body`; optional `as_user` (the id of the user to act as). The request runs in a PHP process of its own with its database changes rolled back. `200` with `{data: {trace_id, status, error: null}}`; `422` with `data.error` when it failed (no such user, not a cURL command, ...); `403` where replay is off. |
 | `POST tokens` | `{ttl?, user_id?, route?}` → `{token, expires_at, header, example}` |
 | `GET watch` / `POST watch` / `DELETE watch/{user}` | the watch list: `{user_id, minutes?}` |
 | `GET deep-trace/queue` / `POST` / `DELETE` | files queued for Deep trace: body `{file}` (a path relative to the application, as shown in the dashboard) |
