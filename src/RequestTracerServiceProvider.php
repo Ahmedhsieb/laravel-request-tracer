@@ -34,6 +34,7 @@ use RequestTracer\Console\ReplayCommand;
 use RequestTracer\Console\TokenCommand;
 use RequestTracer\DeepTrace\Loader;
 use RequestTracer\Http\Middleware\Authorize;
+use RequestTracer\Http\Middleware\LightWeb;
 use RequestTracer\Http\Middleware\RecordRequest;
 use RequestTracer\Proxy\ProxyGenerator;
 use RequestTracer\Proxy\ProxyRegistry;
@@ -239,7 +240,7 @@ final class RequestTracerServiceProvider extends ServiceProvider
      */
     private function dashboardMiddleware(array $config): array
     {
-        $middleware = array_values(array_filter((array) ($config['middleware'] ?? ['web']), 'is_string'));
+        $middleware = array_values(array_filter((array) ($config['middleware'] ?? [LightWeb::class]), 'is_string'));
 
         return in_array(Authorize::class, $middleware, true) ? $middleware : [...$middleware, Authorize::class];
     }

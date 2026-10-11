@@ -4,6 +4,12 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-11
+
+- **The dashboard no longer pays for the application's own middleware.** Its default stack is now `LightWeb`: only the part of the application's `web` group that the dashboard needs (cookie encryption, session, CSRF, including the application's own subclasses of those), plus the gate. In a real project the whole `web` group (permission sync, locale, "last seen", debug bars) made every call of the dashboard's API take 2.9 s, against 12 ms with the light stack, and the application's side effects ran on every poll. `dashboard.middleware` is `null` by default; `['web', Authorize::class]` gives the old behaviour. **A config file published by an earlier version still lists `['web', Authorize::class]`: set it to `null` to get the light stack.**
+- **A stale published copy of the dashboard no longer hides an upgrade.** `public/vendor/request-tracer` is used only while it is at least as new as the package's own `dist/`; after `composer update` the new dashboard is served even if `vendor:publish --tag=request-tracer-assets` was run long ago.
+- Dashboard: the *Traces* / *Journal* tabs are always there (the *Journal* tab says how to switch the journal on), the list is dimmed with a "Loading…" line while a search or filter is running, and a failed request is shown instead of leaving the old list as if nothing happened.
+
 ## [0.3.0] - 2026-10-11
 
 - **The request journal** (opt-in: `journal.enabled` / `REQUEST_TRACER_JOURNAL=true`): one light row per request (method, URL, allow-listed headers, masked body, user, status, duration, the exception), so a request that nobody traced can still be found and **replayed with a full trace**. Dashboard: a *Journal* tab next to *Traces* with *Failed* and search filters; clicking a row opens the replay form filled in (a *Trace* button when the request was traced as well). Terminal: `request-tracer:replay --journal=failed|last|<id>`. API: `GET journal`, `GET journal/{id}`, `DELETE journal`.

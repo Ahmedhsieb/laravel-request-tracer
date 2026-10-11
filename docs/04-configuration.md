@@ -90,7 +90,7 @@ Running a request that already happened again, traced (dashboard: *Replay a requ
 | `enabled` | `true` | Register the dashboard and the JSON API. |
 | `path` | `'request-tracer'` | URL prefix. |
 | `domain` | `null` | Serve the dashboard on a dedicated domain. |
-| `middleware` | `['web', Authorize::class]` | Middleware of the dashboard routes. Keep `Authorize` (it applies the gate). |
+| `middleware` | `null` | Middleware of the dashboard routes. `null` = the light stack: the cookie, session and CSRF middleware of your `web` group (your own subclasses of them included) and the gate, without the rest of the group. List `['web', Authorize::class]` to run the whole group. `Authorize` (the gate) is always added. If you published the full config file with an older version, it still says `['web', Authorize::class]`: change it to `null`. |
 | `gate` | `'viewRequestTracer'` | Name of the gate that decides who sees the dashboard. Outside local environments nobody does until you define it. |
 | `poll_seconds` | `5` | How often the request list looks for new requests (`0` = never). |
 | `slow_ms` | `500` | What the "Slow" filter and the list's *slow* note consider slow. |

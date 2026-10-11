@@ -14,8 +14,8 @@ const store = useStore()
   <AppHeader />
   <main class="shell" :class="{ selected: store.selected !== null }">
     <aside class="list-pane" aria-label="Recorded requests">
-      <ListTabs v-if="store.meta?.journal.enabled" />
-      <JournalList v-if="store.view === 'journal' && store.meta?.journal.enabled" />
+      <ListTabs />
+      <JournalList v-if="store.view === 'journal'" />
       <RequestList v-else />
     </aside>
     <section class="detail-pane" aria-live="polite">

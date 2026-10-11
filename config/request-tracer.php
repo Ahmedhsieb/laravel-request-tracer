@@ -7,7 +7,6 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
-use RequestTracer\Http\Middleware\Authorize;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /*
@@ -136,7 +135,7 @@ return [
         'enabled' => true,
         'path' => 'request-tracer',
         'domain' => null,
-        'middleware' => ['web', Authorize::class],
+        'middleware' => null,                                   // null = the light web stack (cookies, session, CSRF) + the gate; ['web', Authorize::class] = the application's whole web group
         'gate' => 'viewRequestTracer',
         'poll_seconds' => 5,                                    // the request list refreshes this often (0 = never)
         'slow_ms' => 500,                                       // what the "Slow" filter chip considers slow

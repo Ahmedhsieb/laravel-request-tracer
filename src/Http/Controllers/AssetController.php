@@ -11,7 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Serves the built dashboard (`dist/`). Assets published with `vendor:publish --tag=request-tracer-assets`
- * (public/vendor/request-tracer) take precedence over the copy inside the package, so an application can pin or patch them.
+ * (public/vendor/request-tracer) take precedence over the copy inside the package, so an application can patch them, as long as
+ * the published file is not older than the package's own (an upgrade must not be hidden by a stale copy).
  */
 final class AssetController extends Controller
 {
@@ -49,11 +50,17 @@ final class AssetController extends Controller
             return null;
         }
 
-        foreach ([public_path('vendor/'.Brand::NAME), dirname(__DIR__, 3).'/dist'] as $dir) {
-            $candidate = $dir.'/'.$path;
-            if (is_file($candidate)) {
-                return $candidate;
-            }
+        $published = public_path('vendor/'.Brand::NAME).'/'.$path;
+        $shipped = dirname(__DIR__, 3).'/dist/'.$path;
+
+        // A published copy wins only while it is at least as new as the package's own: after `composer update` the stale copy
+        // would otherwise keep serving the old dashboard (and hide everything the new version added).
+        if (is_file($published) && (! is_file($shipped) || (int) filemtime($published) >= (int) filemtime($shipped))) {
+            return $published;
+        }
+
+        if (is_file($shipped)) {
+            return $shipped;
         }
 
         return null;

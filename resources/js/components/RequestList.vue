@@ -51,6 +51,12 @@ function status(t: TraceSummary): string {
     </div>
   </div>
 
+  <p v-if="store.error && store.traces.length > 0" class="error-box slim" role="alert">
+    {{ store.error }}
+    <button class="btn small" type="button" style="margin-left: 8px" @click="store.reload()">Try again</button>
+  </p>
+  <p v-if="store.loading && store.traces.length > 0" class="list-busy" role="status">Loading…</p>
+
   <div v-if="store.loading && store.traces.length === 0" class="loading" aria-busy="true">
     <div class="skeleton" style="width: 80%; margin: 0 auto 12px"></div>
     <div class="skeleton" style="width: 60%; margin: 0 auto 12px"></div>
@@ -71,7 +77,7 @@ function status(t: TraceSummary): string {
     </template>
   </div>
 
-  <ul v-else class="requests">
+  <ul v-else class="requests" :class="{ busy: store.loading }">
     <li v-for="t in store.traces" :key="t.id" class="req-item">
       <button class="req" type="button" :class="{ fresh: store.fresh.has(t.id) }" :aria-current="store.selected === t.id" @click="store.open(t.id)">
         <span class="badge method" :class="methodTone(t.method)">{{ t.method ?? t.kind }}</span>

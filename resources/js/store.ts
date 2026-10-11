@@ -157,6 +157,11 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   }
 
   async function reloadJournal(): Promise<void> {
+    if (meta.value?.journal.enabled === false) {
+      journal.value = []
+      journalCursor.value = null
+      return
+    }
     journalLoading.value = true
     journalError.value = null
     try {

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use RequestTracer\Http\Middleware\Authorize;
+use RequestTracer\Http\Middleware\LightWeb;
 use RequestTracer\RequestTracerServiceProvider;
 use RequestTracer\Support\ConfigMerger;
 
@@ -73,5 +74,6 @@ it('keeps the gate on the dashboard whatever middleware the config lists', funct
 
     expect($middleware(['middleware' => ['web']]))->toBe(['web', Authorize::class])
         ->and($middleware(['middleware' => ['web', 'auth', Authorize::class]]))->toBe(['web', 'auth', Authorize::class])
-        ->and($middleware([]))->toBe(['web', Authorize::class]);
+        ->and($middleware([]))->toBe([LightWeb::class, Authorize::class])
+        ->and($middleware(['middleware' => null]))->toBe([LightWeb::class, Authorize::class]);
 });

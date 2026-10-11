@@ -60,6 +60,8 @@ Check what is on: a listen command somebody left running, `code.paths` that cove
 
 **Can I delete a trace?** Yes: `DELETE /request-tracer/api/v1/traces/{id}` (the API is behind the same gate), or `php artisan request-tracer:prune --hours=0` to remove everything.
 
+**The dashboard is slow, or the search and the filters seem to do nothing.** Each call of the dashboard's API runs the middleware of your `web` group. Since 0.3.1 the default is a light stack (cookies, session, CSRF and the gate), but a `config/request-tracer.php` published by an older version still says `'middleware' => ['web', Authorize::class]`: change that line to `'middleware' => null`. Also check that the dashboard you see is the installed one (the *Journal* tab is in 0.3.0 and later): a copy in `public/vendor/request-tracer` that is older than the package is ignored since 0.3.1, and before that it must be refreshed with `php artisan vendor:publish --tag=request-tracer-assets --force`.
+
 **Why `0.x`?** The stored format and the API may still change between minor versions. The changelog says so when it happens.
 
 ## Upgrading
@@ -69,7 +71,7 @@ The package follows [semantic versioning](https://semver.org). While it is `0.x`
 1. `composer update your-vendor/laravel-request-tracer`
 2. `php artisan vendor:publish --tag=request-tracer-assets --force` (the dashboard is part of the package; this refreshes a published copy)
 3. If the changelog mentions a migration, publish and run it: `php artisan vendor:publish --tag=request-tracer-migrations` and `php artisan migrate`
-4. Compare your `config/request-tracer.php` with the new default (every key is in [the reference](04-configuration.md)); new keys fall back to their defaults if they are missing.
+4. Compare your `config/request-tracer.php` with the new default (every key is in [the reference](04-configuration.md)); new keys fall back to their defaults if they are missing. A key that your published file spells out keeps its old value, for example `dashboard.middleware` (see the FAQ above).
 5. Clear generated code if something odd shows up after an upgrade: delete `storage/framework/request-tracer`. It is rebuilt on demand, and the caches are keyed by package version so this is rarely needed.
 6. Restart long-running workers (Octane, Horizon, `queue:work`).
 
