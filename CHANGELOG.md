@@ -4,6 +4,14 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-11
+
+- **A replay is a choice: a simulation, or for real with an undo.** The replay dialog (and `request-tracer:replay`, and `POST replay` with `mode`) now asks what the request may change.
+  - **Simulation** (the default) changes nothing: database changes are rolled back, and on top of what 0.2 did (mail to the `array` mailer, jobs and broadcasts dropped) notifications are dropped, calls made with Laravel's HTTP client are answered locally with an empty `200`, and the cache and the session stay in memory. What no simulation can control is said in the docs: files, a Guzzle or curl call made directly, an SDK, tables without transactions, DDL.
+  - **Run for real** (`--real`, a confirmation in the dashboard and in the API) lets the request do what it does. Meanwhile every Eloquent write is recorded exactly in an **undo log** (insert: the row; update: the changed columns before and after; delete: the whole row; soft deletes included), separate from the trace, whose values are masked and cut. The log is encrypted with the application key, never shown and deleted when undone, after `replay.undo_hours` (24) and by `request-tracer:prune`.
+  - **Undo**: a banner on the trace lists what can be taken back and what cannot (writes made with the query builder or raw SQL, by table; e-mails, jobs, files and calls to other services). *Undo these changes* (`request-tracer:undo <trace>`, `POST traces/{id}/undo`) takes the writes back, last first, in one transaction per connection: all or nothing. A row that changed after the replay is not touched; the conflicts are listed and *Undo anyway* (`--force`) is the explicit way.
+- New config: `replay.real` (`null` = wherever replay is allowed except production; production needs `real => true` as well as `enabled => true`) and `replay.undo_hours`. New endpoints `GET|POST traces/{id}/undo`; `meta.replay` gains `real` and `undo_hours`.
+
 ## [0.3.1] - 2026-10-11
 
 - **The dashboard no longer pays for the application's own middleware.** Its default stack is now `LightWeb`: only the part of the application's `web` group that the dashboard needs (cookie encryption, session, CSRF, including the application's own subclasses of those), plus the gate. In a real project the whole `web` group (permission sync, locale, "last seen", debug bars) made every call of the dashboard's API take 2.9 s, against 12 ms with the light stack, and the application's side effects ran on every poll. `dashboard.middleware` is `null` by default; `['web', Authorize::class]` gives the old behaviour. **A config file published by an earlier version still lists `['web', Authorize::class]`: set it to `null` to get the light stack.**

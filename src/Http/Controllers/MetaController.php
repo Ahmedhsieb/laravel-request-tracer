@@ -38,7 +38,7 @@ final class MetaController extends Controller
             'enabled' => $tracer->enabled(),
             'listening' => Listening::active(),
             'listen_command' => 'php artisan '.Brand::NAME.':listen',
-            'replay' => ['enabled' => Replayer::allowed()],
+            'replay' => ['enabled' => Replayer::allowed(), 'real' => Replayer::realAllowed(), 'undo_hours' => (float) $tracer->config('replay.undo_hours', 24)],
             'journal' => [
                 'enabled' => (bool) $tracer->config('journal.enabled', false),
                 'hours' => (float) $tracer->config('journal.hours', 1),

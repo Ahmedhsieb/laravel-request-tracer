@@ -55,12 +55,15 @@ return [
 
     /*
      * Replaying a request that already happened ("run it again, traced", from the dashboard or `request-tracer:replay`).
-     * The database changes of a replay are rolled back; e-mails and queued jobs are not sent, but calls to other services are real.
-     *   null  -> allowed everywhere except the production environment
-     *   true  -> allowed everywhere, false -> never
+     * The person who replays chooses how: a simulation changes nothing (database changes are rolled back; e-mails, jobs, notifications
+     * and calls made with Laravel's HTTP client are not sent), a real run does what the request does and records what it can undo.
+     *   enabled: null -> allowed everywhere except the production environment, true -> allowed everywhere, false -> never
+     *   real:    the same for running for real; in production it needs `real => true` as well as `enabled => true`
      */
     'replay' => [
         'enabled' => null,
+        'real' => null,
+        'undo_hours' => 24,         // how long what a real run changed can still be undone
         'timeout' => 120,           // seconds
     ],
 

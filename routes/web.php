@@ -37,6 +37,8 @@ Route::prefix('api/v1')->name('api.')->group(function (): void {
 
     Route::post('tokens', [ToolsController::class, 'issueToken'])->name('tokens.issue');
     Route::post('replay', [ToolsController::class, 'replay'])->name('replay');
+    Route::get('traces/{trace}/undo', [ToolsController::class, 'undoStatus'])->name('undo.show');
+    Route::post('traces/{trace}/undo', [ToolsController::class, 'undo'])->name('undo.apply');
 
     Route::get('watch', [ToolsController::class, 'watchList'])->name('watch.index');
     Route::post('watch', [ToolsController::class, 'watch'])->name('watch.store');

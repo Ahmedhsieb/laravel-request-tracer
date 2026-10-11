@@ -1,5 +1,5 @@
 import type {
-  Api, Dump, IssuedToken, JournalEntry, JournalFilters, JournalPage, LineRow, Meta, Payload, ProblemRow, QueueEntry, ReplayInput, ReplayResult, SourceFunction, SpanLines, SpanRow, TraceFilters, TracePage,
+  Api, Dump, IssuedToken, JournalEntry, JournalFilters, JournalPage, LineRow, Meta, Payload, ProblemRow, QueueEntry, ReplayInput, ReplayResult, SourceFunction, SpanLines, SpanRow, TraceFilters, TracePage, UndoResult, UndoSummary,
   TraceSummary, WatchEntry, WriteRow,
 } from './types'
 
@@ -12,6 +12,14 @@ import type {
 const MASK = '••••••••'
 const NOW = Date.now()
 
+const DEMO_UNDO: UndoSummary = {
+  available: true,
+  entries: 8,
+  tables: { orders: { insert: 1, update: 1 }, order_items: { insert: 3 }, products: { update: 3 } },
+  uncovered: { audit_log: 1 },
+  expires_at: new Date(NOW + 24 * 3600 * 1000).toISOString(),
+}
+
 export const DEMO_META: Meta = {
   name: 'Request Tracer',
   version: '0.1.0',
@@ -21,7 +29,7 @@ export const DEMO_META: Meta = {
   enabled: true,
   listening: true,
   listen_command: 'php artisan request-tracer:listen',
-  replay: { enabled: true },
+  replay: { enabled: true, real: true, undo_hours: 24 },
   journal: { enabled: true, hours: 1, max_rows: 500 },
   code: { paths: ['app'], except: ['app/Legacy'], line_by_line: true },
   recording: { mode: 'triggered', header: 'X-Request-Tracer', watch_list: true, sampling: { enabled: false, rate: 0.01 }, token_ttl: 300 },
@@ -485,7 +493,40 @@ export class DemoApi implements Api {
     this.replays.set(id, { ...copy, id, mode: 'replay', created_at: new Date().toISOString(), user_id: input.as_user ?? copy.user_id })
     TRACES.unshift(this.replays.get(id)!)
 
-    return { trace_id: id, status: 302, error: null }
+    if (input.mode === 'real') {
+      if (input.confirm_real !== true) return { trace_id: null, status: null, error: 'Running for real needs an explicit confirmation (confirm_real).' }
+      this.undoable.add(id)
+
+      return {
+        trace_id: id,
+        status: 302,
+        error: null,
+        mode: 'real',
+        undo: DEMO_UNDO,
+      }
+    }
+
+    return { trace_id: id, status: 302, error: null, mode: 'simulate', undo: null }
+  }
+
+  /** Replays of the demo that "ran for real" and were not undone yet. */
+  private readonly undoable = new Set<string>()
+
+  async undoStatus(id: string): Promise<UndoSummary | null> {
+    await sleep(20)
+
+    return this.undoable.has(id) ? DEMO_UNDO : null
+  }
+
+  async undo(id: string, force = false): Promise<UndoResult> {
+    await sleep(400)
+    if (!this.undoable.has(id)) return { applied: false, undone: 0, conflicts: [], error: 'There is nothing to undo for this trace (it was not run for real, the log expired, or it was undone already).' }
+    if (!force && id.endsWith('2')) {
+      return { applied: false, undone: 0, conflicts: [{ table: 'orders', key: '1042', operation: 'insert', reason: 'the column "status" was changed after the replay' }], error: null }
+    }
+    this.undoable.delete(id)
+
+    return { applied: true, undone: 8, conflicts: [], error: null }
   }
 
   async issueToken(options: { ttl?: number; user_id?: string; route?: string }): Promise<IssuedToken> {

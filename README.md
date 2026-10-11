@@ -50,7 +50,7 @@ Nothing was recording when it ran? **Run it again, traced.** In the dashboard: *
 php artisan request-tracer:replay "POST /orders" --data='{"items":[1,2]}' --as=42
 ```
 
-The application handles it as if it had arrived from outside, and **its database changes are rolled back**, e-mails and queued jobs are not sent. Calls to other services (payments, APIs) are real, so replay is off in the production environment unless you switch it on.
+The application handles it as if it had arrived from outside, and **you choose what it may change**. A **simulation** (the default) changes nothing: database changes are rolled back, e-mails, notifications, queued jobs and calls made with Laravel's HTTP client do not go out. **Run for real** lets the request do what it does, and records every Eloquent write exactly, so you can **undo** it afterwards (`php artisan request-tracer:undo <trace>`, or the button on the trace). Writes made with the query builder or raw SQL, e-mails, calls and files cannot be taken back, and the dashboard says so. Replay is off in the production environment unless you switch it on, and running for real there needs `replay.real` as well.
 
 ### Do not know what the request was?
 

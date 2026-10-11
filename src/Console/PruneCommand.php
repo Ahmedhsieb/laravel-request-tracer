@@ -7,6 +7,7 @@ namespace RequestTracer\Console;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use RequestTracer\Journal\Journal;
+use RequestTracer\Replay\UndoLog;
 use RequestTracer\Storage\TraceStorage;
 use RequestTracer\Support\Failure;
 
@@ -27,6 +28,11 @@ final class PruneCommand extends Command
         $deleted = $storage->prune(Carbon::now()->subSeconds((int) round($hours * 3600)), max(0, $max));
 
         $this->components->info(sprintf('Pruned %d trace%s (older than %s hours%s). %d remain.', $deleted, $deleted === 1 ? '' : 's', rtrim(rtrim(number_format($hours, 2, '.', ''), '0'), '.'), $max > 0 ? ", max {$max}" : '', $storage->count()));
+
+        $expired = Failure::guard(static fn (): int => UndoLog::prune(), 'pruning the undo logs', 0);
+        if ($expired > 0) {
+            $this->components->info(sprintf('Deleted %d expired undo log%s.', $expired, $expired === 1 ? '' : 's'));
+        }
 
         if ((bool) config('request-tracer.journal.enabled', false)) {
             $trimmed = Failure::guard(static fn (): int => $journal->trim(), 'trimming the journal', 0);

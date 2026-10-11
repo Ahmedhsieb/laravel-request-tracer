@@ -13,6 +13,7 @@ use RequestTracer\Recording\WatchList;
 use RequestTracer\Replay\CurlParser;
 use RequestTracer\Replay\Replayer;
 use RequestTracer\Replay\ReplayRequest;
+use RequestTracer\Replay\UndoLog;
 use RequestTracer\Support\App;
 use RequestTracer\Support\Paths;
 use RequestTracer\Tracer;
@@ -55,7 +56,14 @@ final class ToolsController extends Controller
             'headers' => ['nullable', 'array'],
             'body' => ['nullable', 'string', 'max:500000'],
             'as_user' => ['nullable', 'string', 'max:64'],
+            'mode' => ['nullable', 'in:simulate,real'],
+            'confirm_real' => ['nullable', 'boolean'],
         ]);
+        $real = ($data['mode'] ?? ReplayRequest::SIMULATE) === ReplayRequest::REAL;
+        if ($real) {
+            abort_unless(Replayer::realAllowed(), 403, 'Running a replay for real is switched off in this environment (request-tracer.replay.real).');
+            abort_unless(($data['confirm_real'] ?? false) === true, 422, 'Running for real needs an explicit confirmation (confirm_real).');
+        }
 
         try {
             if (isset($data['curl']) && trim($data['curl']) !== '') {
@@ -70,8 +78,29 @@ final class ToolsController extends Controller
             abort(422, $e->getMessage());
         }
 
+        $replay = $replay->withMode($real ? ReplayRequest::REAL : ReplayRequest::SIMULATE);
+
         set_time_limit((int) $this->tracer->config('replay.timeout', 120) + 15);
         $result = App::container()->make(Replayer::class)->runInChild($replay);
+
+        return response()->json(['data' => $result], $result['error'] === null ? 200 : 422);
+    }
+
+    /** What can still be undone for the trace of a replay that ran for real (no values, only counts). */
+    public function undoStatus(string $trace): JsonResponse
+    {
+        abort_unless(Replayer::allowed(), 403, 'Replay is switched off in this environment (request-tracer.replay.enabled).');
+
+        return response()->json(['data' => UndoLog::summary($trace)]);
+    }
+
+    /** Take back what that replay changed. Nothing is changed when a row differs from what the replay left, unless `force`. */
+    public function undo(Request $request, string $trace): JsonResponse
+    {
+        abort_unless(Replayer::allowed(), 403, 'Replay is switched off in this environment (request-tracer.replay.enabled).');
+        $data = $request->validate(['force' => ['nullable', 'boolean']]);
+
+        $result = UndoLog::apply($trace, (bool) ($data['force'] ?? false));
 
         return response()->json(['data' => $result], $result['error'] === null ? 200 : 422);
     }

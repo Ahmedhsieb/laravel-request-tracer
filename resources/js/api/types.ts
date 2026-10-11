@@ -18,7 +18,7 @@ export interface Meta {
   /** somebody is running `php artisan request-tracer:listen` right now */
   listening: boolean
   listen_command: string
-  replay: { enabled: boolean }
+  replay: { enabled: boolean; real: boolean; undo_hours: number }
   journal: { enabled: boolean; hours: number; max_rows: number }
   code: { paths: string[]; except: string[]; line_by_line: boolean }
   recording: {
@@ -234,11 +234,41 @@ export interface ReplayInput {
   headers?: Record<string, string>
   body?: string
   as_user?: string
+  /** `simulate` changes nothing (the default); `real` does what the request does, and needs `confirm_real` */
+  mode?: 'simulate' | 'real'
+  confirm_real?: boolean
 }
 
 export interface ReplayResult {
   trace_id: string | null
   status: number | null
+  error: string | null
+  mode?: 'simulate' | 'real'
+  undo?: UndoSummary | null
+}
+
+/** What a replay that ran for real changed, and what of it can be taken back (counts only, never values). */
+export interface UndoSummary {
+  available: boolean
+  entries: number
+  /** table => operation => number of rows */
+  tables: Record<string, Record<string, number>>
+  /** tables written by statements that cannot be taken back (query builder, raw SQL) => number of statements */
+  uncovered: Record<string, number>
+  expires_at: string | null
+}
+
+export interface UndoConflict {
+  table: string
+  key: string
+  operation: string
+  reason: string
+}
+
+export interface UndoResult {
+  applied: boolean
+  undone: number
+  conflicts: UndoConflict[]
   error: string | null
 }
 
@@ -283,8 +313,12 @@ export interface Api {
   journal(filters: JournalFilters, cursor?: string | null): Promise<JournalPage>
   journalEntry(id: string): Promise<JournalEntry>
   clearJournal(): Promise<void>
-  /** Run a request that already happened again, traced; database changes are rolled back. */
+  /** Run a request that already happened again, traced: a simulation by default (nothing is changed), or for real. */
   replay(input: ReplayInput): Promise<ReplayResult>
+  /** What can still be undone for the trace of a replay that ran for real (null when nothing). */
+  undoStatus(id: string): Promise<UndoSummary | null>
+  /** Take back what that replay changed; nothing is changed when a row differs from what the replay left, unless forced. */
+  undo(id: string, force?: boolean): Promise<UndoResult>
   issueToken(options: { ttl?: number; user_id?: string; route?: string }): Promise<IssuedToken>
   watchList(): Promise<WatchEntry[]>
   watch(userId: string, minutes: number): Promise<WatchEntry[]>

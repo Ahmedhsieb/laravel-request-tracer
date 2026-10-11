@@ -20,7 +20,7 @@ Laravel already has good tools. This page says what Request Tracer does differen
 
 - you need to know **why** one request behaved as it did, not only what it touched: which branch was taken, what a service received, what changed in which table;
 - you want to look at a **production** request without leaving a recorder running: run the listen command for as long as you look, or send one request with a signed header; both are gone after the retention window;
-- the request already happened and you only have its cURL: **run it again, traced**, with its database changes rolled back;
+- the request already happened and you only have its cURL: **run it again, traced**, as a simulation that changes nothing or for real with an undo;
 - the application is **large** (modules, tenants, several databases) and "record everything" is not an option.
 
 ## Choose something else when

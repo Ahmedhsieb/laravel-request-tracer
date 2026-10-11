@@ -13,6 +13,7 @@ final class ReplayRequest
      * @param  string  $url  absolute (`https://shop.test/orders?page=2`) or a path (`/orders?page=2`, resolved against `app.url`)
      * @param  array<string, string>  $headers  name => value
      * @param  string|int|null  $asUser  the id of the user to act as (no login needed)
+     * @param  string  $mode  `simulate` (nothing is changed) or `real` (the request does what it does; what can be undone can be taken back)
      */
     public function __construct(
         public readonly string $method,
@@ -20,7 +21,12 @@ final class ReplayRequest
         public readonly array $headers = [],
         public readonly ?string $body = null,
         public readonly string|int|null $asUser = null,
+        public readonly string $mode = self::SIMULATE,
     ) {}
+
+    public const SIMULATE = 'simulate';
+
+    public const REAL = 'real';
 
     /** "POST /orders" or just "/orders" (GET). */
     public static function fromLine(string $line, ?string $body = null, string|int|null $asUser = null): self
@@ -51,18 +57,29 @@ final class ReplayRequest
             $headers,
             is_string($body) && $body !== '' ? $body : null,
             is_string($as) || is_int($as) ? ($as === '' ? null : $as) : null,
+            ($data['mode'] ?? null) === self::REAL ? self::REAL : self::SIMULATE,
         );
     }
 
     /** @return array<string, mixed> */
     public function toArray(): array
     {
-        return ['method' => $this->method, 'url' => $this->url, 'headers' => $this->headers, 'body' => $this->body, 'as_user' => $this->asUser];
+        return ['method' => $this->method, 'url' => $this->url, 'headers' => $this->headers, 'body' => $this->body, 'as_user' => $this->asUser, 'mode' => $this->mode];
     }
 
     public function withUser(string|int|null $asUser): self
     {
-        return new self($this->method, $this->url, $this->headers, $this->body, $asUser);
+        return new self($this->method, $this->url, $this->headers, $this->body, $asUser, $this->mode);
+    }
+
+    public function withMode(string $mode): self
+    {
+        return new self($this->method, $this->url, $this->headers, $this->body, $this->asUser, $mode === self::REAL ? self::REAL : self::SIMULATE);
+    }
+
+    public function isReal(): bool
+    {
+        return $this->mode === self::REAL;
     }
 
     /** The Illuminate request that will be handled by the application's HTTP kernel. */
