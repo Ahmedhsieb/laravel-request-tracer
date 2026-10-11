@@ -4,6 +4,12 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-11
+
+- **A config file only has to hold what it changes, for real.** Laravel's `mergeConfigFrom()` merges the first level only, so `'exclude' => ['paths' => ['admin/*']]` replaced the whole `exclude` section and silently dropped the built-in exclusions (login, webhooks, the queue worker, the tracer's own commands), and `'masking' => ['keys' => ['ssn']]` dropped the default masking keys. The package now merges section by section (`ConfigMerger`): sections merge key by key, `code.paths` and other "what to look at" lists replace the default, and the lists of things to exclude or mask (`exclude.*`, `masking.keys`, `masking.value_patterns`, `capture.*` allowlists, `problems.ignore_exceptions`) **add** to the defaults; `'!login'` takes a default away.
+- The dashboard middleware always includes the gate, even when a config lists its own `dashboard.middleware`.
+- Docs: how to leave a URL prefix or a route name out of the traces.
+
 ## [0.2.0] - 2026-10-11
 
 Simpler to install, run and point. Changes behaviour: nothing records on its own any more (see below), and the configuration moved to `code.paths` / `code.except` for what is traced.
