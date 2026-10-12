@@ -96,6 +96,7 @@ Running a request that already happened again, traced (dashboard: *Replay a requ
 | `gate` | `'viewRequestTracer'` | Name of the gate that decides who sees the dashboard. Outside local environments nobody does until you define it. |
 | `poll_seconds` | `5` | How often the request list looks for new requests (`0` = never). |
 | `slow_ms` | `500` | What the "Slow" filter and the list's *slow* note consider slow. |
+| `slow_step_ms` | `100` | What the *Slow* / *Fast* filter of the steps of one request considers slow (a step the analysis flagged slow is slow whatever this says). |
 
 ## `collectors`
 

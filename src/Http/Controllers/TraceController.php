@@ -20,7 +20,7 @@ final class TraceController extends Controller
 
     private const MAX_SOURCE_LINES = 800;
 
-    private const MAX_SOURCE_FUNCTIONS = 20;
+    private const MAX_SOURCE_FUNCTIONS = 40;
 
     public function __construct(private readonly TraceStorage $storage, private readonly Tracer $tracer) {}
 
@@ -80,8 +80,16 @@ final class TraceController extends Controller
     {
         $summary = $this->find($trace);
         $lines = $this->storage->lines($trace, $span);
+        $own = null;
+        foreach ($this->storage->spans($trace) as $row) {
+            if ($row['id'] === $span) {
+                $own = is_string($row['file']) && is_int($row['line']) ? [$row['file'], $row['line']] : null;
 
-        return response()->json(['data' => ['lines' => $lines, 'sources' => $this->sources($lines, (string) $summary['created_at'])]]);
+                break;
+            }
+        }
+
+        return response()->json(['data' => ['lines' => $lines, 'sources' => $this->sources($lines, (string) $summary['created_at'], $own)]]);
     }
 
     public function writes(string $trace): JsonResponse
@@ -140,25 +148,41 @@ final class TraceController extends Controller
     }
 
     /**
+     * The functions that ran inside a step, the step's own function first and the others in the order they first ran (the rows come
+     * sorted by file name, which would put a base class's constructor before the action and cut the action off at the limit).
+     *
      * @param  list<array<string, mixed>>  $lines
+     * @param  array{0: string, 1: int}|null  $own  file and line of the step itself
      * @return list<array<string, mixed>>
      */
-    private function sources(array $lines, string $traceCreatedAt): array
+    private function sources(array $lines, string $traceCreatedAt, ?array $own = null): array
     {
         // Only files that appear in this trace's own line data may be read, and only the functions that ran.
         $wanted = [];
         foreach ($lines as $row) {
             $fn = $row['result']['fn'] ?? null;
             if (is_array($fn) && count($fn) === 3) {
-                $wanted[$row['file'].'|'.$fn[1].'|'.$fn[2]] = [(string) $row['file'], (string) $fn[0], (int) $fn[1], (int) $fn[2]];
+                $key = $row['file'].'|'.$fn[1].'|'.$fn[2];
+                $seq = is_int($row['result']['seq'] ?? null) ? $row['result']['seq'] : PHP_INT_MAX;
+                $isOwn = $own !== null && $own[0] === $row['file'] && $own[1] >= (int) $fn[1] - 3 && $own[1] <= (int) $fn[2];
+                $previous = $wanted[$key] ?? null;
+                $wanted[$key] = [(string) $row['file'], (string) $fn[0], (int) $fn[1], (int) $fn[2], min($seq, $previous[4] ?? PHP_INT_MAX), $isOwn || ($previous[5] ?? false)];
             }
         }
+        // the step's own function first (the smallest one that contains its line), then in the order of execution
+        uasort($wanted, static function (array $a, array $b): int {
+            if ($a[5] !== $b[5]) {
+                return $a[5] ? -1 : 1;
+            }
+
+            return $a[4] <=> $b[4] ?: ($a[3] - $a[2]) <=> ($b[3] - $b[2]);
+        });
 
         $created = Carbon::parse($traceCreatedAt, 'UTC')->getTimestamp();
         $sources = [];
         $cache = [];
         $statements = [];
-        foreach (array_slice($wanted, 0, self::MAX_SOURCE_FUNCTIONS) as [$file, $name, $start, $end]) {
+        foreach (array_slice($wanted, 0, self::MAX_SOURCE_FUNCTIONS) as [$file, $name, $start, $end, , $isOwn]) {
             $absolute = Paths::absolute($file);
             $cache[$absolute] ??= is_file($absolute) && is_readable($absolute) ? preg_split('/\r\n|\n|\r/', (string) file_get_contents($absolute)) : null;
             $all = $cache[$absolute];
@@ -175,6 +199,7 @@ final class TraceController extends Controller
                 'end' => $end,
                 'lines' => $slice,
                 'statements' => $all === null ? null : self::functionStatements($statements[$absolute] ??= self::probeLines($absolute, $file), $start, $end),
+                'own' => $isOwn,
                 'missing' => $all === null,
                 'changed_since_trace' => $all !== null && ((int) @filemtime($absolute)) > $created,
             ];

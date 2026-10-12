@@ -30,6 +30,8 @@ export interface Meta {
   }
   user: { id: string | number; name: string } | null
   slow_ms: number
+  /** what the Slow / Fast filter of the steps of a request considers slow */
+  slow_step_ms: number
   poll_seconds: number
   mask: string
   deep_trace: { enabled: boolean }
@@ -186,6 +188,8 @@ export interface SourceFunction {
   lines: Array<{ n: number; text: string }>
   /** lines that carry a probe (only those can be "not run"); null when the file could not be analysed */
   statements?: number[] | null
+  /** this is the function of the step itself (the action of a controller step, the method of a service step) */
+  own?: boolean
   missing: boolean
   changed_since_trace: boolean
 }

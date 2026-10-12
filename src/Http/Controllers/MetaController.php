@@ -64,6 +64,7 @@ final class MetaController extends Controller
                 'name' => (string) ($user->name ?? $user->email ?? $user->getAuthIdentifier()),
             ],
             'slow_ms' => (float) $tracer->config('dashboard.slow_ms', 500),
+            'slow_step_ms' => (float) $tracer->config('dashboard.slow_step_ms', 100),
             'poll_seconds' => (int) $tracer->config('dashboard.poll_seconds', 5),
             'mask' => (string) $tracer->config('masking.mask', Brand::MASK),
             'deep_trace' => ['enabled' => (bool) $tracer->config('deep_trace.enabled', true)],

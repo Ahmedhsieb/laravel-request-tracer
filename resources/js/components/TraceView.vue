@@ -38,6 +38,29 @@ const shownId = computed(() => pinnedId.value ?? hoverId.value)
 const shownNode = computed(() => (shownId.value === null ? null : findNode(roots.value, shownId.value)))
 const tablesWritten = computed(() => trace.value?.tables_written?.length ?? new Set(writes.value.map((w) => w.table)).size)
 const children = ref<TraceSummary[]>([])
+// the figures above the flow take room the flow can use: they fold away, and the choice is remembered (storage may be missing)
+const SUMMARY_KEY = 'request-tracer:summary'
+const summaryOpen = ref(initialSummary())
+
+function initialSummary(): boolean {
+  try {
+    const saved = window.localStorage.getItem(SUMMARY_KEY)
+    if (saved === 'open' || saved === 'closed') return saved === 'open'
+  } catch {
+    // not remembered
+  }
+
+  return window.innerHeight >= 1000
+}
+
+function toggleSummary(): void {
+  summaryOpen.value = !summaryOpen.value
+  try {
+    window.localStorage.setItem(SUMMARY_KEY, summaryOpen.value ? 'open' : 'closed')
+  } catch {
+    // not remembered
+  }
+}
 
 const tabs = computed(() => [
   { id: 'flow' as const, label: 'Flow', count: spans.value.length, hot: false },
@@ -159,7 +182,7 @@ onBeforeUnmount(() => {
     <button class="btn ghost" type="button" @click="store.close()">Back to the list</button>
   </div>
 
-  <div v-else-if="trace">
+  <div v-else-if="trace" class="trace-view">
     <div class="trace-head">
       <button class="btn small ghost" type="button" @click="store.close()">← All requests</button>
       <span class="badge method" :class="methodTone(trace.method)">{{ trace.method ?? trace.kind }}</span>
@@ -175,6 +198,12 @@ onBeforeUnmount(() => {
       <span v-if="trace.tenant">Tenant {{ trace.tenant }}</span>
       <span v-if="trace.module">Module {{ trace.module }}</span>
       <span v-if="trace.route_name" class="mono">{{ trace.route_name }}</span>
+      <template v-if="!summaryOpen">
+        <span class="mono">{{ formatMs(trace.duration_ms) }}</span>
+        <span>{{ plural(trace.queries_count, 'query', 'queries') }}</span>
+        <span>{{ plural(trace.spans_count, 'step') }}</span>
+        <span v-if="trace.problems_count > 0" class="tone-warn">{{ plural(trace.problems_count, 'problem') }}</span>
+      </template>
       <span class="mono faint">{{ trace.id }}</span>
       <button v-if="trace.parent_trace_id" class="copy" type="button" @click="store.open(trace.parent_trace_id)">Dispatched by a request: open it</button>
     </div>
@@ -185,11 +214,11 @@ onBeforeUnmount(() => {
       This trace hit the step limit, so the busiest parts were merged or left out. Raise <code>request-tracer.limits.max_spans</code> to keep more.
     </p>
 
-    <div class="metrics" role="list">
+    <div v-show="summaryOpen" class="metrics" role="list">
       <div v-for="m in metrics" :key="m.k" class="metric" role="listitem"><div class="k">{{ m.k }}</div><div class="v">{{ m.v }}</div></div>
     </div>
 
-    <div class="timebar">
+    <div v-show="summaryOpen" class="timebar">
       <h2>Where the time went</h2>
       <div class="stack" role="img" :aria-label="sliceLabel">
         <span v-for="(s, i) in slices" :key="s.type" :style="{ '--c': typeVar(s.type), '--i': i, width: `${s.pct}%` }" :title="`${TYPE_LABEL[s.type]}: ${formatUs(s.us)}`"></span>
@@ -212,12 +241,14 @@ onBeforeUnmount(() => {
         :tabindex="tab === t.id ? 0 : -1"
         @click="tab = t.id"
       >{{ t.label }} <span class="count" :class="{ hot: t.hot }">{{ t.count }}</span></button>
+      <span class="tab-spacer"></span>
+      <button class="tab summary-toggle" type="button" :aria-expanded="summaryOpen" title="Show or hide the figures and the time bar above" @click="toggleSummary">{{ summaryOpen ? 'Hide summary' : 'Show summary' }}</button>
     </div>
 
-    <div v-show="tab === 'flow'" id="panel-flow" role="tabpanel" aria-labelledby="tab-flow">
+    <div v-show="tab === 'flow'" id="panel-flow" class="panel" role="tabpanel" aria-labelledby="tab-flow">
       <div class="flow">
-        <SpanTree ref="tree" :roots="roots" :total-us="totalUs" :pinned="pinnedId" :entering="entering" @hover="hoverId = $event" @select="select" />
-        <div>
+        <SpanTree ref="tree" :roots="roots" :total-us="totalUs" :pinned="pinnedId" :entering="entering" :slow-ms="store.meta?.slow_step_ms ?? 100" @hover="hoverId = $event" @select="select" />
+        <div class="detail-col">
           <StepDetail :trace-id="trace.id" :node="shownNode" :pinned="pinnedId !== null && shownId === pinnedId" :total-us="totalUs" />
           <div v-if="children.length > 0" class="children">
             <span class="muted">Started by this request:</span>
@@ -227,11 +258,11 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="tab === 'database'" id="panel-database" role="tabpanel" aria-labelledby="tab-database">
+    <div v-if="tab === 'database'" id="panel-database" class="panel scroll" role="tabpanel" aria-labelledby="tab-database">
       <DatabaseTab :writes="writes" :spans="spans" :trace="trace" :mask="store.meta?.mask ?? '••••••••'" @show="show" />
     </div>
 
-    <div v-if="tab === 'problems'" id="panel-problems" role="tabpanel" aria-labelledby="tab-problems">
+    <div v-if="tab === 'problems'" id="panel-problems" class="panel scroll" role="tabpanel" aria-labelledby="tab-problems">
       <ProblemsTab :problems="problems" :spans="spans" :notes="trace.notes" @show="show" />
     </div>
 

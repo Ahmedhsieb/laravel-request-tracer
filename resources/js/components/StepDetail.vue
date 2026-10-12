@@ -125,7 +125,7 @@ const facts = computed(() => {
         </template>
 
         <template v-else>
-          <CodeView v-if="hasLines && lines" :data="lines" />
+          <CodeView v-if="hasLines && lines" :key="span.id" :data="lines" :node="node" :trace-id="traceId" />
           <div v-else class="info-card">
             <strong>This step was not traced line by line.</strong>
             <p v-if="store.meta?.deep_trace.enabled === false">Deep trace is switched off in the configuration (<code>request-tracer.deep_trace.enabled</code>).</p>

@@ -142,6 +142,7 @@ return [
         'gate' => 'viewRequestTracer',
         'poll_seconds' => 5,                                    // the request list refreshes this often (0 = never)
         'slow_ms' => 500,                                       // what the "Slow" filter chip considers slow
+        'slow_step_ms' => 100,                                  // what the "Slow" / "Fast" filter of the steps of a request considers slow
     ],
 
     /*

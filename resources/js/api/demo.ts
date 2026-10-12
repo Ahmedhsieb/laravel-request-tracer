@@ -35,6 +35,7 @@ export const DEMO_META: Meta = {
   recording: { mode: 'triggered', header: 'X-Request-Tracer', watch_list: true, sampling: { enabled: false, rate: 0.01 }, token_ttl: 300 },
   user: { id: 1, name: 'Amira Hassan' },
   slow_ms: 500,
+  slow_step_ms: 100,
   poll_seconds: 5,
   mask: MASK,
   deep_trace: { enabled: true },
@@ -184,6 +185,7 @@ const ORDER_SOURCE: SourceFunction = {
   lines: SOURCE_TEXT.map((text, i) => ({ n: START + i, text })),
   // the lines that carry a probe; the continuation lines of the multi-line Order::create([...]) call do not
   statements: [24, 26, 28, 31, 34, 40, 41, 42, 43, 46, 48],
+  own: true,
   missing: false,
   changed_since_trace: false,
 }
@@ -206,6 +208,65 @@ const ORDER_LINES: LineRow[] = [
   row(43, 'block', 6, { seq: 9 }, "$product->decrement('stock', $item['qty'])"),
   row(46, 'block', 1, { seq: 10 }, 'OrderPlaced::dispatch($order)'),
   row(48, 'return', 1, { seq: 11, value: ORDER }, 'return $order'),
+]
+
+// ---------------------------------------------------------------------------------------------- Deep trace of the controller action
+
+const CONTROLLER_FILE = 'app/Http/Controllers/OrderController.php'
+const BASE_FILE = 'app/Http/Controllers/Controller.php'
+
+const STORE_TEXT = [
+  'public function store(StoreOrderRequest $request): RedirectResponse',
+  '{',
+  "    $items = $this->prepareItems($request->validated()['items']);",
+  '',
+  '    $order = $this->orders->create($request->user(), $items);',
+  '',
+  "    Log::info('Order created', ['order_id' => $order->id]);",
+  '',
+  "    return redirect()->route('orders.show', $order);",
+  '}',
+]
+const PREPARE_TEXT = [
+  'private function prepareItems(array $items): array',
+  '{',
+  "    return array_map(fn ($i) => $i + ['qty' => $i['qty'] ?? 1], $items);",
+  '}',
+]
+const BASE_TEXT = [
+  'public function __construct()',
+  '{',
+  "    $this->middleware('auth');",
+  '}',
+]
+
+function source(file: string, name: string, start: number, text: string[], statements: number[], own = false): SourceFunction {
+  return { file, name, start, end: start + text.length - 1, lines: text.map((t, i) => ({ n: start + i, text: t })), statements, own, missing: false, changed_since_trace: false }
+}
+
+const STORE_SOURCE = source(CONTROLLER_FILE, 'OrderController::store', 31, STORE_TEXT, [31, 33, 35, 37, 39], true)
+const PREPARE_SOURCE = source(CONTROLLER_FILE, 'OrderController::prepareItems', 52, PREPARE_TEXT, [52, 54])
+const BASE_SOURCE = source(BASE_FILE, 'Controller::__construct', 8, BASE_TEXT, [8, 10])
+
+function crow(file: string, fn: [string, number, number], line: number, kind: LineRow['kind'], hits: number, result: LineRow['result'], snippet: string | null): LineRow {
+  return { span_id: 5, file, line, kind, hits, result: { ...result, fn }, snippet }
+}
+
+const STORE_FN: [string, number, number] = ['OrderController::store', 31, 40]
+const PREPARE_FN: [string, number, number] = ['OrderController::prepareItems', 52, 55]
+const BASE_FN: [string, number, number] = ['Controller::__construct', 8, 11]
+const REDIRECT = obj('Illuminate\\Http\\RedirectResponse', [['status', 302], ['targetUrl', 'https://shop.example.com/orders/1057']], 'response')
+
+const CONTROLLER_LINES: LineRow[] = [
+  crow(BASE_FILE, BASE_FN, 8, 'assign', 1, { seq: 1, first: map([]), last: map([]) }, 'arguments'),
+  crow(BASE_FILE, BASE_FN, 10, 'block', 1, { seq: 1 }, "$this->middleware('auth')"),
+  crow(CONTROLLER_FILE, STORE_FN, 31, 'assign', 1, { seq: 2, first: map([['request', obj('App\\Http\\Requests\\StoreOrderRequest', [['validated', map([['items', ITEMS]])]])]]), last: map([['request', obj('App\\Http\\Requests\\StoreOrderRequest', [['validated', map([['items', ITEMS]])]])]]) }, 'arguments'),
+  crow(CONTROLLER_FILE, STORE_FN, 33, 'assign', 1, { seq: 3, name: 'items', changes: 1, first: ITEMS, last: ITEMS }, "$items = $this->prepareItems($request->validated()['items'])"),
+  crow(CONTROLLER_FILE, PREPARE_FN, 52, 'assign', 1, { seq: 4, first: map([['items', ITEMS]]), last: map([['items', ITEMS]]) }, 'arguments'),
+  crow(CONTROLLER_FILE, PREPARE_FN, 54, 'return', 1, { seq: 5, value: ITEMS }, "return array_map(fn ($i) => ...)"),
+  crow(CONTROLLER_FILE, STORE_FN, 35, 'assign', 1, { seq: 6, name: 'order', changes: 1, first: ORDER, last: ORDER }, '$order = $this->orders->create($request->user(), $items)'),
+  crow(CONTROLLER_FILE, STORE_FN, 37, 'block', 1, { seq: 7 }, "Log::info('Order created', [...])"),
+  crow(CONTROLLER_FILE, STORE_FN, 39, 'return', 1, { seq: 8, value: REDIRECT }, "return redirect()->route('orders.show', $order)"),
 ]
 
 // ---------------------------------------------------------------------------------------------- writes and problems
@@ -431,6 +492,8 @@ export class DemoApi implements Api {
   async spanLines(id: string, spanId: number): Promise<SpanLines> {
     await sleep(30)
     if (this.base(id) === ORDER_TRACE_ID && spanId === 7) return { lines: ORDER_LINES, sources: [ORDER_SOURCE] }
+    // the action first, then the other functions in the order they ran (the base controller's constructor ran before the action)
+    if (this.base(id) === ORDER_TRACE_ID && spanId === 5) return { lines: CONTROLLER_LINES, sources: [STORE_SOURCE, BASE_SOURCE, PREPARE_SOURCE] }
 
     return { lines: [], sources: [] }
   }
