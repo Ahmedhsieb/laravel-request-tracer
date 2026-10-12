@@ -59,8 +59,9 @@ function edgeId(edge: Edge): string {
       </button>
       <span class="muted mono">{{ block.file }}:{{ block.start }}–{{ block.end }}</span>
       <span v-if="isMain" class="tag">this step</span>
+      <span v-if="block.untraced" class="tag warn" title="This folder is not in request-tracer.code.paths: the code is shown, but nothing was recorded for its lines">not traced line by line</span>
       <span v-else-if="calledFrom" class="tag">called from {{ calledFrom }}</span>
-      <span class="muted">{{ ran }} of {{ block.lines.length }} lines ran</span>
+      <span v-if="!block.untraced" class="muted">{{ ran }} of {{ block.lines.length }} lines ran</span>
       <span v-if="block.missing" class="tone-warn">source file not found on this server</span>
       <span v-else-if="block.changedSinceTrace" class="tone-warn">file changed after this request: line numbers may not match</span>
     </header>

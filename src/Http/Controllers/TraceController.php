@@ -89,7 +89,16 @@ final class TraceController extends Controller
             }
         }
 
-        return response()->json(['data' => ['lines' => $lines, 'sources' => $this->sources($lines, (string) $summary['created_at'], $own)]]);
+        $sources = $this->sources($lines, (string) $summary['created_at'], $own);
+        if ($own !== null && ! in_array(true, array_column($sources, 'own'), true)) {
+            // The step's own code ran but was not traced line by line (its folder is not in `code.paths`): show its text anyway, without run data.
+            $static = $this->staticSource($own[0], $own[1]);
+            if ($static !== null) {
+                array_unshift($sources, $static);
+            }
+        }
+
+        return response()->json(['data' => ['lines' => $lines, 'sources' => $sources]]);
     }
 
     public function writes(string $trace): JsonResponse
@@ -206,6 +215,68 @@ final class TraceController extends Controller
         }
 
         return $sources;
+    }
+
+    /**
+     * The text of the function that contains a line, for a step whose code was not traced: no run data, only what is written there.
+     * Only PHP files inside the application are read.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function staticSource(string $file, int $line): ?array
+    {
+        $absolute = realpath(Paths::absolute($file));
+        $base = realpath(Paths::base());
+        if ($absolute === false || $base === false || strtolower(pathinfo($absolute, PATHINFO_EXTENSION)) !== 'php' || ! is_readable($absolute)) {
+            return null;
+        }
+        $normalized = Paths::normalize($absolute);
+        if (! str_starts_with($normalized, Paths::normalize($base).'/') || str_contains($normalized, '/storage/')) {
+            return null;
+        }
+
+        $probes = self::probeLines($absolute, $file);
+        if ($probes === null) {
+            return null;
+        }
+        $best = null;
+        foreach ($probes as [, $from, $to]) {
+            if ($line >= $from - 3 && $line <= $to && ($best === null || ($to - $from) < ($best[1] - $best[0]))) {
+                $best = [$from, $to];
+            }
+        }
+        if ($best === null) {
+            return null;
+        }
+
+        $all = preg_split('/\r\n|\n|\r/', (string) file_get_contents($absolute)) ?: [];
+        $slice = [];
+        for ($n = max(1, $best[0]); $n <= min($best[1], count($all), $best[0] + self::MAX_SOURCE_LINES); $n++) {
+            $slice[] = ['n' => $n, 'text' => $all[$n - 1]];
+        }
+        $name = null;
+        foreach ($slice as $row) {
+            if (preg_match('/function\s+&?\s*([A-Za-z_]\w*)/', $row['text'], $m) === 1) {
+                $name = $m[1];
+
+                break;
+            }
+        }
+
+        $class = preg_match('/^\s*(?:final\s+|abstract\s+)*class\s+([A-Za-z_]\w*)/m', implode("\n", $all), $c) === 1 ? $c[1] : null;
+
+        return [
+            'file' => $file,
+            'name' => $name === null ? basename($file) : ($class === null ? $name : $class.'::'.$name),
+            'start' => $best[0],
+            'end' => $best[1],
+            'lines' => $slice,
+            'statements' => null,
+            'own' => true,
+            'untraced' => true,
+            'missing' => false,
+            'changed_since_trace' => false,
+        ];
     }
 
     /**

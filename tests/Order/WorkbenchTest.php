@@ -6,6 +6,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use RequestTracer\Tests\Fixtures\Http\PlainController;
+use Tmp\Accounting\UntracedVoucherController;
 
 beforeEach(function () {
     Gate::define('viewRequestTracer', fn (?Authenticatable $user = null) => true);
@@ -62,4 +63,45 @@ it('shows the action of a controller that Laravel does not know as one once, as 
     expect($controllers)->toHaveCount(1)
         ->and($this->spansOf($spans, 'service', 'PlainController::show'))->toBe([])             // not a second step for the same call
         ->and(json_encode($controllers[0]['input']))->toContain('1057', 'arguments');           // what the proxy would have recorded is kept
+});
+
+it('shows the text of the action of a step that was not traced line by line, marked as such', function () {
+    $dir = base_path('packages/Accounting/src/Controllers');
+    @mkdir($dir, 0777, true);
+    $file = $dir.'/UntracedVoucherController.php';
+    file_put_contents($file, <<<'PHP'
+<?php
+
+namespace Tmp\Accounting;
+
+class UntracedVoucherController
+{
+    public function show(string $id): array
+    {
+        $label = 'Voucher #'.$id;
+
+        return ['id' => $id, 'label' => $label];
+    }
+}
+PHP);
+    try {
+        require_once $file;
+        Route::get('/untraced/{id}', [UntracedVoucherController::class, 'show']);
+
+        $this->get('/untraced/1057')->assertOk();
+
+        $id = (string) $this->lastTrace()['id'];
+        $controller = $this->spansOf($this->traceSpans(), 'controller')[0];
+        $sources = $this->getJson("/request-tracer/api/v1/traces/{$id}/spans/{$controller['id']}/lines")->assertOk()->json('data.sources');
+
+        expect($sources)->toHaveCount(1)
+            ->and($sources[0])->toMatchArray(['name' => 'UntracedVoucherController::show', 'own' => true, 'untraced' => true, 'statements' => null])
+            ->and(collect($sources[0]['lines'])->pluck('text')->implode("\n"))->toContain("'Voucher #'.\$id")
+            ->and($sources[0]['start'])->toBe(7)->and($sources[0]['end'])->toBe(12);
+    } finally {
+        @unlink($file);
+        @rmdir($dir);
+        @rmdir(dirname($dir));
+        @rmdir(dirname($dir, 2));
+    }
 });

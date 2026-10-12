@@ -5,10 +5,11 @@ const counter = { last: 0 }
 <script setup lang="ts">
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from 'vue'
 import type { SpanLines } from '../api/types'
-import { buildCode, executionOrder, linkCalls, mainBlock, type CodeLine, type DotState } from '../lib/code'
+import { buildCode, executionOrder, linkCalls, mainBlock, outsideCodePaths, suggestPath, type CodeLine, type DotState } from '../lib/code'
 import { CODE_CONTEXT, CODE_POPOVER, type CodeContext, type Edge, type LinePopoverApi } from '../lib/codeContext'
 import { plural } from '../lib/format'
 import type { TreeNode } from '../lib/tree'
+import { useStore } from '../store'
 import ChildCode from './ChildCode.vue'
 import CodeBlockView from './CodeBlockView.vue'
 import LinePopover from './LinePopover.vue'
@@ -17,6 +18,7 @@ const props = defineProps<{ data: SpanLines; node: TreeNode | null; traceId?: st
 
 const uid = ++counter.last
 
+const store = useStore()
 const parentCtx = inject(CODE_CONTEXT, null)
 const sharedPopover = inject(CODE_POPOVER, null)
 const traceId = props.traceId ?? parentCtx?.traceId ?? ''
@@ -220,6 +222,14 @@ function replay(): void {
 
 const progress = computed(() => (steps.value.length === 0 ? 0 : ((position.value + 1) / steps.value.length) * 100))
 // with nothing of its own to show first, the other functions are all there is: show them
+/** The step's own file is outside `code.paths`: say so, with the line to add. */
+const outside = computed(() => {
+  const file = props.node?.span.file ?? null
+  const paths = store.meta?.code.paths ?? []
+  if (props.nested || file === null || !outsideCodePaths(file, paths)) return null
+
+  return { file, suggestion: [...paths, suggestPath(file)].map((p) => `'${p}'`).join(', ') }
+})
 const showOthers = ref(main.value < 0 && duplicate.value === null)
 const reached = computed(() => plan.value.parent.size)
 
@@ -238,6 +248,15 @@ onBeforeUnmount(() => {
     <p v-if="!nested" class="hint code-hint">
       The code of this step, with the functions it called under the line that calls them. Hover a line to see what happened there; click it to keep the pop-up open.
     </p>
+
+    <div v-if="outside" class="info-card scope-card" role="note">
+      <strong>This step's own code was not traced line by line.</strong>
+      <p>
+        <code>{{ outside.file }}</code> is outside <code>request-tracer.code.paths</code> (<code>{{ (store.meta?.code.paths ?? []).join(', ') || 'empty' }}</code>), so only its text is shown,
+        without what ran. To trace it, add its folder and send the request again:
+      </p>
+      <p><code>'code' => ['paths' => [{{ outside.suggestion }}]]</code></p>
+    </div>
 
     <ChildCode v-if="duplicate" :node="duplicate" :name="duplicate.span.label" :auto-open="true" />
     <CodeBlockView v-if="main >= 0" :index="main" :depth="0" />
