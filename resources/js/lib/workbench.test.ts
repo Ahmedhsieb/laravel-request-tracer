@@ -10,7 +10,7 @@ function line(n: number, text: string, state: CodeLine['state'] = 'ran'): CodeLi
 }
 
 function block(name: string, start: number, texts: Array<[string, CodeLine['state']?]>, own = false, file = 'app/Http/Controllers/PaymentController.php'): CodeBlock {
-  return { file, name, start, end: start + texts.length, own, untraced: false, missing: false, changedSinceTrace: false, lines: texts.map(([t, s], i) => line(start + i, t, s ?? 'ran')) }
+  return { file, name, start, end: start + texts.length, own, untraced: false, shift: 0, missing: false, changedSinceTrace: false, lines: texts.map(([t, s], i) => line(start + i, t, s ?? 'ran')) }
 }
 
 describe('callsIn', () => {

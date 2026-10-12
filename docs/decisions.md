@@ -133,6 +133,8 @@ A step's lines are stored by the innermost step that was open when they ran, so 
 
 A controller that Laravel does not know as one (since Laravel 11 the base controller extends nothing) used to be proxied like a service, so its action was a `controller` step with a `service` copy below it, and the lines of the action were stored on the copy: the controller step owned only the constructor. The proxy now folds a call into the open `controller` step when the file and line are the same, and moves the arguments to that step's input. Older traces still contain the copy, so the code view uses a child step with the same file and line as the step's own code when the step has none.
 
+The lines of a trace are numbers, and the files change while somebody is debugging them. Showing the current text under the old numbers puts every value on the line above (or below) its statement, which is worse than showing nothing. A probe already stores the first line of its statement as text, so the server can follow an edit without storing anything new: for each function it looks, nearest first, for the line that holds each probe's text and takes the most common offset (0 wins ties). It is a heuristic that only moves what it can match, a masked snippet is never matched, and when nothing matches it falls back to the recorded numbers and says so.
+
 The output of a line moved to a pop-up for the same reason as everything here: the code is long, and a card under it is somewhere else on the screen when you need it.
 
 ### D31 – A fixed page with boxes that scroll
