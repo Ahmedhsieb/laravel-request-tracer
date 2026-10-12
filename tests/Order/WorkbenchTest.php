@@ -5,6 +5,8 @@ declare(strict_types=1);
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use RequestTracer\Http\Controllers\TraceController;
+use RequestTracer\Support\Paths;
 use RequestTracer\Tests\Fixtures\Http\PlainController;
 use Tmp\Accounting\UntracedVoucherController;
 
@@ -104,4 +106,67 @@ PHP);
         @rmdir(dirname($dir));
         @rmdir(dirname($dir, 2));
     }
+});
+
+/** The private helper that finds out how far a function moved, called directly with a file as it is now. */
+function shiftOf(array $probes, array $file, string $mask = '••••••••'): ?int
+{
+    $call = Closure::bind(fn () => static::shiftFor($probes, $file, $mask), null, TraceController::class);
+
+    return $call();
+}
+
+it('follows a function that moved because the file was edited after the request', function () {
+    $file = [
+        '<?php',
+        '',
+        '// a line that was added above the function after the request was traced',
+        'public function show(Payment $payment)',
+        '{',
+        '    $payment->loadMissing([',
+        "        'currency',",
+        '    ]);',
+        '',
+        '    $debitData = $this->decode($payment->debit_data);',
+        '    $debitMeta = $this->decode($payment->debit_meta);',
+        '    return view(\'x\');',
+        '}',
+    ];
+    // as it was recorded: one line higher
+    $probes = [
+        [3, 'public function show(Payment $payment)'],
+        [4, 'arguments'],
+        [5, '$payment->loadMissing([ …'],
+        [9, '$debitData = $this->decode($payment->debit_data);'],
+        [10, '$debitMeta = $this->decode($payment->debit_meta);'],
+        [11, "return view('x');"],
+    ];
+
+    expect(shiftOf($probes, $file))->toBe(1)
+        ->and(shiftOf(array_map(fn ($p) => [$p[0] + 1, $p[1]], $probes), $file))->toBe(0)       // not edited: stays
+        ->and(shiftOf([[3, 'a statement that is nowhere in the file now']], $file))->toBeNull()  // nothing to go by: says so
+        ->and(shiftOf([[9, "return 'a-secret-literal-••••••••';"]], $file))->toBeNull();         // masked snippets are not matched
+});
+
+it('keeps the lines where they were when the file is newer but the function did not move', function () {
+    $products = $this->seedCatalog();
+    $this->actingAs($this->makeUser())->postJson('/api/orders', $this->orderPayload($products, []))->assertCreated();
+    $id = (string) $this->lastTrace()['id'];
+    $create = collect($this->getJson("/request-tracer/api/v1/traces/{$id}/spans")->json('data'))->firstWhere('label', 'OrderService::create');
+    $service = Paths::absolute($create['file']);
+    $before = $this->getJson("/request-tracer/api/v1/traces/{$id}/spans/{$create['id']}/lines")->json('data');
+
+    $mtime = filemtime($service);
+    touch($service, time() + 120);
+    try {
+        $after = $this->getJson("/request-tracer/api/v1/traces/{$id}/spans/{$create['id']}/lines")->json('data');
+    } finally {
+        touch($service, $mtime);
+    }
+
+    $source = collect($after['sources'])->firstWhere('name', 'OrderService::create');
+    expect($source['changed_since_trace'])->toBeTrue()
+        ->and($source['shift'])->toBe(0)
+        ->and($after['lines'])->toBe($before['lines'])
+        ->and(collect($before['sources'])->firstWhere('name', 'OrderService::create')['shift'])->toBe(0);
 });

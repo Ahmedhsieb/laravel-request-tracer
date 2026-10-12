@@ -63,7 +63,8 @@ function edgeId(edge: Edge): string {
       <span v-else-if="calledFrom" class="tag">called from {{ calledFrom }}</span>
       <span v-if="!block.untraced" class="muted">{{ ran }} of {{ block.lines.length }} lines ran</span>
       <span v-if="block.missing" class="tone-warn">source file not found on this server</span>
-      <span v-else-if="block.changedSinceTrace" class="tone-warn">file changed after this request: line numbers may not match</span>
+      <span v-else-if="block.changedSinceTrace && block.shift === null" class="tone-warn">file changed after this request: line numbers may not match</span>
+      <span v-else-if="block.changedSinceTrace && block.shift !== 0" class="muted" :title="`The file was edited after this request. The function moved ${Math.abs(block.shift ?? 0)} ${Math.abs(block.shift ?? 0) === 1 ? 'line' : 'lines'} ${(block.shift ?? 0) > 0 ? 'down' : 'up'}; what ran was matched to the statements by their text.`">edited since: moved {{ (block.shift ?? 0) > 0 ? '+' : '' }}{{ block.shift }} lines</span>
     </header>
 
     <div v-if="isOpen" class="code-lines">

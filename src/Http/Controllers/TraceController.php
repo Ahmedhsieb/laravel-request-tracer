@@ -89,7 +89,7 @@ final class TraceController extends Controller
             }
         }
 
-        $sources = $this->sources($lines, (string) $summary['created_at'], $own);
+        $sources = $this->sources($lines, (string) $summary['created_at'], $own);       // (also moves the rows of a function that was edited since)
         if ($own !== null && ! in_array(true, array_column($sources, 'own'), true)) {
             // The step's own code ran but was not traced line by line (its folder is not in `code.paths`): show its text anyway, without run data.
             $static = $this->staticSource($own[0], $own[1]);
@@ -160,18 +160,20 @@ final class TraceController extends Controller
      * The functions that ran inside a step, the step's own function first and the others in the order they first ran (the rows come
      * sorted by file name, which would put a base class's constructor before the action and cut the action off at the limit).
      *
-     * @param  list<array<string, mixed>>  $lines
+     * @param  list<array<string, mixed>>  $lines  (changed: the rows of a function whose file was edited after the trace are moved to where their statements are now)
      * @param  array{0: string, 1: int}|null  $own  file and line of the step itself
      * @return list<array<string, mixed>>
      */
-    private function sources(array $lines, string $traceCreatedAt, ?array $own = null): array
+    private function sources(array &$lines, string $traceCreatedAt, ?array $own = null): array
     {
         // Only files that appear in this trace's own line data may be read, and only the functions that ran.
         $wanted = [];
+        $snippets = [];
         foreach ($lines as $row) {
             $fn = $row['result']['fn'] ?? null;
             if (is_array($fn) && count($fn) === 3) {
                 $key = $row['file'].'|'.$fn[1].'|'.$fn[2];
+                $snippets[$key][] = [(int) $row['line'], (string) ($row['snippet'] ?? '')];
                 $seq = is_int($row['result']['seq'] ?? null) ? $row['result']['seq'] : PHP_INT_MAX;
                 $isOwn = $own !== null && $own[0] === $row['file'] && $own[1] >= (int) $fn[1] - 3 && $own[1] <= (int) $fn[2];
                 $previous = $wanted[$key] ?? null;
@@ -188,13 +190,24 @@ final class TraceController extends Controller
         });
 
         $created = Carbon::parse($traceCreatedAt, 'UTC')->getTimestamp();
+        clearstatcache();                                   // a long-lived worker would otherwise remember an old modification time
         $sources = [];
         $cache = [];
         $statements = [];
-        foreach (array_slice($wanted, 0, self::MAX_SOURCE_FUNCTIONS) as [$file, $name, $start, $end, , $isOwn]) {
+        $shifts = [];
+        $mask = (string) $this->tracer->config('masking.mask', '••••••••');
+        foreach (array_slice($wanted, 0, self::MAX_SOURCE_FUNCTIONS, true) as $key => [$file, $name, $start, $end, , $isOwn]) {
             $absolute = Paths::absolute($file);
             $cache[$absolute] ??= is_file($absolute) && is_readable($absolute) ? preg_split('/\r\n|\n|\r/', (string) file_get_contents($absolute)) : null;
             $all = $cache[$absolute];
+            $changed = $all !== null && ((int) @filemtime($absolute)) > $created;
+            // A file edited after the request has its lines somewhere else now: follow the statements by their text.
+            $shift = $changed ? self::shiftFor($snippets[$key] ?? [], is_array($all) ? $all : [], $mask) : 0;
+            if ($shift !== null && $shift !== 0) {
+                $shifts[$key] = $shift;
+                $start += $shift;
+                $end += $shift;
+            }
             $slice = [];
             if (is_array($all)) {
                 for ($n = max(1, $start); $n <= min($end, count($all), $start + self::MAX_SOURCE_LINES); $n++) {
@@ -209,12 +222,68 @@ final class TraceController extends Controller
                 'lines' => $slice,
                 'statements' => $all === null ? null : self::functionStatements($statements[$absolute] ??= self::probeLines($absolute, $file), $start, $end),
                 'own' => $isOwn,
+                'shift' => $changed ? $shift : 0,
                 'missing' => $all === null,
-                'changed_since_trace' => $all !== null && ((int) @filemtime($absolute)) > $created,
+                'changed_since_trace' => $changed,
             ];
         }
 
+        if ($shifts !== []) {
+            foreach ($lines as $i => $row) {
+                $fn = $row['result']['fn'] ?? null;
+                $key = is_array($fn) && count($fn) === 3 ? $row['file'].'|'.$fn[1].'|'.$fn[2] : null;
+                if ($key !== null && isset($shifts[$key])) {
+                    $lines[$i]['line'] = (int) $row['line'] + $shifts[$key];
+                    $lines[$i]['result']['fn'] = [$fn[0], (int) $fn[1] + $shifts[$key], (int) $fn[2] + $shifts[$key]];
+                }
+            }
+        }
+
         return $sources;
+    }
+
+    private const SHIFT_RANGE = 80;
+
+    /**
+     * How far a function moved when its file was edited after the trace. Every probe remembers the text of its statement, so the line
+     * that holds that text now, nearest to where it was, says: the most common answer wins. Null when nothing could be matched.
+     *
+     * @param  list<array{0: int, 1: string}>  $probes  recorded line and statement text
+     * @param  list<string>  $all  the lines of the file as it is now
+     */
+    private static function shiftFor(array $probes, array $all, string $mask): ?int
+    {
+        $flat = static fn (string $text): string => trim((string) preg_replace('/\s+/', ' ', $text));
+        $votes = [];
+        $seen = [];
+        foreach ($probes as [$line, $snippet]) {
+            $needle = $flat((string) preg_replace('/\s*…$/u', '', $snippet));
+            if ($snippet === 'arguments' || strlen($needle) < 6 || str_contains($snippet, $mask) || isset($seen[$line.'|'.$needle])) {
+                continue;
+            }
+            $seen[$line.'|'.$needle] = true;
+            for ($d = 0; $d <= self::SHIFT_RANGE; $d++) {
+                foreach ($d === 0 ? [0] : [$d, -$d] as $delta) {
+                    $at = $line + $delta;
+                    if ($at >= 1 && $at <= count($all) && str_contains($flat($all[$at - 1]), $needle)) {
+                        $votes[$delta] = ($votes[$delta] ?? 0) + 1;
+
+                        continue 3;
+                    }
+                }
+            }
+        }
+        if ($votes === []) {
+            return null;
+        }
+        $best = null;
+        foreach ($votes as $delta => $count) {
+            if ($best === null || $count > $votes[$best] || ($count === $votes[$best] && abs($delta) < abs($best))) {
+                $best = $delta;
+            }
+        }
+
+        return $best;
     }
 
     /**

@@ -192,6 +192,8 @@ export interface SourceFunction {
   own?: boolean
   /** the text of the function only: its folder is not in `code.paths`, so there is no run data */
   untraced?: boolean
+  /** lines the function moved because its file was edited after the request (already applied to `lines` and the rows); null = could not tell */
+  shift?: number | null
   missing: boolean
   changed_since_trace: boolean
 }

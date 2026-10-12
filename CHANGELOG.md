@@ -4,6 +4,10 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-12
+
+- **A line's output sits on its own line even when the file was edited after the request.** The recorded lines are numbers, and a file that gets a line added above a function after the request was traced has its code one line lower than the numbers say: every chip, dot and pop-up then appeared on the line above its statement (`array (2)` on a blank line, the next statement's value on the previous one). The server now follows the edit: every probe remembers the text of its statement, so it finds where the statements of each function are now (the nearest line that holds the text, the most common answer wins, up to 80 lines either way), moves the function and its rows there and reports `shift`. Functions in one file can move differently (code was added in one place, another was removed). The header says *edited since: moved +1 lines*; when no statement could be matched it still says *line numbers may not match*. On a real project 318 of 318 rows landed on their statement.
+
 ## [0.5.1] - 2026-10-12
 
 - **A step whose code is outside `code.paths` says so, and still shows its code.** A controller in `packages/Accounting/src/Controllers` with the default `code.paths = ['app']` has no line data, and the code view listed only unrelated functions of `app/` that ran under it (a model's `booted()`, a navigation helper) as if they were its code. Now the step's own function is shown from its text (marked *not traced line by line*, no run dots), a notice names the file, the current `code.paths` and the line to add (`'paths' => ['app', 'packages/Accounting/src']`), and the calls written in it still link to the functions and steps that ran. The server reads only PHP files inside the application for this.

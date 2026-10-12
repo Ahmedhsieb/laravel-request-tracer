@@ -35,6 +35,8 @@ export interface CodeBlock {
   own: boolean
   /** shown from its text only, nothing was recorded for its lines */
   untraced: boolean
+  /** how far the server moved the function to follow an edit of its file; null when it could not tell */
+  shift: number | null
 }
 
 /** Lines that hold no executable statement never get a "not run" mark. */
@@ -67,6 +69,7 @@ export function buildCode(data: SpanLines): CodeBlock[] {
       changedSinceTrace: source.changed_since_trace,
       own: source.own === true,
       untraced: source.untraced === true,
+      shift: source.shift === undefined ? 0 : source.shift,
       lines: source.lines.map((l) => source.untraced === true
         ? { n: l.n, text: l.text, state: 'plain' as const, chip: '', description: '', variables: [], seq: null, hits: 0 }
         : describeLine(l.n, l.text, rowsByLine.get(`${source.file}:${l.n}`) ?? [], statementSet)),
