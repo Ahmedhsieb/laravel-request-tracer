@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { JournalEntry, SpanRow, SpanType, TraceSummary } from '../api/types'
-import { callsIn, classOf, linkCalls, mainBlock, outsideCodePaths, reachableBlocks, shortName, suggestPath, type CodeBlock, type CodeLine } from './code'
+import { callsIn, classOf, explainUntraced, linkCalls, mainBlock, outsideCodePaths, reachableBlocks, shortName, suggestPath, type CodeBlock, type CodeLine } from './code'
 import { emptyFilter, filterSteps, isFailed, isSlow, typeCounts } from './filters'
 import { groupJournal, groupTraces, isIdSegment, journalFailed, prefixOf, routeGroup } from './groups'
 import { buildTree } from './tree'
@@ -264,5 +264,14 @@ describe('journal groups', () => {
     expect(journalFailed(entry('/a', { status: 500 }))).toBe(true)
     expect(journalFailed(entry('/a', { status: 200, failure: 'X: y' }))).toBe(true)
     expect(journalFailed(entry('/a', { status: 404 }))).toBe(false)
+  })
+})
+
+describe('why a function has no run data', () => {
+  it('tells the three cases apart', () => {
+    expect(explainUntraced(true, 0)).toBe('outside')
+    expect(explainUntraced(true, 40)).toBe('outside')
+    expect(explainUntraced(false, 20)).toBe('not-run')         // other functions of the step ran, this one was never entered
+    expect(explainUntraced(false, 0)).toBe('no-data')          // nothing was recorded for the step at all
   })
 })

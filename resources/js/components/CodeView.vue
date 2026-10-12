@@ -5,7 +5,7 @@ const counter = { last: 0 }
 <script setup lang="ts">
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from 'vue'
 import type { SpanLines } from '../api/types'
-import { buildCode, executionOrder, linkCalls, mainBlock, outsideCodePaths, suggestPath, type CodeLine, type DotState } from '../lib/code'
+import { buildCode, executionOrder, explainUntraced, linkCalls, mainBlock, outsideCodePaths, suggestPath, type CodeLine, type DotState } from '../lib/code'
 import { CODE_CONTEXT, CODE_POPOVER, type CodeContext, type Edge, type LinePopoverApi } from '../lib/codeContext'
 import { plural } from '../lib/format'
 import type { TreeNode } from '../lib/tree'
@@ -127,12 +127,39 @@ const popover: LinePopoverApi = sharedPopover ?? {
 }
 if (ownPopover) provide(CODE_POPOVER, popover)
 
+
+/** The step's own file is outside `code.paths`: say so, with the line to add. */
+const outside = computed(() => {
+  const file = props.node?.span.file ?? null
+  const paths = store.meta?.code.paths ?? []
+  if (props.nested || file === null || !outsideCodePaths(file, paths)) return null
+
+  return { file, suggestion: [...paths, suggestPath(file)].map((p) => `'${p}'`).join(', ') }
+})
+/** Why the step's own function shows no run data, when it shows none. */
+const untraced = computed(() => (blocks.value[main.value]?.untraced === true ? explainUntraced(outside.value !== null, props.data.lines.length) : null))
+const queued = ref(false)
+const queueProblem = ref<string | null>(null)
+
+async function queueFile(): Promise<void> {
+  const file = props.node?.span.file
+  if (file === null || file === undefined) return
+  try {
+    await store.api.queueFile(file)
+    queued.value = true
+    store.toast('Queued: the next request that runs this file is traced line by line')
+  } catch (e) {
+    queueProblem.value = e instanceof Error ? e.message : String(e)
+  }
+}
+
 const context: CodeContext = {
   uid,
   traceId,
   blocks,
   open,
   main,
+  untraced,
   edges: computed(() => plan.value.edges),
   parent: computed(() => plan.value.parent),
   toggle,
@@ -222,14 +249,6 @@ function replay(): void {
 
 const progress = computed(() => (steps.value.length === 0 ? 0 : ((position.value + 1) / steps.value.length) * 100))
 // with nothing of its own to show first, the other functions are all there is: show them
-/** The step's own file is outside `code.paths`: say so, with the line to add. */
-const outside = computed(() => {
-  const file = props.node?.span.file ?? null
-  const paths = store.meta?.code.paths ?? []
-  if (props.nested || file === null || !outsideCodePaths(file, paths)) return null
-
-  return { file, suggestion: [...paths, suggestPath(file)].map((p) => `'${p}'`).join(', ') }
-})
 const showOthers = ref(main.value < 0 && duplicate.value === null)
 const reached = computed(() => plan.value.parent.size)
 
@@ -248,6 +267,25 @@ onBeforeUnmount(() => {
     <p v-if="!nested" class="hint code-hint">
       The code of this step, with the functions it called under the line that calls them. Hover a line to see what happened there; click it to keep the pop-up open.
     </p>
+
+    <div v-if="untraced === 'not-run'" class="info-card scope-card" role="note">
+      <strong>This function did not run in this request.</strong>
+      <p>
+        The step started, but the request left before the first line of <code>{{ node?.span.label }}</code>: nothing was recorded for it, and its text is shown below as it is in the file.
+        What ran under the step is listed under <em>The code that ran during this step</em>. A <code>302</code> or <code>422</code> with a failed <em>validation</em> step in the flow, or an authorization
+        that refused, are the usual reasons: open the Problems tab and the validation step.
+      </p>
+    </div>
+
+    <div v-else-if="untraced === 'no-data'" class="info-card scope-card" role="note">
+      <strong>No line was recorded for this step.</strong>
+      <p>
+        The request was recorded without line-by-line tracing, so only the text of the function is shown. Start <code>php artisan request-tracer:listen</code> before the request,
+        or queue this file and send the request again; the file is recompiled for a moment and nothing is changed on disk.
+      </p>
+      <button v-if="store.meta?.deep_trace.enabled !== false" class="btn" type="button" :disabled="queued" @click="queueFile">{{ queued ? 'Queued: send the request again' : 'Trace this file line by line' }}</button>
+      <p v-if="queueProblem" class="tone-bad" role="alert">{{ queueProblem }}</p>
+    </div>
 
     <div v-if="outside" class="info-card scope-card" role="note">
       <strong>This step's own code was not traced line by line.</strong>

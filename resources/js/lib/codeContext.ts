@@ -1,5 +1,5 @@
 import type { ComputedRef, InjectionKey, Ref } from 'vue'
-import type { CodeBlock, CodeLine } from './code'
+import type { CodeBlock, CodeLine, UntracedReason } from './code'
 import type { TreeNode } from './tree'
 
 /** What a function offers under one of its lines: another function that ran, or a step (a service, a job...) that has code of its own. */
@@ -25,6 +25,8 @@ export interface CodeContext {
   open: Ref<ReadonlySet<number>>
   main: ComputedRef<number>
   edges: ComputedRef<ReadonlyMap<number, ReadonlyMap<number, Edge[]>>>
+  /** why the step's own function has no run data, null when it has some */
+  untraced: ComputedRef<UntracedReason | null>
   /** block index -> the block it was reached from */
   parent: ComputedRef<ReadonlyMap<number, number | null>>
   toggle: (block: number) => void

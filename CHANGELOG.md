@@ -4,6 +4,10 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-10-12
+
+- **A function with no run data says why.** The code view called every function without lines *not traced line by line*, but there are three different reasons and only one is a setting: the folder is outside `code.paths` (*not traced line by line*, with the line to add); other functions of the step were recorded but not this one, so it **did not run** (a form request failed its validation and Laravel redirected, an authorization refused: the tag says *did not run* and the notice points at the validation step); or nothing at all was recorded for the step (the request was not recorded with line-by-line tracing: the notice offers *Trace this file line by line*, which the static-text fallback of 0.5.1 had hidden).
+
 ## [0.5.3] - 2026-10-12
 
 - Tests: the undo logs of the tests have their own folder per test process (`replay.undo_path`, a new setting that also lets an application keep them elsewhere), as do the files some tests create, so test runs that overlap no longer delete each other's files; a timing assertion that failed under load on Windows is looser.
