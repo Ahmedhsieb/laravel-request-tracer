@@ -341,3 +341,18 @@ export function suggestPath(file: string): string {
 
   return parts.slice(0, -1).join('/')
 }
+
+export type UntracedReason = 'outside' | 'not-run' | 'no-data'
+
+/**
+ * Why a step's own function is shown without run data:
+ *  - `outside`: its folder is not in `code.paths`, it was never compiled;
+ *  - `not-run`: its folder is traced and other functions of the step were recorded, but not this one: the step started and left before
+ *    reaching the function (a form request that failed its validation, an authorization that refused);
+ *  - `no-data`: nothing at all was recorded for the step (the request was not recorded with line-by-line tracing).
+ */
+export function explainUntraced(outside: boolean, rowsOfTheStep: number): UntracedReason {
+  if (outside) return 'outside'
+
+  return rowsOfTheStep > 0 ? 'not-run' : 'no-data'
+}

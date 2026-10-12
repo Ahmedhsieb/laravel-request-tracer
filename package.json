@@ -1,7 +1,7 @@
 {
   "name": "request-tracer-dashboard",
   "private": true,
-  "version": "0.5.3",
+  "version": "0.5.4",
   "type": "module",
   "description": "Request Tracer dashboard (Vue 3 + Vite + TypeScript). The build is committed to dist/.",
   "scripts": {
