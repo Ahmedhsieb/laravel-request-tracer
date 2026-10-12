@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SpanRow, SpanType, TraceSummary } from '../api/types'
-import { callsIn, classOf, linkCalls, mainBlock, reachableBlocks, shortName, type CodeBlock, type CodeLine } from './code'
+import { callsIn, classOf, linkCalls, mainBlock, outsideCodePaths, reachableBlocks, shortName, suggestPath, type CodeBlock, type CodeLine } from './code'
 import { emptyFilter, filterSteps, isFailed, isSlow, typeCounts } from './filters'
 import { groupTraces, isIdSegment, routeGroup } from './groups'
 import { buildTree } from './tree'
@@ -10,7 +10,7 @@ function line(n: number, text: string, state: CodeLine['state'] = 'ran'): CodeLi
 }
 
 function block(name: string, start: number, texts: Array<[string, CodeLine['state']?]>, own = false, file = 'app/Http/Controllers/PaymentController.php'): CodeBlock {
-  return { file, name, start, end: start + texts.length, own, missing: false, changedSinceTrace: false, lines: texts.map(([t, s], i) => line(start + i, t, s ?? 'ran')) }
+  return { file, name, start, end: start + texts.length, own, untraced: false, missing: false, changedSinceTrace: false, lines: texts.map(([t, s], i) => line(start + i, t, s ?? 'ran')) }
 }
 
 describe('callsIn', () => {
@@ -201,5 +201,30 @@ describe('route groups', () => {
     expect(groups[0]?.traces).toHaveLength(2)
     expect(groups[1]?.worst).toBe('ok')
     expect(groups[2]?.worst).toBe('warn')
+  })
+})
+
+describe('code scope', () => {
+  it('knows when a file is outside the folders that are traced', () => {
+    expect(outsideCodePaths('packages/Accounting/src/Controllers/PaymentVoucherController.php', ['app'])).toBe(true)
+    expect(outsideCodePaths('app/Http/Controllers/OrderController.php', ['app'])).toBe(false)
+    expect(outsideCodePaths('packages/Accounting/src/X.php', ['app', 'packages/Accounting/src/'])).toBe(false)
+    expect(outsideCodePaths('app/X.php', ['app/X.php'])).toBe(false)
+    expect(outsideCodePaths('packages/A/src/X.php', ['D:/Projects/erp/packages'])).toBe(false)         // an absolute path cannot be compared: say nothing
+    expect(outsideCodePaths('application/X.php', ['app'])).toBe(true)                                   // a prefix of the name is not the folder
+    expect(outsideCodePaths(null, ['app'])).toBe(false)
+    expect(outsideCodePaths('a.php', [])).toBe(false)
+  })
+
+  it('suggests the src folder of a package, else the folder of the file', () => {
+    expect(suggestPath('packages/Accounting/src/Controllers/PaymentVoucherController.php')).toBe('packages/Accounting/src')
+    expect(suggestPath('modules/Billing/Http/InvoiceController.php')).toBe('modules/Billing/Http')
+  })
+
+  it('links the calls of a function that was not traced, line by line unknown', () => {
+    const untraced: CodeBlock = { ...block('Ctl::show', 1, [['$x = $this->prepare($r);']], true), untraced: true }
+    untraced.lines = untraced.lines.map((l) => ({ ...l, state: 'plain', seq: null }))
+
+    expect(linkCalls(untraced, [{ id: 7, name: 'Ctl::prepare' }])).toEqual([{ line: 0, target: 7 }])
   })
 })

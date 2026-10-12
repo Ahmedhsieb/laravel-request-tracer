@@ -190,6 +190,8 @@ export interface SourceFunction {
   statements?: number[] | null
   /** this is the function of the step itself (the action of a controller step, the method of a service step) */
   own?: boolean
+  /** the text of the function only: its folder is not in `code.paths`, so there is no run data */
+  untraced?: boolean
   missing: boolean
   changed_since_trace: boolean
 }

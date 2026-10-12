@@ -33,6 +33,8 @@ export interface CodeBlock {
   changedSinceTrace: boolean
   /** the function of the step itself */
   own: boolean
+  /** shown from its text only, nothing was recorded for its lines */
+  untraced: boolean
 }
 
 /** Lines that hold no executable statement never get a "not run" mark. */
@@ -64,7 +66,10 @@ export function buildCode(data: SpanLines): CodeBlock[] {
       missing: source.missing,
       changedSinceTrace: source.changed_since_trace,
       own: source.own === true,
-      lines: source.lines.map((l) => describeLine(l.n, l.text, rowsByLine.get(`${source.file}:${l.n}`) ?? [], statementSet)),
+      untraced: source.untraced === true,
+      lines: source.lines.map((l) => source.untraced === true
+        ? { n: l.n, text: l.text, state: 'plain' as const, chip: '', description: '', variables: [], seq: null, hits: 0 }
+        : describeLine(l.n, l.text, rowsByLine.get(`${source.file}:${l.n}`) ?? [], statementSet)),
     }
   })
 }
@@ -263,7 +268,7 @@ export function linkCalls(block: CodeBlock, candidates: Array<{ id: number; name
   const links: CallLink[] = []
   const taken = new Set<number>()
   block.lines.forEach((line, l) => {
-    if (line.state === 'notrun' || line.state === 'plain') return
+    if (line.state === 'notrun' || (line.state === 'plain' && !block.untraced)) return
     for (const call of callsIn(line.text)) {
       for (const candidate of candidates) {
         if (taken.has(candidate.id) || shortName(candidate.name) !== call.name) continue
@@ -307,4 +312,29 @@ export function reachableBlocks(blocks: CodeBlock[], start: number): Set<number>
   }
 
   return seen
+}
+
+/**
+ * True when the file is certainly not under one of `code.paths`: every path is relative (an absolute one cannot be compared with a
+ * relative file here) and none of them contains the file.
+ */
+export function outsideCodePaths(file: string | null, paths: string[]): boolean {
+  if (file === null || paths.length === 0) return false
+  const normalized = file.replace(/\\/g, '/')
+  for (const raw of paths) {
+    const path = raw.replace(/\\/g, '/').replace(/\/+$/, '')
+    if (/^([A-Za-z]:)?\//.test(path)) return false
+    if (path === '' || path === '.' || normalized === path || normalized.startsWith(`${path}/`)) return false
+  }
+
+  return true
+}
+
+/** A folder to suggest for `code.paths`: up to and including the `src` folder of a package, else the folder of the file. */
+export function suggestPath(file: string): string {
+  const parts = file.replace(/\\/g, '/').split('/')
+  const src = parts.indexOf('src')
+  if (src > 0) return parts.slice(0, src + 1).join('/')
+
+  return parts.slice(0, -1).join('/')
 }

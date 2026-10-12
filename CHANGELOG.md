@@ -4,6 +4,10 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-12
+
+- **A step whose code is outside `code.paths` says so, and still shows its code.** A controller in `packages/Accounting/src/Controllers` with the default `code.paths = ['app']` has no line data, and the code view listed only unrelated functions of `app/` that ran under it (a model's `booted()`, a navigation helper) as if they were its code. Now the step's own function is shown from its text (marked *not traced line by line*, no run dots), a notice names the file, the current `code.paths` and the line to add (`'paths' => ['app', 'packages/Accounting/src']`), and the calls written in it still link to the functions and steps that ran. The server reads only PHP files inside the application for this.
+
 ## [0.5.0] - 2026-10-12
 
 A dashboard that stays put and shows the code that matters.
