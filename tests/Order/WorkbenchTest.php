@@ -68,7 +68,7 @@ it('shows the action of a controller that Laravel does not know as one once, as 
 });
 
 it('shows the text of the action of a step that was not traced line by line, marked as such', function () {
-    $dir = base_path('packages/Accounting/src/Controllers');
+    $dir = base_path('packages/Accounting'.getmypid().'/src/Controllers');
     @mkdir($dir, 0777, true);
     $file = $dir.'/UntracedVoucherController.php';
     file_put_contents($file, <<<'PHP'
@@ -148,25 +148,61 @@ it('follows a function that moved because the file was edited after the request'
         ->and(shiftOf([[9, "return 'a-secret-literal-••••••••';"]], $file))->toBeNull();         // masked snippets are not matched
 });
 
-it('keeps the lines where they were when the file is newer but the function did not move', function () {
-    $products = $this->seedCatalog();
-    $this->actingAs($this->makeUser())->postJson('/api/orders', $this->orderPayload($products, []))->assertCreated();
-    $id = (string) $this->lastTrace()['id'];
-    $create = collect($this->getJson("/request-tracer/api/v1/traces/{$id}/spans")->json('data'))->firstWhere('label', 'OrderService::create');
-    $service = Paths::absolute($create['file']);
-    $before = $this->getJson("/request-tracer/api/v1/traces/{$id}/spans/{$create['id']}/lines")->json('data');
+it('moves the rows of a function with the edit, and leaves them alone when it did not move', function () {
+    $dir = base_path('packages/Shift'.getmypid());
+    @mkdir($dir, 0777, true);
+    $file = $dir.'/Moved.php';
+    file_put_contents($file, <<<'PHP'
+<?php
 
-    $mtime = filemtime($service);
-    touch($service, time() + 120);
-    try {
-        $after = $this->getJson("/request-tracer/api/v1/traces/{$id}/spans/{$create['id']}/lines")->json('data');
-    } finally {
-        touch($service, $mtime);
+// added after the request
+class Moved
+{
+    public function show(string $id): string
+    {
+        $label = 'Voucher #'.$id;
+
+        return $label;
     }
+}
 
-    $source = collect($after['sources'])->firstWhere('name', 'OrderService::create');
-    expect($source['changed_since_trace'])->toBeTrue()
-        ->and($source['shift'])->toBe(0)
-        ->and($after['lines'])->toBe($before['lines'])
-        ->and(collect($before['sources'])->firstWhere('name', 'OrderService::create')['shift'])->toBe(0);
+PHP);
+    $relative = Paths::relative($file);
+    $rows = function (int $start) use ($relative): array {
+        $fn = ['Moved::show', $start, $start + 5];
+
+        return [
+            ['span_id' => 1, 'file' => $relative, 'line' => $start + 2, 'kind' => 'assign', 'hits' => 1, 'result' => ['seq' => 1, 'fn' => $fn], 'snippet' => "\$label = 'Voucher #'.\$id;"],
+            ['span_id' => 1, 'file' => $relative, 'line' => $start + 4, 'kind' => 'return', 'hits' => 1, 'result' => ['seq' => 2, 'fn' => $fn], 'snippet' => 'return $label;'],
+        ];
+    };
+    $sources = function (array &$lines) {
+        $call = Closure::bind(function () use (&$lines) {
+            return $this->sources($lines, '2000-01-01 00:00:00', null);
+        }, app(TraceController::class), TraceController::class);
+
+        return $call();
+    };
+
+    try {
+        // recorded one line higher than the file has it now (the comment line was added above)
+        $moved = $rows(5);
+        $result = $sources($moved);
+
+        expect($result[0])->toMatchArray(['name' => 'Moved::show', 'start' => 6, 'end' => 11, 'shift' => 1, 'changed_since_trace' => true])
+            ->and(array_column($moved, 'line'))->toBe([8, 10])
+            ->and($moved[0]['result']['fn'])->toBe(['Moved::show', 6, 11])
+            ->and(collect($result[0]['lines'])->firstWhere('n', 8)['text'])->toContain("\$label = 'Voucher #'");
+
+        // recorded where the file has it: nothing moves
+        $still = $rows(6);
+        $same = $sources($still);
+
+        expect($same[0])->toMatchArray(['start' => 6, 'shift' => 0, 'changed_since_trace' => true])
+            ->and(array_column($still, 'line'))->toBe([8, 10]);
+    } finally {
+        @unlink($file);
+        @rmdir($dir);
+        @rmdir(dirname($dir));
+    }
 });

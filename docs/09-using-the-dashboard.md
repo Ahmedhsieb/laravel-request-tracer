@@ -102,6 +102,8 @@ You do not always know what the request looked like. A user says "it failed arou
 
 Each journal row shows the method, the URL with its query string, the status, who made the request (user id, or *guest*), how long it took, and, for a failure, the exception (`RuntimeException: Invoice 9912 has no ledger entry.`) or `HTTP 500`. Filter with **Failed** (a 5xx or an exception) and the search box (URL, user, error).
 
+**Group by route** works here too, the same way as in the request list (same button, same prefix length): a group header shows its request count, how many of them failed and the slowest one.
+
 **Click a row** and the replay form opens filled in from it: method, URL, headers, the body, and the user it ran as. Choose the mode and run it, and you get the full trace, line by line, of what that request does now (a simulation changes nothing; see above for running it for real). If the request was traced when it happened, the row has a **Trace** button that opens that trace instead.
 
 From the terminal, without opening the dashboard: `php artisan request-tracer:replay --journal=failed` (the newest request that failed), `--journal=last`, or `--journal=<id>`.

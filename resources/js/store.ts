@@ -51,6 +51,7 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   const grouped = ref(grouping.on)
   const groupDepth = ref(grouping.depth)
   const collapsedGroups = ref<ReadonlySet<string>>(new Set())
+  const collapsedJournalGroups = ref<ReadonlySet<string>>(new Set())
 
   let timer: ReturnType<typeof setInterval> | null = null
   let debounce: ReturnType<typeof setTimeout> | null = null
@@ -78,6 +79,17 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
 
   function setAllGroups(collapsed: boolean, keys: string[]): void {
     collapsedGroups.value = collapsed ? new Set(keys) : new Set()
+  }
+
+  function toggleJournalGroup(key: string): void {
+    const next = new Set(collapsedJournalGroups.value)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    collapsedJournalGroups.value = next
+  }
+
+  function setAllJournalGroups(collapsed: boolean, keys: string[]): void {
+    collapsedJournalGroups.value = collapsed ? new Set(keys) : new Set()
   }
 
   function readSelected(): string | null {
@@ -258,7 +270,7 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   }
 
   // reactive() unwraps the refs, so templates (and callers) use `store.meta`, not `store.meta.value`
-  return reactive({ api: markRaw(api), basePath, meta, traces, fresh, search, chip, module, modules, loading, loadingMore, error, cursor, selected, toastText, replayOpen, replayInitial, grouped, groupDepth, collapsedGroups, setGrouping, toggleGroup, setAllGroups, view, journal, journalStatus, journalSearch, journalLoading, journalCursor, journalError, start, stop, reload, more, open, close, refilter, toast, openReplay, closeReplay, reloadJournal, moreJournal, showView, replayJournalEntry })
+  return reactive({ api: markRaw(api), basePath, meta, traces, fresh, search, chip, module, modules, loading, loadingMore, error, cursor, selected, toastText, replayOpen, replayInitial, grouped, groupDepth, collapsedGroups, collapsedJournalGroups, setGrouping, toggleGroup, setAllGroups, toggleJournalGroup, setAllJournalGroups, view, journal, journalStatus, journalSearch, journalLoading, journalCursor, journalError, start, stop, reload, more, open, close, refilter, toast, openReplay, closeReplay, reloadJournal, moreJournal, showView, replayJournalEntry })
 }
 
 export type Store = ReturnType<typeof createStore>

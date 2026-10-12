@@ -416,7 +416,9 @@ final class UndoLog
 
     private static function directory(): string
     {
-        return App::application()->storagePath('framework/request-tracer/undo');
+        $configured = App::config()->get('request-tracer.replay.undo_path');
+
+        return is_string($configured) && $configured !== '' ? rtrim($configured, '/\\') : App::application()->storagePath('framework/request-tracer/undo');
     }
 
     private static function file(string $traceId): string

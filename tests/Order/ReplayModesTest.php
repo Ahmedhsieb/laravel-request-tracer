@@ -17,11 +17,11 @@ use RequestTracer\Tests\Fixtures\Models\Product;
 beforeEach(function () {
     config(['request-tracer.mode' => 'triggered']);
     $this->replayer = new Replayer;
-    @mkdir(storage_path('framework/request-tracer/undo'), 0775, true);
+    @mkdir(config('request-tracer.replay.undo_path'), 0775, true);
 });
 
 afterEach(function () {
-    foreach (glob(storage_path('framework/request-tracer/undo/*.undo')) ?: [] as $file) {
+    foreach (glob(config('request-tracer.replay.undo_path').'/*.undo') ?: [] as $file) {
         @unlink($file);
     }
 });
@@ -132,7 +132,7 @@ it('says what it cannot undo: writes that bypass Eloquent', function () {
 it('never keeps the values of a real run in clear text', function () {
     $result = $this->replayer->run(modeReplay($this, ReplayRequest::REAL));
 
-    $raw = (string) file_get_contents(storage_path('framework/request-tracer/undo/'.$result['trace_id'].'.undo'));
+    $raw = (string) file_get_contents(config('request-tracer.replay.undo_path').'/'.$result['trace_id'].'.undo');
 
     expect($raw)->not->toContain('orders')->and($raw)->not->toContain('{');
 });
@@ -188,7 +188,7 @@ it('undoes through the command and says what is left', function () {
 
 it('forgets what can no longer be undone', function () {
     $result = $this->replayer->run(modeReplay($this, ReplayRequest::REAL));
-    $file = storage_path('framework/request-tracer/undo/'.$result['trace_id'].'.undo');
+    $file = config('request-tracer.replay.undo_path').'/'.$result['trace_id'].'.undo';
     touch($file, time() - 3 * 86400);
 
     expect(UndoLog::prune())->toBe(1)->and(is_file($file))->toBeFalse();
