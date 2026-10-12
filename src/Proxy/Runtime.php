@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace RequestTracer\Proxy;
 
+use Illuminate\Routing\Route;
 use RequestTracer\Span;
 use RequestTracer\SpanFlag;
 use RequestTracer\SpanType;
+use RequestTracer\Support\App;
 use RequestTracer\Support\Failure;
 use RequestTracer\Support\Summary;
 use RequestTracer\Tracer;
@@ -35,6 +37,16 @@ final class Runtime
         try {
             $session = $tracer->session();
             if ($session === null) {
+                return null;
+            }
+            // The action of a controller is already a step of its own (the `controller` step). A controller that Laravel does not know as one
+            // (since Laravel 11 the base controller extends nothing) is proxied as well, which would show the same call twice and keep the
+            // lines of the action on the copy: fold it into the controller step, which then keeps its arguments too.
+            $open = $session->recorder->current();
+            if ($kind === self::SERVICE && $open !== null && $open->type === SpanType::Controller && ! $open->ghost && $file !== null && $open->file === $file && $open->line === $line) {
+                $route = App::container()->make('request')->route();
+                $open->input = $session->dump(['route' => $route instanceof Route ? $route->uri() : null, 'parameters' => $route instanceof Route ? $route->parameters() : [], 'arguments' => $args]);
+
                 return null;
             }
             $span = $session->recorder->begin($kind === self::MIDDLEWARE ? SpanType::Middleware : SpanType::Service, $label, $file, $line);

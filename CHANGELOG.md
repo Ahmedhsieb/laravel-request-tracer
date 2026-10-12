@@ -4,6 +4,19 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-12
+
+A dashboard that stays put and shows the code that matters.
+
+- **The page no longer scrolls.** The request list and the request details each scroll inside their own box; the steps and the details of a step are two boxes of their own. The figures above the flow fold away (*Hide summary*) and the flow takes the room. On a narrow window the two columns stack and the pane scrolls as a whole.
+- **Group the request list by route** (*Group by route*): `/api/payments` with its count, problems and slowest request; click to close or open a group, choose how many segments make the prefix. Remembered in the browser.
+- **Filters on the steps of a request**: toggles for the kinds of step (several at once, with counts), *Slow* / *Fast* and *Failed* / *OK*, combined with the search; matches keep their ancestors, dimmed. New setting `dashboard.slow_step_ms` (100).
+- **A controller's action is one step, not two.** Since Laravel 11 the base controller extends nothing, so controllers were proxied like services and the action showed up twice (the `controller` step and a `service` step below it), with the lines of the action stored on the copy: clicking the controller showed its constructor and nothing of the action. The copy is folded into the controller step, which keeps the arguments. Traces recorded before this still have the copy; the code view finds it and shows it as the code of the step.
+- **The code view shows the right code.** The server listed the functions of a step sorted by file name and cut the list at 20, so a base controller's constructor came before the action and could push it out. The step's own function now comes first, the rest in the order they ran, up to 40.
+- **Code that is called from the code you read**: the functions that ran and are called by name from the open function appear under the calling line (closed, with *called from*), recursively; a service or job called from there is offered as a step of its own and loaded when opened. Functions that were not called from it go under *Other code that ran during this step*, closed. Every function folds.
+- **The output of a line is a pop-up beside the code** (hover to preview, click to keep it open, Esc or ✕ to close) instead of a card below that scrolls out of view.
+- **A controller that returns a view shows what it passed to the view** (`compact('voucher')`...) as its output, with the view's name in the summary, instead of the rendered HTML.
+
 ## [0.4.0] - 2026-10-11
 
 - **A replay is a choice: a simulation, or for real with an undo.** The replay dialog (and `request-tracer:replay`, and `POST replay` with `mode`) now asks what the request may change.

@@ -31,6 +31,8 @@ export interface CodeBlock {
   lines: CodeLine[]
   missing: boolean
   changedSinceTrace: boolean
+  /** the function of the step itself */
+  own: boolean
 }
 
 /** Lines that hold no executable statement never get a "not run" mark. */
@@ -61,6 +63,7 @@ export function buildCode(data: SpanLines): CodeBlock[] {
       end: source.end,
       missing: source.missing,
       changedSinceTrace: source.changed_since_trace,
+      own: source.own === true,
       lines: source.lines.map((l) => describeLine(l.n, l.text, rowsByLine.get(`${source.file}:${l.n}`) ?? [], statementSet)),
     }
   })
@@ -197,4 +200,111 @@ export function executionOrder(blocks: CodeBlock[]): Array<{ block: number; line
   })
 
   return steps.sort((x, y) => x.seq - y.seq || x.n - y.n).map(({ block, line, n }) => ({ block, line, n }))
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// who calls whom: from the text of a function and the names of the functions that ran, never from a guess about what *could* run
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** "OrderService::create" / "Order@create" -> "create"; a plain function keeps its name. */
+export function shortName(name: string): string {
+  const m = /(?:::|@)([A-Za-z_]\w*)$/.exec(name)
+
+  return m?.[1] ?? name
+}
+
+/** "OrderService::create" -> "OrderService", a plain function or a closure -> null. */
+export function classOf(name: string): string | null {
+  const m = /([A-Za-z_]\w*)(?:::|@)[A-Za-z_]\w*$/.exec(name)
+
+  return m?.[1] ?? null
+}
+
+export interface Call {
+  name: string
+  /** the class written in the call (`Money::of(`, `new Money(`), null for `$this->x(`, `$a->x(` and plain functions */
+  cls: string | null
+}
+
+const SAME_CLASS = new Set(['self', 'static', 'parent', 'this'])
+
+/** The calls written in one line of code: `$this->charge(`, `Money::of(`, `helper(`, `new Money(`. Strings and comments are ignored. */
+export function callsIn(text: string): Call[] {
+  const t = text.trim()
+  if (t === '' || /^(\/\/|\/\*|\*|#)/.test(t)) return []
+  const code = t.replace(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g, '""').replace(/\/\/.*$/, '')
+  const calls: Call[] = []
+
+  for (const m of code.matchAll(/new\s+\\?(?:[A-Za-z_]\w*\\)*([A-Za-z_]\w*)\s*[(;]/g)) calls.push({ name: '__construct', cls: m[1] ?? null })
+  for (const m of code.matchAll(/(?:\\?([A-Za-z_]\w*)::|(->|\?->)|(?<![\w$>:\\]))([A-Za-z_]\w*)\s*\(/g)) {
+    const name = m[3] ?? ''
+    if (/^(if|elseif|while|for|foreach|switch|match|catch|function|fn|array|list|isset|empty|unset|return|echo|print|exit|die|and|or)$/.test(name)) continue
+    // a declaration (`function charge(`) or a construction (`new Money(`, handled above) is not a call of that name
+    if (/(?:function|new)\s+&?\\?[\w\\]*$/.test(code.slice(0, m.index))) continue
+    const cls = m[1] === undefined || SAME_CLASS.has(m[1].toLowerCase()) ? null : m[1]
+    calls.push({ name, cls })
+  }
+
+  return calls
+}
+
+export interface CallLink {
+  /** index of the line in the block that makes the call */
+  line: number
+  /** which candidate it is (a block index, or a step id) */
+  target: number
+}
+
+/**
+ * Where a function calls the other functions that ran: for each candidate the first line that ran and calls it by name (and by class when the
+ * call names one). A candidate is linked once, so a helper called ten times is offered at its first call, not ten times.
+ */
+export function linkCalls(block: CodeBlock, candidates: Array<{ id: number; name: string }>): CallLink[] {
+  const links: CallLink[] = []
+  const taken = new Set<number>()
+  block.lines.forEach((line, l) => {
+    if (line.state === 'notrun' || line.state === 'plain') return
+    for (const call of callsIn(line.text)) {
+      for (const candidate of candidates) {
+        if (taken.has(candidate.id) || shortName(candidate.name) !== call.name) continue
+        if (call.cls !== null && classOf(candidate.name) !== null && classOf(candidate.name) !== call.cls) continue
+        taken.add(candidate.id)
+        links.push({ line: l, target: candidate.id })
+      }
+    }
+  })
+
+  return links
+}
+
+/** Index of the function of the step itself: the one the server marked, else the one that contains the step's line, else -1 (its lines are not under this step). */
+export function mainBlock(blocks: CodeBlock[], file: string | null, line: number | null): number {
+  const marked = blocks.findIndex((b) => b.own)
+  if (marked >= 0) return marked
+  if (file !== null && line !== null) {
+    const inside = blocks
+      .map((b, i) => ({ b, i }))
+      .filter(({ b }) => b.file === file && line >= b.start - 3 && line <= b.end)
+      .sort((x, y) => (x.b.end - x.b.start) - (y.b.end - y.b.start))[0]
+    if (inside !== undefined) return inside.i
+  }
+
+  return -1
+}
+
+/** The functions reachable from `start` through calls between the functions that ran: what is worth showing under it. */
+export function reachableBlocks(blocks: CodeBlock[], start: number): Set<number> {
+  const seen = new Set<number>([start])
+  const queue = [start]
+  while (queue.length > 0) {
+    const from = blocks[queue.shift() as number]
+    if (from === undefined) continue
+    const candidates = blocks.map((b, id) => ({ id, name: b.name })).filter((c) => !seen.has(c.id))
+    for (const link of linkCalls(from, candidates)) {
+      seen.add(link.target)
+      queue.push(link.target)
+    }
+  }
+
+  return seen
 }

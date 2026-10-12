@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import type { TraceSummary } from '../api/types'
-import { formatMs, relativeTime } from '../lib/format'
-import { methodTone, problemNote, statusTone } from '../lib/spans'
+import { formatMs, plural } from '../lib/format'
+import { groupTraces } from '../lib/groups'
 import { useStore, type Chip } from '../store'
+import RequestRow from './RequestRow.vue'
 
 const store = useStore()
 const now = ref(new Date())
@@ -25,20 +25,12 @@ const chips: Array<{ id: Chip; label: string }> = [
 ]
 
 const slowMs = computed(() => store.meta?.slow_ms ?? 500)
+const groups = computed(() => (store.grouped ? groupTraces(store.traces, store.groupDepth) : []))
+const allCollapsed = computed(() => groups.value.length > 0 && groups.value.every((g) => store.collapsedGroups.has(g.key)))
 
 function pick(chip: Chip): void {
   store.chip = chip
   store.refilter()
-}
-
-function title(t: TraceSummary): string {
-  if (t.kind === 'request') return `${t.method ?? ''} ${t.path ?? ''}`.trim()
-
-  return `${t.kind} ${t.path ?? ''}`.trim()
-}
-
-function status(t: TraceSummary): string {
-  return t.status === null ? (t.kind === 'request' ? '–' : '') : String(t.status)
 }
 </script>
 
@@ -48,6 +40,17 @@ function status(t: TraceSummary): string {
     <input id="trace-search" v-model="store.search" class="search" type="search" placeholder="Search path, route or id" autocomplete="off" @input="store.refilter(250)">
     <div class="chips" role="group" aria-label="Filter requests">
       <button v-for="c in chips" :key="c.id" class="chip" type="button" :aria-pressed="store.chip === c.id" @click="pick(c.id)">{{ c.label }}</button>
+    </div>
+    <div class="group-tools" role="group" aria-label="Group requests by route">
+      <button class="chip" type="button" :aria-pressed="store.grouped" title="Put the requests of one route prefix together, each group can be closed" @click="store.setGrouping(!store.grouped)">Group by route</button>
+      <template v-if="store.grouped">
+        <label class="depth">prefix of
+          <select :value="store.groupDepth" aria-label="How many segments of the route make the prefix" @change="store.setGrouping(true, Number(($event.target as HTMLSelectElement).value))">
+            <option v-for="n in [1, 2, 3, 4]" :key="n" :value="n">{{ plural(n, 'segment') }}</option>
+          </select>
+        </label>
+        <button class="btn small ghost" type="button" @click="store.setAllGroups(!allCollapsed, groups.map((g) => g.key))">{{ allCollapsed ? 'Open all' : 'Close all' }}</button>
+      </template>
     </div>
   </div>
 
@@ -78,21 +81,30 @@ function status(t: TraceSummary): string {
   </div>
 
   <ul v-else class="requests" :class="{ busy: store.loading }">
-    <li v-for="t in store.traces" :key="t.id" class="req-item">
-      <button class="req" type="button" :class="{ fresh: store.fresh.has(t.id) }" :aria-current="store.selected === t.id" @click="store.open(t.id)">
-        <span class="badge method" :class="methodTone(t.method)">{{ t.method ?? t.kind }}</span>
-        <span class="path" :title="title(t)">{{ t.kind === 'request' ? t.path : (t.path ?? t.kind) }}</span>
-        <span class="status" :class="`tone-${statusTone(t.status)}`">{{ status(t) }}</span>
-        <span class="note">
-          <span v-if="t.mode === 'replay'" class="badge" style="--badge: var(--purple); margin-right: 6px">replay</span>
-          <template v-if="problemNote(t, slowMs)">
-            <span :class="`tone-${problemNote(t, slowMs)?.tone}`">{{ problemNote(t, slowMs)?.text }}</span>
-          </template>
-          <span v-else class="faint">{{ t.module ?? t.route_name ?? '' }}</span>
-        </span>
-        <span class="time"><span class="dur">{{ formatMs(t.duration_ms) }}</span> · {{ relativeTime(t.created_at, now) }}</span>
-      </button>
-    </li>
+    <template v-if="store.grouped">
+      <template v-for="g in groups" :key="g.key">
+        <li class="group-head">
+          <button type="button" :aria-expanded="!store.collapsedGroups.has(g.key)" :aria-label="`${g.key}: ${plural(g.traces.length, 'request')}`" @click="store.toggleGroup(g.key)">
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M5 3l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span class="gname mono">{{ g.key }}</span>
+            <span class="gcount">{{ g.traces.length }}</span>
+            <span v-if="g.problems > 0" class="gnote tone-warn">{{ plural(g.problems, 'problem') }}</span>
+            <span class="gdot" :class="`tone-${g.worst}`" aria-hidden="true"></span>
+            <span class="gms">slowest {{ formatMs(g.slowestMs) }}</span>
+          </button>
+        </li>
+        <template v-if="!store.collapsedGroups.has(g.key)">
+          <li v-for="t in g.traces" :key="t.id" class="req-item in-group">
+            <RequestRow :trace="t" :slow-ms="slowMs" :now="now" />
+          </li>
+        </template>
+      </template>
+    </template>
+    <template v-else>
+      <li v-for="t in store.traces" :key="t.id" class="req-item">
+            <RequestRow :trace="t" :slow-ms="slowMs" :now="now" />
+      </li>
+    </template>
     <li v-if="store.cursor" style="padding: 10px; text-align: center">
       <button class="btn small" type="button" :disabled="store.loadingMore" @click="store.more()">{{ store.loadingMore ? 'Loading…' : 'Load more' }}</button>
     </li>

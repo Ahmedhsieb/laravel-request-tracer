@@ -18,6 +18,10 @@ Want to look around first? Run `npm run dev` in the package folder (or add `?dem
 
 Newest first. Each row shows the method (or `JOB` / `COMMAND` for queued jobs and artisan commands, see [queues, commands and scheduled tasks](10-queues-commands-scheduled-tasks.md)), path, status, duration, age, and a short note: *4 problems*, *exception*, *slow* or the module. The list refreshes every `dashboard.poll_seconds`; a trace from a replay carries a *replay* badge; new requests slide in at the top. Filter with the search box (path, route name, id) or the chips **With problems** and **Slow** (`dashboard.slow_ms`).
 
+**Group by route** puts the requests of one route prefix together: `/api/payments` with its count, its problems and its slowest request, and a click on the header closes or opens it (*Close all* / *Open all* for the lot). The prefix is the first segments of the route up to the first record id (`/api/payments/vouchers/12/edit` is `/api/payments` with two segments, `/api/payments/vouchers` with three; the number of segments is a choice next to the button). Jobs and commands group as *Jobs* and *Commands*. The choice is remembered in the browser.
+
+The page itself does not scroll: the list on the left and the details on the right each scroll inside their own box, however many requests or lines of code there are. *Hide summary* (next to the tabs) folds the figures and the time bar away to give the flow more room.
+
 ## A request
 
 Above the tabs you see the metric strip (time, memory, queries, steps, problems, tables written) and **Where the time went**: the *self time* of every step, grouped by type, so a controller that spends its time in a service is not counted twice.
@@ -31,8 +35,9 @@ The tree of everything that ran: middleware, controller, validation, services, q
 - Chips: `×6` identical statements were merged into one step, `slow`, `repeated`, `caught`, `failed`.
 - A request that dispatched jobs shows a **Started by this request** row under the step details, one button per job; a job's own page links back with **Dispatched by a request**.
 - Search finds steps by label, SQL, file or summary and keeps their ancestors visible.
+- **Filters above the steps** narrow the tree down. *Kinds of step* are toggles with a count each (middleware, controller, query, HTTP...): pick one or several. *Speed* is *Slow* (flagged slow by the analysis, or at least `dashboard.slow_step_ms`, 100 ms) or *Fast*; *Result* is *Failed* (threw, was caught after throwing, or an HTTP call answered 4xx/5xx) or *OK*. They combine with each other and with the search; the steps above a match stay visible, dimmed, so you can see where it sits. *3 of 21 steps* says how many match, *Clear filters* resets.
 
-**Input / Output** shows the arguments and return value in `dd()` format. Nodes collapse, *Copy* copies the value, and the markers tell you when something was **masked** (secrets never reach storage) or **truncated** (the limits in `request-tracer.dumper`).
+**Input / Output** shows the arguments and return value in `dd()` format. For a controller that returns a view (`return view('payments.show', compact('voucher', 'items'))`) the output is **what was passed to the view** (`voucher`, `items`...) with the view's name in the summary, not the rendered HTML. Nodes collapse, *Copy* copies the value, and the markers tell you when something was **masked** (secrets never reach storage) or **truncated** (the limits in `request-tracer.dumper`).
 
 **Inside the code** (steps that were traced line by line, see [Deep trace](06-deep-trace-guide.md)):
 
@@ -45,7 +50,14 @@ The tree of everything that ran: middleware, controller, validation, services, q
 | blue | a loop (the chip shows the iterations) |
 | grey | the line carries a probe but never ran |
 
-Hover or focus a line for a plain sentence and the variables involved. **Replay** walks through the executed lines in the order they first ran (Back / Next / progress). If a step was not traced, **Trace this file line by line** queues the file; send the request again.
+The code view is built around the step itself:
+
+- **The step's own function comes first** (the action of a controller, the method of a service), open. A controller's constructor, its base class and other framework hooks ran inside the step too, but they are not what you clicked: they are under **Other code that ran during this step**, closed.
+- **What it calls comes under the line that calls it.** If the action calls a helper or a private method that ran, that function appears right under the call, closed, with *called from ...*; open it to read its code, and so on down. If it calls a service (or anything else that is a step of its own), that step's code is offered the same way and loaded when you open it. Only functions that actually ran and are called by name from the code you are reading are shown.
+- **Every function folds**: click its header to hide or show its lines.
+- **The output of a line is a pop-up beside the code**, not a card underneath it that scrolls out of sight: hover (or focus) a line to see the sentence and the variables, **click it to keep the pop-up open** (close it with its ✕, with Esc or by clicking elsewhere).
+
+**Replay** walks through the executed lines of the open functions in the order they first ran (Back / Next / progress), with the pop-up following. If a step was not traced, **Trace this file line by line** queues the file; send the request again.
 
 ### Database
 

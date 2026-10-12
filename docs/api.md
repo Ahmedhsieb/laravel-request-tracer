@@ -13,7 +13,7 @@ Step **payloads are never part of the tree**: `spans` returns structure only; `s
 | `GET traces/{id}` | one trace summary (`tables_written`, `tables_read`, `notes`, counters) |
 | `GET traces/{id}/spans` | the step list without payloads: `id, parent_id, type, label, file, line, start_us, duration_us, memory_delta, flag, connection, count, meta, has_input, has_output` |
 | `GET traces/{id}/spans/{span}` | `{input: {value}|null, output: {value}|null}` |
-| `GET traces/{id}/spans/{span}/lines` | Deep trace rows of the step and `sources`: the source of each function that ran (`file, name, start, end, lines[{n,text}], statements, missing, changed_since_trace`; `statements` lists the lines that carry a probe, `null` when the file could not be analysed). Only files that appear in this trace's own line data are ever read |
+| `GET traces/{id}/spans/{span}/lines` | Deep trace rows of the step and `sources`: the source of each function that ran (`file, name, start, end, lines[{n,text}], statements, own, missing, changed_since_trace`; the step's own function first with `own: true`, the others in the order they first ran, at most 40; `statements` lists the lines that carry a probe, `null` when the file could not be analysed). Only files that appear in this trace's own line data are ever read |
 | `GET traces/{id}/lines` | all Deep trace rows of the trace |
 | `GET traces/{id}/writes` | rows written: `table, operation, row_key, before, after, transaction (none/committed/rolled_back/open), rows` |
 | `GET traces/{id}/problems` | `kind, message, file, line, span_id` |

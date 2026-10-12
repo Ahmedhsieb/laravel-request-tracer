@@ -5,6 +5,19 @@ import { formFromJournal, type ReplayForm } from './lib/replay'
 export type Chip = 'all' | 'problems' | 'slow'
 
 const TRACE_PATH = /^\/trace\/([A-Za-z0-9_-]+)\/?$/
+const GROUPING_KEY = 'request-tracer:grouping'
+
+/** How the list is grouped, remembered per browser. Storage can be missing or blocked: then it is simply not remembered. */
+function readGrouping(): { on: boolean; depth: number } {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(GROUPING_KEY) ?? 'null') as { on?: unknown; depth?: unknown } | null
+    const depth = typeof saved?.depth === 'number' ? Math.min(4, Math.max(1, Math.round(saved.depth))) : 2
+
+    return { on: saved?.on === true, depth }
+  } catch {
+    return { on: false, depth: 2 }
+  }
+}
 
 /**
  * Everything the screens share: the request list (with polling), its filters and the selected trace.
@@ -33,6 +46,11 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   const journalCursor = ref<string | null>(null)
   const journalError = ref<string | null>(null)
   const replayInitial = shallowRef<ReplayForm | null>(null)
+  // the request list grouped by route prefix: on/off, how many segments the prefix has, and the groups the user closed
+  const grouping = readGrouping()
+  const grouped = ref(grouping.on)
+  const groupDepth = ref(grouping.depth)
+  const collapsedGroups = ref<ReadonlySet<string>>(new Set())
 
   let timer: ReturnType<typeof setInterval> | null = null
   let debounce: ReturnType<typeof setTimeout> | null = null
@@ -40,6 +58,27 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   let generation = 0
 
   const modules = computed(() => [...new Set(traces.value.map((t) => t.module).filter((m): m is string => m !== null && m !== ''))].sort())
+
+  function setGrouping(on: boolean, depth = groupDepth.value): void {
+    grouped.value = on
+    groupDepth.value = Math.min(4, Math.max(1, depth))
+    try {
+      window.localStorage.setItem(GROUPING_KEY, JSON.stringify({ on: grouped.value, depth: groupDepth.value }))
+    } catch {
+      // not remembered, still applied
+    }
+  }
+
+  function toggleGroup(key: string): void {
+    const next = new Set(collapsedGroups.value)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    collapsedGroups.value = next
+  }
+
+  function setAllGroups(collapsed: boolean, keys: string[]): void {
+    collapsedGroups.value = collapsed ? new Set(keys) : new Set()
+  }
 
   function readSelected(): string | null {
     const path = window.location.pathname
@@ -219,7 +258,7 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   }
 
   // reactive() unwraps the refs, so templates (and callers) use `store.meta`, not `store.meta.value`
-  return reactive({ api: markRaw(api), basePath, meta, traces, fresh, search, chip, module, modules, loading, loadingMore, error, cursor, selected, toastText, replayOpen, replayInitial, view, journal, journalStatus, journalSearch, journalLoading, journalCursor, journalError, start, stop, reload, more, open, close, refilter, toast, openReplay, closeReplay, reloadJournal, moreJournal, showView, replayJournalEntry })
+  return reactive({ api: markRaw(api), basePath, meta, traces, fresh, search, chip, module, modules, loading, loadingMore, error, cursor, selected, toastText, replayOpen, replayInitial, grouped, groupDepth, collapsedGroups, setGrouping, toggleGroup, setAllGroups, view, journal, journalStatus, journalSearch, journalLoading, journalCursor, journalError, start, stop, reload, more, open, close, refilter, toast, openReplay, closeReplay, reloadJournal, moreJournal, showView, replayJournalEntry })
 }
 
 export type Store = ReturnType<typeof createStore>
