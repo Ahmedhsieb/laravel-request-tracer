@@ -32,6 +32,7 @@ abstract class OrderAppTestCase extends TestCase
         $app['config']->set('request-tracer.proxies.attribute_namespaces', ['RequestTracer\Tests\Fixtures\Attr']);
         $app['config']->set('request-tracer.proxies.cache_path', sys_get_temp_dir().'/rt-proxies-'.getmypid());
         $app['config']->set('request-tracer.deep_trace.cache_path', sys_get_temp_dir().'/rt-compiled-'.getmypid());
+        $app['config']->set('request-tracer.replay.undo_path', sys_get_temp_dir().'/rt-undo-'.getmypid());
         $app['config']->set('request-tracer.deep_trace.namespaces', ['RequestTracer\Tests\Fixtures\Services\OrderService']);
     }
 

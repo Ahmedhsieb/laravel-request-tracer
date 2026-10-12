@@ -558,3 +558,4 @@ table.grid { border-collapse: collapse; width: 100%; font: 12.5px var(--mono); }
 .code .tag.warn { color: var(--yellow); }
 .scope-card { margin-bottom: 4px; }
 .scope-card code { overflow-wrap: anywhere; }
+.journal-row.in-group .req { padding-left: 26px; }

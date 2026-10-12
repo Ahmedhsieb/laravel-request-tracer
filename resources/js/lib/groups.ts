@@ -1,4 +1,4 @@
-import type { TraceSummary } from '../api/types'
+import type { JournalEntry, TraceSummary } from '../api/types'
 
 /** A segment that is a record id, not a part of the route: 42, a UUID, a ULID, a long hex string. */
 export function isIdSegment(segment: string): boolean {
@@ -14,7 +14,14 @@ export function isIdSegment(segment: string): boolean {
  */
 export function routeGroup(trace: Pick<TraceSummary, 'kind' | 'path'>, depth: number): string {
   if (trace.kind !== 'request') return trace.kind === 'job' ? 'Jobs' : trace.kind === 'command' ? 'Commands' : 'Scheduled tasks'
-  const segments = (trace.path ?? '/').split('?')[0]!.split('/').filter((s) => s !== '')
+
+  return prefixOf(trace.path, depth)
+}
+
+/** The first `depth` segments of a path (or of a URL: the host, the query string and the fragment are not part of it), up to the first record id. */
+export function prefixOf(path: string | null, depth: number): string {
+  const bare = (path ?? '/').replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, '').split(/[?#]/)[0] ?? ''
+  const segments = bare.split('/').filter((s) => s !== '')
   const fixed: string[] = []
   for (const segment of segments) {
     if (isIdSegment(segment) || fixed.length >= Math.max(1, depth)) break
@@ -48,6 +55,42 @@ export function groupTraces(traces: TraceSummary[], depth: number): RouteGroup[]
     group.problems += trace.problems_count
     if (trace.status !== null && trace.status >= 500) group.worst = 'bad'
     else if (group.worst !== 'bad' && ((trace.status !== null && trace.status >= 400) || trace.problems_count > 0)) group.worst = 'warn'
+  }
+
+  return [...groups.values()]
+}
+
+export interface JournalGroup {
+  key: string
+  entries: JournalEntry[]
+  worst: 'bad' | 'warn' | 'ok'
+  slowestMs: number
+  failures: number
+}
+
+/** A request failed when it ended in a 5xx or with an exception. */
+export function journalFailed(entry: Pick<JournalEntry, 'status' | 'failure'>): boolean {
+  return entry.failure !== null || (entry.status !== null && entry.status >= 500)
+}
+
+/** Group the journal by route prefix, keeping the order of the list (newest first): a group sits where its newest request is. */
+export function groupJournal(entries: JournalEntry[], depth: number): JournalGroup[] {
+  const groups = new Map<string, JournalGroup>()
+  for (const entry of entries) {
+    const key = prefixOf(entry.url, depth)
+    let group = groups.get(key)
+    if (group === undefined) {
+      group = { key, entries: [], worst: 'ok', slowestMs: 0, failures: 0 }
+      groups.set(key, group)
+    }
+    group.entries.push(entry)
+    group.slowestMs = Math.max(group.slowestMs, entry.duration_ms)
+    if (journalFailed(entry)) {
+      group.failures++
+      group.worst = 'bad'
+    } else if (group.worst !== 'bad' && entry.status !== null && entry.status >= 400) {
+      group.worst = 'warn'
+    }
   }
 
   return [...groups.values()]

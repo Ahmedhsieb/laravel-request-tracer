@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { SpanRow, SpanType, TraceSummary } from '../api/types'
+import type { JournalEntry, SpanRow, SpanType, TraceSummary } from '../api/types'
 import { callsIn, classOf, linkCalls, mainBlock, outsideCodePaths, reachableBlocks, shortName, suggestPath, type CodeBlock, type CodeLine } from './code'
 import { emptyFilter, filterSteps, isFailed, isSlow, typeCounts } from './filters'
-import { groupTraces, isIdSegment, routeGroup } from './groups'
+import { groupJournal, groupTraces, isIdSegment, journalFailed, prefixOf, routeGroup } from './groups'
 import { buildTree } from './tree'
 
 function line(n: number, text: string, state: CodeLine['state'] = 'ran'): CodeLine {
@@ -226,5 +226,43 @@ describe('code scope', () => {
     untraced.lines = untraced.lines.map((l) => ({ ...l, state: 'plain', seq: null }))
 
     expect(linkCalls(untraced, [{ id: 7, name: 'Ctl::prepare' }])).toEqual([{ line: 0, target: 7 }])
+  })
+})
+
+function entry(url: string, over: Partial<JournalEntry> = {}): JournalEntry {
+  return {
+    id: url, method: 'GET', url, route_name: null, status: 200, duration_ms: 10, user_id: null, failure: null, has_body: false, body_cut: false,
+    masked: false, trace_id: null, created_at: '2026-10-12T10:00:00+00:00', ...over,
+  }
+}
+
+describe('journal groups', () => {
+  it('takes the prefix of a URL without its host, query string or fragment', () => {
+    expect(prefixOf('/api/payments/12?include=items', 2)).toBe('/api/payments')
+    expect(prefixOf('https://erp.test/api/payments/12?x=1#top', 2)).toBe('/api/payments')
+    expect(prefixOf('http://erp.test', 2)).toBe('/')
+    expect(prefixOf(null, 1)).toBe('/')
+  })
+
+  it('groups the entries like the traces and counts the failures', () => {
+    const groups = groupJournal([
+      entry('/api/orders/1'),
+      entry('/login', { method: 'POST', status: 302 }),
+      entry('/api/orders/2?x=1', { status: 500, duration_ms: 80, failure: 'RuntimeException: boom' }),
+      entry('/api/orders/3', { status: 404 }),
+      entry('/api/products', { status: 422 }),
+    ], 2)
+
+    expect(groups.map((g) => g.key)).toEqual(['/api/orders', '/login', '/api/products'])
+    expect(groups[0]).toMatchObject({ worst: 'bad', failures: 1, slowestMs: 80 })
+    expect(groups[0]?.entries).toHaveLength(3)
+    expect(groups[1]?.worst).toBe('ok')
+    expect(groups[2]?.worst).toBe('warn')
+  })
+
+  it('knows a failed request: an exception or a 5xx', () => {
+    expect(journalFailed(entry('/a', { status: 500 }))).toBe(true)
+    expect(journalFailed(entry('/a', { status: 200, failure: 'X: y' }))).toBe(true)
+    expect(journalFailed(entry('/a', { status: 404 }))).toBe(false)
   })
 })

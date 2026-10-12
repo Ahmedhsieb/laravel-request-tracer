@@ -64,6 +64,7 @@ return [
         'enabled' => null,
         'real' => null,
         'undo_hours' => 24,         // how long what a real run changed can still be undone
+        'undo_path' => null,        // where the (encrypted) undo logs are kept; default storage/framework/request-tracer/undo
         'timeout' => 120,           // seconds
     ],
 

@@ -4,6 +4,11 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-10-12
+
+- Tests: the undo logs of the tests have their own folder per test process (`replay.undo_path`, a new setting that also lets an application keep them elsewhere), as do the files some tests create, so test runs that overlap no longer delete each other's files; a timing assertion that failed under load on Windows is looser.
+- **The journal groups by route too.** The *Group by route* button, the number of segments and *Close all* / *Open all* are in the Journal tab as well, with the same prefix rule as the request list (the URL without host, query string and fragment, up to the first record id). A group header shows how many requests it holds, how many failed (a 5xx or an exception) and the slowest one. The setting is the same one for both lists; the groups you closed are remembered separately for each.
+
 ## [0.5.2] - 2026-10-12
 
 - **A line's output sits on its own line even when the file was edited after the request.** The recorded lines are numbers, and a file that gets a line added above a function after the request was traced has its code one line lower than the numbers say: every chip, dot and pop-up then appeared on the line above its statement (`array (2)` on a blank line, the next statement's value on the previous one). The server now follows the edit: every probe remembers the text of its statement, so it finds where the statements of each function are now (the nearest line that holds the text, the most common answer wins, up to 80 lines either way), moves the function and its rows there and reports `shift`. Functions in one file can move differently (code was added in one place, another was removed). The header says *edited since: moved +1 lines*; when no statement could be matched it still says *line numbers may not match*. On a real project 318 of 318 rows landed on their statement.
