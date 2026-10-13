@@ -14,14 +14,16 @@ import TypeIcon from '../ui/TypeIcon.vue'
 const props = defineProps<{ flow: Flow }>()
 const emit = defineEmits<{ select: [id: number] }>()
 
-const { query, speed, result, include, view, path, list, kinds, folder, activeFilters } = props.flow
+const { query, speed, result, include, view, path, list, kinds, folder, activeFilters, overall } = props.flow
 
 /** A long path keeps its first step and the last two; the steps in between sit behind a "…" button. */
 const KEEP_TAIL = 2
 const head = computed(() => (path.value.length > KEEP_TAIL + 2 ? path.value.slice(0, 1) : path.value.slice(0, Math.max(0, path.value.length - KEEP_TAIL))))
 const hidden = computed(() => (path.value.length > KEEP_TAIL + 2 ? path.value.slice(1, path.value.length - KEEP_TAIL) : []))
 const tail = computed(() => path.value.slice(head.value.length + hidden.value.length))
-const badge = computed(() => activeFilters.value + (include.value ? 0 : 1))
+const badge = computed(() => activeFilters.value + (include.value || view.value === 'graph' ? 0 : 1))
+/** what the status line counts: the open folder in the waterfall, the whole request in the graph */
+const status = computed(() => (view.value === 'graph' ? overall.value : list.value))
 const filtering = computed(() => list.value.filtering)
 const scope = computed<'inside' | 'level'>({
   get: () => (include.value ? 'inside' : 'level'),
@@ -52,7 +54,7 @@ const scopeName = computed(() => (folder.value === null ? 'the request' : shortC
         </PopoverTrigger>
         <PopoverPortal>
           <PopoverContent align="end" :side-offset="8" class="z-[70] w-[290px] space-y-3 rounded-xl border border-line-strong bg-surface p-3.5 shadow-2xl data-[state=open]:animate-pop-in">
-            <div class="space-y-1.5">
+            <div v-if="view === 'waterfall'" class="space-y-1.5">
               <p class="text-[11px] font-semibold uppercase tracking-wide text-faint">Look in</p>
               <Seg v-model="scope" label="Scope of the filters" size="sm" :options="[{ value: 'inside', label: 'Everything inside' }, { value: 'level', label: 'This level only' }]" />
               <p class="text-[11px] text-faint">Everything inside: every step below the open folder, however deep. This level only: just the folder's own steps.</p>
@@ -78,7 +80,7 @@ const scopeName = computed(() => (folder.value === null ? 'the request' : shortC
         <span class="size-1.5 rounded-full" :style="{ background: `var(--t-${t.type})` }"></span>{{ TYPE_LABEL[t.type] }}<span class="font-mono text-[10.5px] text-faint">{{ t.count }}</span>
       </Chip>
       <template v-if="filtering">
-        <span class="ml-1 shrink-0 text-[11.5px] text-muted" role="status">{{ list.matches }} of {{ plural(list.scope, 'step') }}{{ include ? ' inside' : ' here' }}</span>
+        <span class="ml-1 shrink-0 text-[11.5px] text-muted" role="status">{{ status.matches }} of {{ plural(status.scope, 'step') }}{{ view === 'graph' ? '' : include ? ' inside' : ' here' }}</span>
         <button class="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] text-muted hover:bg-hover hover:text-fg" type="button" @click="flow.clearFilters()"><X class="size-3" />Clear</button>
       </template>
     </div>

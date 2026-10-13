@@ -51,7 +51,11 @@ export function useFlow(roots: Ref<TreeNode[]>, slowMs: Ref<number>) {
   const path = computed(() => crumbs(folder.value))
   const filter = computed<StepFilter>(() => ({ query: query.value, types: types.value, speed: speed.value, result: result.value }))
   const list = computed(() => listFolder(roots.value, folder.value, filter.value, slowMs.value, include.value))
-  const kinds = computed(() => scopeTypeCounts(scopeNodes(roots.value, folder.value, include.value), TYPE_ORDER))
+  // the graph shows the whole request, so its kinds and counts are those of the whole request, not of the folder the waterfall has open
+  const wholeRequest = computed(() => view.value === 'graph')
+  const kinds = computed(() => scopeTypeCounts(scopeNodes(roots.value, wholeRequest.value ? null : folder.value, wholeRequest.value ? true : include.value), TYPE_ORDER))
+  /** how many steps of the whole request match the filters (what the graph says; the waterfall counts the open folder) */
+  const overall = computed(() => listFolder(roots.value, null, filter.value, slowMs.value, true))
   const activeFilters = computed(() => (speed.value !== 'all' ? 1 : 0) + (result.value !== 'all' ? 1 : 0))
 
   /** A new trace starts at its request: one root means that root is the open folder, several mean the top. */
@@ -106,7 +110,7 @@ export function useFlow(roots: Ref<TreeNode[]>, slowMs: Ref<number>) {
     }
   })
 
-  return { nodeOf, folderId, folder, path, query, types, speed, result, include, view, direction, filter, list, kinds, activeFilters, reset, open, up, toggleType, clearFilters, reveal }
+  return { overall, wholeRequest, nodeOf, folderId, folder, path, query, types, speed, result, include, view, direction, filter, list, kinds, activeFilters, reset, open, up, toggleType, clearFilters, reveal }
 }
 
 export type Flow = ReturnType<typeof useFlow>
