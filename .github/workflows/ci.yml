@@ -27,12 +27,12 @@ jobs:
           # every Laravel / PHP pair twice: lowest and highest allowed dependencies
           # (the stability is spelled out in each entry: an `include` next to a `stability` axis would only overwrite itself)
           # Laravel 10: PHP 8.1 - 8.3, Testbench 8
-          - { laravel: '10.*', testbench: '^8.0', php: '8.1', stability: prefer-lowest }
-          - { laravel: '10.*', testbench: '^8.0', php: '8.1', stability: prefer-stable }
-          - { laravel: '10.*', testbench: '^8.0', php: '8.2', stability: prefer-lowest }
-          - { laravel: '10.*', testbench: '^8.0', php: '8.2', stability: prefer-stable }
-          - { laravel: '10.*', testbench: '^8.0', php: '8.3', stability: prefer-lowest }
-          - { laravel: '10.*', testbench: '^8.0', php: '8.3', stability: prefer-stable }
+          - { laravel: '10.*', testbench: '^8.20', php: '8.1', stability: prefer-lowest }
+          - { laravel: '10.*', testbench: '^8.20', php: '8.1', stability: prefer-stable }
+          - { laravel: '10.*', testbench: '^8.20', php: '8.2', stability: prefer-lowest }
+          - { laravel: '10.*', testbench: '^8.20', php: '8.2', stability: prefer-stable }
+          - { laravel: '10.*', testbench: '^8.20', php: '8.3', stability: prefer-lowest }
+          - { laravel: '10.*', testbench: '^8.20', php: '8.3', stability: prefer-stable }
           # Laravel 11: PHP 8.2 - 8.4, Testbench 9
           - { laravel: '11.*', testbench: '^9.5', php: '8.2', stability: prefer-lowest }
           - { laravel: '11.*', testbench: '^9.5', php: '8.2', stability: prefer-stable }
