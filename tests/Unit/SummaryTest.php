@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Support\Locator;
 use Ahmedhsieb\RequestTracer\Support\Summary;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +36,13 @@ it('names models by class and key without touching accessors', function () {
     $model->forceFill(['id' => 1057]);
 
     expect(Summary::of($model))->toEndWith('#1057');
+});
+
+it('names an anonymous class by its parent, not by the path it was declared in', function () {
+    $model = new class extends Model {};
+
+    expect(Summary::of($model))->toBe('Model@anonymous')
+        ->and(Locator::shortClass(get_class($model)))->toBe('Model@anonymous');
 });
 
 it('clips long strings and long messages', function () {
