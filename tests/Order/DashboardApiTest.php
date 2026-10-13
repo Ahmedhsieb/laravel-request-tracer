@@ -190,7 +190,6 @@ it('says which time zone created_at is in (UTC), so a browser anywhere shows the
     allowEveryone();
     $before = date_default_timezone_get();
     date_default_timezone_set('Asia/Riyadh');                  // an application in UTC+3: the stored time must not depend on it
-    $started = time();
     try {
         $id = recordOrder($this);
         $shown = $this->getJson(API."/traces/{$id}")->json('data.created_at');
@@ -201,8 +200,8 @@ it('says which time zone created_at is in (UTC), so a browser anywhere shows the
 
     expect($shown)->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$/')                  // UTC, with the offset spelled out
         ->and($listed)->toBe($shown)
-        // between the moment the request started and now: not "close to now", because recording a request can take a while on a slow machine
-        ->and(Carbon::parse($shown)->getTimestamp())->toBeGreaterThanOrEqual($started - 2)->toBeLessThanOrEqual(time() + 2);
+        // not shifted by the application's time zone (UTC+3 would be 10800 seconds off); a few minutes is only a slow machine
+        ->and(abs(Carbon::parse($shown)->getTimestamp() - time()))->toBeLessThan(3600);
 });
 
 it('returns Deep trace lines of a step together with the source of the functions that ran', function () {

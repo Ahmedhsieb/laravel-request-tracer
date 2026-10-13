@@ -56,6 +56,12 @@ final class Locator
     /** "App\Http\Controllers\OrderController" -> "OrderController" */
     public static function shortClass(string $class): string
     {
+        // an anonymous class is "Parent@anonymous", a NUL byte, then the file and line it was declared on: keep the readable part
+        $anonymous = strpos($class, '@anonymous');
+        if ($anonymous !== false) {
+            $class = substr($class, 0, $anonymous + 10);
+        }
+
         $pos = strrpos($class, '\\');
 
         return $pos === false ? $class : substr($class, $pos + 1);
