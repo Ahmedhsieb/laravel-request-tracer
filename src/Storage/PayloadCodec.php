@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Storage;
+namespace Ahmedhsieb\RequestTracer\Storage;
 
 /**
  * Payload columns hold JSON. Large payloads are stored as "gz:" + base64(gzip(json)): text columns are portable

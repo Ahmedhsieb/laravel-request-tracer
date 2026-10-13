@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Span;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Storage\TraceStorage;
+use Ahmedhsieb\RequestTracer\TraceData;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
-use RequestTracer\Span;
-use RequestTracer\SpanType;
-use RequestTracer\Storage\TraceStorage;
-use RequestTracer\TraceData;
 
 function storeTrace(string $id, $createdAt): void
 {

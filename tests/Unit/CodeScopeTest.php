@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Support\CodeScope;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Jobs\RecalculateStats;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Locked\FinalThing;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\User;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Services\PricingService;
 use Illuminate\Console\Command;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\ServiceProvider;
-use RequestTracer\Support\CodeScope;
-use RequestTracer\Tests\Fixtures\Jobs\RecalculateStats;
-use RequestTracer\Tests\Fixtures\Locked\FinalThing;
-use RequestTracer\Tests\Fixtures\Models\User;
-use RequestTracer\Tests\Fixtures\Services\PricingService;
 
 class ScopeDemoCommand extends Command
 {

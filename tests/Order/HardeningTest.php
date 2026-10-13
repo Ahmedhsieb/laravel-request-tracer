@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Facades\Tracer as TracerFacade;
+use Ahmedhsieb\RequestTracer\Hot;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\Note;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\User;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
-use RequestTracer\Facades\Tracer as TracerFacade;
-use RequestTracer\Hot;
-use RequestTracer\Tests\Fixtures\Models\Note;
-use RequestTracer\Tests\Fixtures\Models\User;
-use RequestTracer\Tracer;
 
 // -------------------------------------------------------------------------------------------- caps and collapsing
 

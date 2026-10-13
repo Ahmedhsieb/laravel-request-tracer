@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Storage;
+namespace Ahmedhsieb\RequestTracer\Storage;
 
+use Ahmedhsieb\RequestTracer\TraceData;
 use DateTimeInterface;
-use RequestTracer\TraceData;
 
 /**
  * Where finished traces live. The database driver is the only one shipped; register others under

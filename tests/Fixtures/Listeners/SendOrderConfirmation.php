@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Listeners;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Listeners;
 
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Events\OrderPlaced;
 use Illuminate\Support\Facades\Log;
-use RequestTracer\Tests\Fixtures\Events\OrderPlaced;
 
 class SendOrderConfirmation
 {

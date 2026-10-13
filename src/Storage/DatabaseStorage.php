@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Storage;
+namespace Ahmedhsieb\RequestTracer\Storage;
 
+use Ahmedhsieb\RequestTracer\Span;
+use Ahmedhsieb\RequestTracer\TraceData;
 use DateTimeInterface;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use RequestTracer\Span;
-use RequestTracer\TraceData;
 
 final class DatabaseStorage implements TraceStorage
 {

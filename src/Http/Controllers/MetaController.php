@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Http\Controllers;
+namespace Ahmedhsieb\RequestTracer\Http\Controllers;
 
+use Ahmedhsieb\RequestTracer\DeepTrace\Loader;
+use Ahmedhsieb\RequestTracer\Recording\Listening;
+use Ahmedhsieb\RequestTracer\Recording\RecordingDecider;
+use Ahmedhsieb\RequestTracer\Replay\Replayer;
+use Ahmedhsieb\RequestTracer\Support\Brand;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use RequestTracer\DeepTrace\Loader;
-use RequestTracer\Recording\Listening;
-use RequestTracer\Recording\RecordingDecider;
-use RequestTracer\Replay\Replayer;
-use RequestTracer\Support\Brand;
-use RequestTracer\Tracer;
 
 /** `GET /api/v1/meta`: what the dashboard header needs (environment badge, recording mode, user, thresholds). */
 final class MetaController extends Controller

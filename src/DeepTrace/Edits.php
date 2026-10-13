@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\DeepTrace;
+namespace Ahmedhsieb\RequestTracer\DeepTrace;
 
 /**
  * Text edits applied to a source string at original byte offsets.

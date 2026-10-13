@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Console;
+namespace Ahmedhsieb\RequestTracer\Console;
 
+use Ahmedhsieb\RequestTracer\Recording\TokenService;
 use Illuminate\Console\Command;
-use RequestTracer\Recording\TokenService;
 
 /** Issues a signed recording token from the command line (the dashboard can do the same). */
 final class TokenCommand extends Command

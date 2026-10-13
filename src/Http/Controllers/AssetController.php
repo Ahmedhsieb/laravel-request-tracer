@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Http\Controllers;
+namespace Ahmedhsieb\RequestTracer\Http\Controllers;
 
+use Ahmedhsieb\RequestTracer\Support\Brand;
 use Illuminate\Routing\Controller;
-use RequestTracer\Support\Brand;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 

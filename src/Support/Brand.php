@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Support;
+namespace Ahmedhsieb\RequestTracer\Support;
 
 /**
  * Single source of truth for the package's name and brand.
  *
- * Renaming the package means: change composer.json ("name"), the `RequestTracer\` namespace
+ * Renaming the package means: change composer.json ("name"), the `Ahmedhsieb\RequestTracer\` namespace
  * (find-and-replace), and the constants below. Nothing else hard-codes the brand.
  */
 final class Brand
 {
     /** Composer vendor (see composer.json). */
-    public const VENDOR = 'your-vendor';
+    public const VENDOR = 'ahmedhsieb';
 
     /** Used for the config file, route prefix, view namespace, cache keys, log channel and command prefix. */
     public const NAME = 'request-tracer';

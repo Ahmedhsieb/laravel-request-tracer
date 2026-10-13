@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Services;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Services;
 
-use RequestTracer\Tests\Fixtures\Exceptions\CouponException;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Exceptions\CouponException;
 
 class CouponService
 {

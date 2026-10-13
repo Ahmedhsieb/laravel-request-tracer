@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\DeepTrace\CompileException;
+use Ahmedhsieb\RequestTracer\DeepTrace\Compiler;
+use Ahmedhsieb\RequestTracer\DeepTrace\CompileResult;
+use Ahmedhsieb\RequestTracer\DeepTrace\LinesBuilder;
+use Ahmedhsieb\RequestTracer\DeepTrace\Probe;
+use Ahmedhsieb\RequestTracer\DeepTrace\ProbeMap;
+use Ahmedhsieb\RequestTracer\Hot;
+use Ahmedhsieb\RequestTracer\Recording\Decision;
+use Ahmedhsieb\RequestTracer\RecordingState;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Support\Files;
+use Ahmedhsieb\RequestTracer\Tracer;
 use PhpParser\Node;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
-use RequestTracer\DeepTrace\CompileException;
-use RequestTracer\DeepTrace\Compiler;
-use RequestTracer\DeepTrace\CompileResult;
-use RequestTracer\DeepTrace\LinesBuilder;
-use RequestTracer\DeepTrace\Probe;
-use RequestTracer\DeepTrace\ProbeMap;
-use RequestTracer\Hot;
-use RequestTracer\Recording\Decision;
-use RequestTracer\RecordingState;
-use RequestTracer\SpanType;
-use RequestTracer\Support\Files;
-use RequestTracer\Tracer;
 use SecretNs\Secrets;
 
-const CORPUS_NS = 'RequestTracer\Tests\Fixtures\Deep\Corpus';
+const CORPUS_NS = 'Ahmedhsieb\RequestTracer\Tests\Fixtures\Deep\Corpus';
 
 /**
  * Loads the corpus file twice under different namespaces: untouched ("orig") and compiled ("comp").
@@ -461,7 +461,7 @@ it('leaves #[NoTrace] methods and classes untouched', function () {
     $method = <<<'PHP'
 <?php
 
-use RequestTracer\Attributes\NoTrace;
+use Ahmedhsieb\RequestTracer\Attributes\NoTrace;
 
 class WithQuiet
 {
@@ -501,8 +501,8 @@ PHP;
 
 it('recognises #[Trace(deep: true)] on a class', function () {
     $compiler = new Compiler;
-    $yes = "<?php\n\nuse RequestTracer\\Attributes\\Trace;\n\n#[Trace(deep: true)]\nclass A {}\n";
-    $no = "<?php\n\nuse RequestTracer\\Attributes\\Trace;\n\n#[Trace]\nclass B {}\n";
+    $yes = "<?php\n\nuse Ahmedhsieb\\RequestTracer\\Attributes\\Trace;\n\n#[Trace(deep: true)]\nclass A {}\n";
+    $no = "<?php\n\nuse Ahmedhsieb\\RequestTracer\\Attributes\\Trace;\n\n#[Trace]\nclass B {}\n";
 
     expect($compiler->attributeHints($yes)['deep'])->toBeTrue()->and($compiler->attributeHints($no)['deep'])->toBeFalse();
 });

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Recording;
+namespace Ahmedhsieb\RequestTracer\Recording;
 
+use Ahmedhsieb\RequestTracer\RecordingState;
+use Ahmedhsieb\RequestTracer\Support\App;
 use Illuminate\Support\Str;
-use RequestTracer\RecordingState;
-use RequestTracer\Support\App;
 
 /**
  * Decides whether a queued job, an artisan command or a scheduled task is recorded.
@@ -52,7 +52,7 @@ class BackgroundDecider
 
     public function excluded(string $kind, string $name): bool
     {
-        if ($kind === 'job' && str_starts_with($name, 'RequestTracer\\Jobs\\')) {
+        if ($kind === 'job' && str_starts_with($name, 'Ahmedhsieb\\RequestTracer\\Jobs\\')) {
             return true;                                            // the tracer never traces its own queued writes
         }
 

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Facades;
+namespace Ahmedhsieb\RequestTracer\Facades;
 
+use Ahmedhsieb\RequestTracer\Support\Brand;
 use Illuminate\Support\Facades\Facade;
-use RequestTracer\Support\Brand;
 
 /**
- * @mixin \RequestTracer\Tracer
+ * @mixin \Ahmedhsieb\RequestTracer\Tracer
  *
  * @method static bool enabled()
  * @method static bool recording()

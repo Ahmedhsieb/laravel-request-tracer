@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Proxy;
+namespace Ahmedhsieb\RequestTracer\Proxy;
 
+use Ahmedhsieb\RequestTracer\Attributes\NoTrace;
+use Ahmedhsieb\RequestTracer\Attributes\Trace;
+use Ahmedhsieb\RequestTracer\DeepTrace\Loader;
+use Ahmedhsieb\RequestTracer\Support\ClassPatterns;
+use Ahmedhsieb\RequestTracer\Support\CodeScope;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\Locator;
+use Ahmedhsieb\RequestTracer\Support\Paths;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Closure;
 use Illuminate\Container\Container;
-use RequestTracer\Attributes\NoTrace;
-use RequestTracer\Attributes\Trace;
-use RequestTracer\DeepTrace\Loader;
-use RequestTracer\Support\ClassPatterns;
-use RequestTracer\Support\CodeScope;
-use RequestTracer\Support\Failure;
-use RequestTracer\Support\Locator;
-use RequestTracer\Support\Paths;
-use RequestTracer\Tracer;
 
 /**
  * Decides which classes resolved from the container get a traced subclass, and swaps the container binding for one that
@@ -127,8 +127,8 @@ final class ProxyRegistry
      */
     private function plan(string $class, Tracer $tracer): ?array
     {
-        // never trace the tracer (its own middleware, collectors, storage...); the test fixtures live under RequestTracer\Tests
-        if (str_starts_with($class, 'RequestTracer\\') && ! str_starts_with($class, 'RequestTracer\\Tests\\')) {
+        // never trace the tracer (its own middleware, collectors, storage...); the test fixtures live under Ahmedhsieb\RequestTracer\Tests
+        if (str_starts_with($class, 'Ahmedhsieb\\RequestTracer\\') && ! str_starts_with($class, 'Ahmedhsieb\\RequestTracer\\Tests\\')) {
             return null;
         }
 

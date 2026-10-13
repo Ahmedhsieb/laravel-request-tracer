@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Proxy;
+namespace Ahmedhsieb\RequestTracer\Proxy;
 
+use Ahmedhsieb\RequestTracer\Span;
+use Ahmedhsieb\RequestTracer\SpanFlag;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\Summary;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Routing\Route;
-use RequestTracer\Span;
-use RequestTracer\SpanFlag;
-use RequestTracer\SpanType;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Failure;
-use RequestTracer\Support\Summary;
-use RequestTracer\Tracer;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

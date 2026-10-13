@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Journal;
+namespace Ahmedhsieb\RequestTracer\Journal;
 
+use Ahmedhsieb\RequestTracer\Storage\ConnectionResolver;
+use Ahmedhsieb\RequestTracer\Storage\TableInstaller;
+use Ahmedhsieb\RequestTracer\Support\App;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
-use RequestTracer\Storage\ConnectionResolver;
-use RequestTracer\Storage\TableInstaller;
-use RequestTracer\Support\App;
 
 /** The journal's table: insert one row per request, list, find, trim. Reads and writes use the tracer's own connection. */
 class JournalStorage

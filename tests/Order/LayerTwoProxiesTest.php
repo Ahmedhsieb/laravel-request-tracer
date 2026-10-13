@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Hot;
+use Ahmedhsieb\RequestTracer\Recording\Decision;
+use Ahmedhsieb\RequestTracer\RecordingState;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Attr\AttributedService;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Attr\TracedClass;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Contracts\CurrencyProvider;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Http\ClosureBoundMiddleware;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Locked\FinalThing;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Locked\PartlyLocked;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Providers\DollarProvider;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Providers\EuroProvider;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Services\CountingService;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Services\OrderService;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Services\RateService;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\Hot;
-use RequestTracer\Recording\Decision;
-use RequestTracer\RecordingState;
-use RequestTracer\Tests\Fixtures\Attr\AttributedService;
-use RequestTracer\Tests\Fixtures\Attr\TracedClass;
-use RequestTracer\Tests\Fixtures\Contracts\CurrencyProvider;
-use RequestTracer\Tests\Fixtures\Http\ClosureBoundMiddleware;
-use RequestTracer\Tests\Fixtures\Locked\FinalThing;
-use RequestTracer\Tests\Fixtures\Locked\PartlyLocked;
-use RequestTracer\Tests\Fixtures\Providers\DollarProvider;
-use RequestTracer\Tests\Fixtures\Providers\EuroProvider;
-use RequestTracer\Tests\Fixtures\Services\CountingService;
-use RequestTracer\Tests\Fixtures\Services\OrderService;
-use RequestTracer\Tests\Fixtures\Services\RateService;
-use RequestTracer\Tracer;
 
 /** @param  list<array<string, mixed>>  $spans */
 function childrenOf(array $spans, int $parentId): array
@@ -175,7 +175,7 @@ it('proxies the concrete class behind an interface binding', function () {
     // EuroProvider is outside the proxied namespace: left alone
     expect($provider::class)->toBe(EuroProvider::class);
 
-    config(['request-tracer.proxies.namespaces' => ['RequestTracer\Tests\Fixtures']]);
+    config(['request-tracer.proxies.namespaces' => ['Ahmedhsieb\RequestTracer\Tests\Fixtures']]);
     $this->app->forgetInstance(CurrencyProvider::class);
     app(Tracer::class)->begin('request', new Decision(RecordingState::On));
     $provider = app(CurrencyProvider::class);
@@ -194,7 +194,7 @@ it('leaves classes with custom closure bindings alone', function () {
 });
 
 it('says which classes and methods are not traceable', function () {
-    config(['request-tracer.proxies.namespaces' => ['RequestTracer\Tests\Fixtures\Locked']]);
+    config(['request-tracer.proxies.namespaces' => ['Ahmedhsieb\RequestTracer\Tests\Fixtures\Locked']]);
     Route::get('/locked', function () {
         app(FinalThing::class)->value();
         app(PartlyLocked::class)->open();

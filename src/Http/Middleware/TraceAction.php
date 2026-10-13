@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Http\Middleware;
+namespace Ahmedhsieb\RequestTracer\Http\Middleware;
 
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\Locator;
+use Ahmedhsieb\RequestTracer\Support\Summary;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Closure;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
-use RequestTracer\SpanType;
-use RequestTracer\Support\Failure;
-use RequestTracer\Support\Locator;
-use RequestTracer\Support\Summary;
-use RequestTracer\Tracer;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

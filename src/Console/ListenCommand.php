@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Console;
+namespace Ahmedhsieb\RequestTracer\Console;
 
+use Ahmedhsieb\RequestTracer\Recording\Listening;
+use Ahmedhsieb\RequestTracer\Recording\RecordingDecider;
+use Ahmedhsieb\RequestTracer\Storage\TableInstaller;
+use Ahmedhsieb\RequestTracer\Storage\TraceStorage;
+use Ahmedhsieb\RequestTracer\Support\Brand;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Gate;
-use RequestTracer\Recording\Listening;
-use RequestTracer\Recording\RecordingDecider;
-use RequestTracer\Storage\TableInstaller;
-use RequestTracer\Storage\TraceStorage;
-use RequestTracer\Support\Brand;
 
 /**
  * `php artisan request-tracer:listen`, the `queue:work` of tracing.

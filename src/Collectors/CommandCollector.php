@@ -2,8 +2,13 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Collectors;
+namespace Ahmedhsieb\RequestTracer\Collectors;
 
+use Ahmedhsieb\RequestTracer\Recording\BackgroundDecider;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Console\Events\ScheduledTaskFailed;
@@ -12,11 +17,6 @@ use Illuminate\Console\Events\ScheduledTaskStarting;
 use Illuminate\Console\Scheduling\CallbackEvent;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
-use RequestTracer\Recording\BackgroundDecider;
-use RequestTracer\SpanType;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tracer;
 
 /**
  * Artisan commands (`command` traces) and scheduled tasks that run inside the scheduler process (`schedule` traces).

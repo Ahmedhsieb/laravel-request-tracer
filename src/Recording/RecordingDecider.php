@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Recording;
+namespace Ahmedhsieb\RequestTracer\Recording;
 
+use Ahmedhsieb\RequestTracer\RecordingState;
+use Ahmedhsieb\RequestTracer\Replay\Replayer;
+use Ahmedhsieb\RequestTracer\Support\App;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use RequestTracer\RecordingState;
-use RequestTracer\Replay\Replayer;
-use RequestTracer\Support\App;
 
 /**
  * Decides, at the very start of a request, whether it is recorded (brief section 7).

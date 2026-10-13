@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Services;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Services;
 
-use RequestTracer\Attributes\NoTrace;
+use Ahmedhsieb\RequestTracer\Attributes\NoTrace;
 
 class CountingService
 {

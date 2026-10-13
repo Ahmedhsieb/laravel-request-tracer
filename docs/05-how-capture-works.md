@@ -128,8 +128,8 @@ Side effects to know about: `get_class($service)` and `static::class` return the
 ## Layer 3 – attributes
 
 ```php
-use RequestTracer\Attributes\NoTrace;
-use RequestTracer\Attributes\Trace;
+use Ahmedhsieb\RequestTracer\Attributes\NoTrace;
+use Ahmedhsieb\RequestTracer\Attributes\Trace;
 
 class InvoiceCalculator
 {

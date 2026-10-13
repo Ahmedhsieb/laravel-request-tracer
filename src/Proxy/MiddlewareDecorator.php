@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Proxy;
+namespace Ahmedhsieb\RequestTracer\Proxy;
 
+use Ahmedhsieb\RequestTracer\Hot;
 use Closure;
-use RequestTracer\Hot;
 
 /**
  * Wraps a middleware instance the container builds with a custom closure (Laravel's own `StartSession` is one), where a

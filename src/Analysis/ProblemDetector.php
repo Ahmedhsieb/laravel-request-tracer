@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Analysis;
+namespace Ahmedhsieb\RequestTracer\Analysis;
 
-use RequestTracer\Span;
-use RequestTracer\SpanFlag;
-use RequestTracer\SpanType;
-use RequestTracer\Support\App;
-use RequestTracer\TraceSession;
+use Ahmedhsieb\RequestTracer\Span;
+use Ahmedhsieb\RequestTracer\SpanFlag;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\TraceSession;
 
 /**
  * Looks at a finished trace and adds problems: exceptions (caught or not), N+1 and repeated queries, slow queries,

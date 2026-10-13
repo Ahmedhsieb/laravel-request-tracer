@@ -20,4 +20,4 @@ Request Tracer records what your application does, so its security model matters
 
 ## Reporting a vulnerability
 
-Please do **not** open a public issue. Email the maintainers at `security@your-vendor.example` (replace with the real address when you publish) with a description, the affected version and, if possible, a reproduction. You will get an acknowledgement within 72 hours and a fix or mitigation plan within 14 days. Supported versions: the latest minor release.
+Please do **not** open a public issue. Email the maintainers at `security@ahmedhsieb.example` (replace with the real address when you publish) with a description, the affected version and, if possible, a reproduction. You will get an acknowledgement within 72 hours and a fix or mitigation plan within 14 days. Supported versions: the latest minor release.

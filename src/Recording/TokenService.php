@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Recording;
+namespace Ahmedhsieb\RequestTracer\Recording;
 
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Failure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Failure;
 
 /**
  * Signed recording tokens for the `X-Request-Tracer` header.

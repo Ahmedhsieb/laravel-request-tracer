@@ -1,5 +1,5 @@
 {
-    "name": "your-vendor/laravel-request-tracer",
+    "name": "ahmedhsieb/laravel-request-tracer",
     "description": "Trace a Laravel request end to end: per-step timing, input/output in dd() format, line-by-line Deep trace, table writes and problem detection. A production-safe replacement for dd().",
     "keywords": ["laravel", "debug", "trace", "profiler", "dd", "telescope", "debugbar", "clockwork", "request-tracer"],
     "license": "MIT",
@@ -29,7 +29,7 @@
     },
     "autoload": {
         "psr-4": {
-            "RequestTracer\\": "src/"
+            "Ahmedhsieb\\RequestTracer\\": "src/"
         },
         "files": [
             "src/helpers.php"
@@ -37,16 +37,16 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "RequestTracer\\Tests\\": "tests/"
+            "Ahmedhsieb\\RequestTracer\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "RequestTracer\\RequestTracerServiceProvider"
+                "Ahmedhsieb\\RequestTracer\\RequestTracerServiceProvider"
             ],
             "aliases": {
-                "Tracer": "RequestTracer\\Facades\\Tracer"
+                "Tracer": "Ahmedhsieb\\RequestTracer\\Facades\\Tracer"
             }
         }
     },

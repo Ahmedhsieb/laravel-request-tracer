@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests;
+namespace Ahmedhsieb\RequestTracer\Tests;
 
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Events\OrderPlaced;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Http\OrderController;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Listeners\SendOrderConfirmation;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\Product;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\User;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
-use RequestTracer\Tests\Fixtures\Events\OrderPlaced;
-use RequestTracer\Tests\Fixtures\Http\OrderController;
-use RequestTracer\Tests\Fixtures\Listeners\SendOrderConfirmation;
-use RequestTracer\Tests\Fixtures\Models\Product;
-use RequestTracer\Tests\Fixtures\Models\User;
 
 /** The example "Order flow" application used by the end-to-end tests: auth, validation, services, a caught exception, HTTP call, event. */
 abstract class OrderAppTestCase extends TestCase
@@ -28,12 +28,12 @@ abstract class OrderAppTestCase extends TestCase
         $app['config']->set('auth.guards.web', ['driver' => 'session', 'provider' => 'users']);
         $app['config']->set('auth.providers.users', ['driver' => 'eloquent', 'model' => User::class]);
         $app['config']->set('request-tracer.problems.n_plus_one_threshold', 3);
-        $app['config']->set('request-tracer.proxies.namespaces', ['RequestTracer\Tests\Fixtures\Services']);
-        $app['config']->set('request-tracer.proxies.attribute_namespaces', ['RequestTracer\Tests\Fixtures\Attr']);
+        $app['config']->set('request-tracer.proxies.namespaces', ['Ahmedhsieb\RequestTracer\Tests\Fixtures\Services']);
+        $app['config']->set('request-tracer.proxies.attribute_namespaces', ['Ahmedhsieb\RequestTracer\Tests\Fixtures\Attr']);
         $app['config']->set('request-tracer.proxies.cache_path', sys_get_temp_dir().'/rt-proxies-'.getmypid());
         $app['config']->set('request-tracer.deep_trace.cache_path', sys_get_temp_dir().'/rt-compiled-'.getmypid());
         $app['config']->set('request-tracer.replay.undo_path', sys_get_temp_dir().'/rt-undo-'.getmypid());
-        $app['config']->set('request-tracer.deep_trace.namespaces', ['RequestTracer\Tests\Fixtures\Services\OrderService']);
+        $app['config']->set('request-tracer.deep_trace.namespaces', ['Ahmedhsieb\RequestTracer\Tests\Fixtures\Services\OrderService']);
     }
 
     protected function defineDatabaseMigrations(): void

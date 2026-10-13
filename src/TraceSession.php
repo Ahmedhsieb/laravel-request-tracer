@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer;
+namespace Ahmedhsieb\RequestTracer;
 
-use RequestTracer\Analysis\ExceptionTracker;
-use RequestTracer\Analysis\QueryStats;
-use RequestTracer\Analysis\WriteTracker;
-use RequestTracer\DeepTrace\ProbeStore;
-use RequestTracer\Dumper\ValueDumper;
-use RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Analysis\ExceptionTracker;
+use Ahmedhsieb\RequestTracer\Analysis\QueryStats;
+use Ahmedhsieb\RequestTracer\Analysis\WriteTracker;
+use Ahmedhsieb\RequestTracer\DeepTrace\ProbeStore;
+use Ahmedhsieb\RequestTracer\Dumper\ValueDumper;
+use Ahmedhsieb\RequestTracer\Support\App;
 
 /**
  * Everything that belongs to the trace currently being recorded. The Tracer creates one at the start of a request

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Recording;
+namespace Ahmedhsieb\RequestTracer\Recording;
 
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Failure;
 use Illuminate\Cache\CacheManager;
 use Illuminate\Contracts\Cache\Repository;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Failure;
 
 /**
  * Users whose requests are recorded for a while ("watch this user for 30 minutes"), created from the dashboard.

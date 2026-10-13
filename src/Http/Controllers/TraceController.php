@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Http\Controllers;
+namespace Ahmedhsieb\RequestTracer\Http\Controllers;
 
+use Ahmedhsieb\RequestTracer\DeepTrace\Compiler;
+use Ahmedhsieb\RequestTracer\Storage\TraceStorage;
+use Ahmedhsieb\RequestTracer\Support\Paths;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
-use RequestTracer\DeepTrace\Compiler;
-use RequestTracer\Storage\TraceStorage;
-use RequestTracer\Support\Paths;
-use RequestTracer\Tracer;
 
 /** Read side of the JSON API: traces, their step tree (without payloads), step payloads, lines, writes, problems. */
 final class TraceController extends Controller

@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Collectors;
+namespace Ahmedhsieb\RequestTracer\Collectors;
 
+use Ahmedhsieb\RequestTracer\Dumper\MaskedValue;
+use Ahmedhsieb\RequestTracer\SpanFlag;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Sql\BindingNamer;
+use Ahmedhsieb\RequestTracer\Sql\SqlAnalyzer;
+use Ahmedhsieb\RequestTracer\Support\CallSite;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Events\QueryExecuted;
-use RequestTracer\Dumper\MaskedValue;
-use RequestTracer\SpanFlag;
-use RequestTracer\SpanType;
-use RequestTracer\Sql\BindingNamer;
-use RequestTracer\Sql\SqlAnalyzer;
-use RequestTracer\Support\CallSite;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tracer;
 
 /** One `query` span per executed statement, with masked bindings, the calling file:line, table reads and writes. */
 final class QueryCollector implements Collector

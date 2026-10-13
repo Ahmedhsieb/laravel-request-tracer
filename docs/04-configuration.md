@@ -57,7 +57,7 @@ Running a request that already happened again, traced (dashboard: *Replay a requ
 | `exclude.paths` | built in: login, logout, register, password reset, two-factor, OAuth, payment webhooks, health checks, `request-tracer*`, Ignition, Horizon, Telescope, Livewire | URL **prefixes and patterns that are never recorded**, even with a valid header (`admin/*`, `api/internal/*`, `reports*`: `*` matches anything, no leading slash). **Yours are added to the built-in ones**; `'!login'` takes one away. The dashboard's own path is always excluded. A replay ignores this list. |
 | `exclude.routes` | `[]` | Route **names** (`fnmatch`, e.g. `horizon.*`, `admin.*`) that are never recorded. Handy when the routes of one area share a name prefix. |
 | `exclude.commands` | `queue:work`, `schedule:run`, `schedule:finish`, `serve`, `tinker`, `invoke-serialized-closure`, `migrate*`, `package:*`, `config:*`, `cache:*`, `horizon*`, `octane:*`, `request-tracer:*` and other internal commands | Artisan commands that are never recorded. |
-| `exclude.jobs` | `[]` | Job class names (`fnmatch`) that are never recorded. The tracer's own `RequestTracer\Jobs\*` are always excluded. |
+| `exclude.jobs` | `[]` | Job class names (`fnmatch`) that are never recorded. The tracer's own `Ahmedhsieb\RequestTracer\Jobs\*` are always excluded. |
 
 ## `storage`
 
@@ -71,7 +71,7 @@ Running a request that already happened again, traced (dashboard: *Replay a requ
 | `queue.enabled` | `false` | Store traces from a queued job instead of in `terminate()`. Needs a running queue worker. |
 | `queue.connection`, `queue.queue` | `null` | Connection and queue name for that job. |
 | `insert_chunk` | `500` | Rows per `INSERT` when a trace is written. |
-| `drivers` | `[]` | `'name' => ClassName::class` for custom storage drivers (class must implement `RequestTracer\Storage\TraceStorage`). |
+| `drivers` | `[]` | `'name' => ClassName::class` for custom storage drivers (class must implement `Ahmedhsieb\RequestTracer\Storage\TraceStorage`). |
 
 ## `triggers`
 

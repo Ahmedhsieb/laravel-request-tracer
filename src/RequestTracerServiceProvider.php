@@ -2,8 +2,43 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer;
+namespace Ahmedhsieb\RequestTracer;
 
+use Ahmedhsieb\RequestTracer\Collectors\CacheCollector;
+use Ahmedhsieb\RequestTracer\Collectors\Collector;
+use Ahmedhsieb\RequestTracer\Collectors\CommandCollector;
+use Ahmedhsieb\RequestTracer\Collectors\EventCollector;
+use Ahmedhsieb\RequestTracer\Collectors\ExceptionCollector;
+use Ahmedhsieb\RequestTracer\Collectors\HttpClientCollector;
+use Ahmedhsieb\RequestTracer\Collectors\JobCollector;
+use Ahmedhsieb\RequestTracer\Collectors\LogCollector;
+use Ahmedhsieb\RequestTracer\Collectors\ModelCollector;
+use Ahmedhsieb\RequestTracer\Collectors\QueryCollector;
+use Ahmedhsieb\RequestTracer\Collectors\RequestCollector;
+use Ahmedhsieb\RequestTracer\Collectors\TransactionCollector;
+use Ahmedhsieb\RequestTracer\Collectors\ValidationCollector;
+use Ahmedhsieb\RequestTracer\Console\InstallCommand;
+use Ahmedhsieb\RequestTracer\Console\ListenCommand;
+use Ahmedhsieb\RequestTracer\Console\PruneCommand;
+use Ahmedhsieb\RequestTracer\Console\ReplayCommand;
+use Ahmedhsieb\RequestTracer\Console\TokenCommand;
+use Ahmedhsieb\RequestTracer\Console\UndoCommand;
+use Ahmedhsieb\RequestTracer\DeepTrace\Loader;
+use Ahmedhsieb\RequestTracer\Http\Middleware\Authorize;
+use Ahmedhsieb\RequestTracer\Http\Middleware\LightWeb;
+use Ahmedhsieb\RequestTracer\Http\Middleware\RecordRequest;
+use Ahmedhsieb\RequestTracer\Proxy\ProxyGenerator;
+use Ahmedhsieb\RequestTracer\Proxy\ProxyRegistry;
+use Ahmedhsieb\RequestTracer\Recording\RecordingDecider;
+use Ahmedhsieb\RequestTracer\Storage\ConnectionResolver;
+use Ahmedhsieb\RequestTracer\Storage\DatabaseStorage;
+use Ahmedhsieb\RequestTracer\Storage\PayloadCodec;
+use Ahmedhsieb\RequestTracer\Storage\TraceStorage;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Brand;
+use Ahmedhsieb\RequestTracer\Support\ConfigMerger;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\Paths;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -14,41 +49,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use RequestTracer\Collectors\CacheCollector;
-use RequestTracer\Collectors\Collector;
-use RequestTracer\Collectors\CommandCollector;
-use RequestTracer\Collectors\EventCollector;
-use RequestTracer\Collectors\ExceptionCollector;
-use RequestTracer\Collectors\HttpClientCollector;
-use RequestTracer\Collectors\JobCollector;
-use RequestTracer\Collectors\LogCollector;
-use RequestTracer\Collectors\ModelCollector;
-use RequestTracer\Collectors\QueryCollector;
-use RequestTracer\Collectors\RequestCollector;
-use RequestTracer\Collectors\TransactionCollector;
-use RequestTracer\Collectors\ValidationCollector;
-use RequestTracer\Console\InstallCommand;
-use RequestTracer\Console\ListenCommand;
-use RequestTracer\Console\PruneCommand;
-use RequestTracer\Console\ReplayCommand;
-use RequestTracer\Console\TokenCommand;
-use RequestTracer\Console\UndoCommand;
-use RequestTracer\DeepTrace\Loader;
-use RequestTracer\Http\Middleware\Authorize;
-use RequestTracer\Http\Middleware\LightWeb;
-use RequestTracer\Http\Middleware\RecordRequest;
-use RequestTracer\Proxy\ProxyGenerator;
-use RequestTracer\Proxy\ProxyRegistry;
-use RequestTracer\Recording\RecordingDecider;
-use RequestTracer\Storage\ConnectionResolver;
-use RequestTracer\Storage\DatabaseStorage;
-use RequestTracer\Storage\PayloadCodec;
-use RequestTracer\Storage\TraceStorage;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Brand;
-use RequestTracer\Support\ConfigMerger;
-use RequestTracer\Support\Failure;
-use RequestTracer\Support\Paths;
 
 final class RequestTracerServiceProvider extends ServiceProvider
 {
@@ -108,7 +108,7 @@ final class RequestTracerServiceProvider extends ServiceProvider
         $config = $this->app->make('config');
         /** @var array<string, mixed> $defaults */
         $defaults = require __DIR__.'/../config/'.Brand::NAME.'.php';
-        $config->set(Brand::NAME, ConfigMerger::merge($defaults, (array) $config->get(Brand::NAME, [])));
+        $config->set(Brand::NAME, ConfigMerger::merge($defaults, ConfigMerger::modernize((array) $config->get(Brand::NAME, []))));
     }
 
     public function boot(): void

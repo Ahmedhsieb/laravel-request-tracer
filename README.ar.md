@@ -2,8 +2,8 @@
 
 # Request Tracer
 
-[![الإصدار](https://img.shields.io/packagist/v/your-vendor/laravel-request-tracer.svg)](https://packagist.org/packages/your-vendor/laravel-request-tracer)
-[![الاختبارات](https://github.com/your-vendor/laravel-request-tracer/actions/workflows/ci.yml/badge.svg)](https://github.com/your-vendor/laravel-request-tracer/actions/workflows/ci.yml)
+[![الإصدار](https://img.shields.io/packagist/v/ahmedhsieb/laravel-request-tracer.svg)](https://packagist.org/packages/ahmedhsieb/laravel-request-tracer)
+[![الاختبارات](https://github.com/ahmedhsieb/laravel-request-tracer/actions/workflows/ci.yml/badge.svg)](https://github.com/ahmedhsieb/laravel-request-tracer/actions/workflows/ci.yml)
 [![الرخصة: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **استبدل `dd()` بتتبّع كامل للطلب.**
@@ -19,7 +19,7 @@
 ## خطوتان فقط
 
 ```bash
-composer require your-vendor/laravel-request-tracer
+composer require ahmedhsieb/laravel-request-tracer
 
 php artisan request-tracer:listen
 ```

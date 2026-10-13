@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Exceptions;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Exceptions;
 
 use RuntimeException;
 

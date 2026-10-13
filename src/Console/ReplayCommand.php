@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Console;
+namespace Ahmedhsieb\RequestTracer\Console;
 
+use Ahmedhsieb\RequestTracer\Journal\Journal;
+use Ahmedhsieb\RequestTracer\Journal\JournalStorage;
+use Ahmedhsieb\RequestTracer\Recording\Listening;
+use Ahmedhsieb\RequestTracer\Replay\CurlParser;
+use Ahmedhsieb\RequestTracer\Replay\Replayer;
+use Ahmedhsieb\RequestTracer\Replay\ReplayRequest;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Brand;
 use Illuminate\Console\Command;
-use RequestTracer\Journal\Journal;
-use RequestTracer\Journal\JournalStorage;
-use RequestTracer\Recording\Listening;
-use RequestTracer\Replay\CurlParser;
-use RequestTracer\Replay\Replayer;
-use RequestTracer\Replay\ReplayRequest;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Brand;
 
 /**
  * `php artisan request-tracer:replay "POST /orders" --data='{"items":[1]}' --as=42`: run a request that already happened again, traced.

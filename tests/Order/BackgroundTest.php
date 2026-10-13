@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Recording\TokenService;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Jobs\AlwaysFails;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Jobs\RecalculateStats;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\User;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\Recording\TokenService;
-use RequestTracer\Tests\Fixtures\Jobs\AlwaysFails;
-use RequestTracer\Tests\Fixtures\Jobs\RecalculateStats;
-use RequestTracer\Tests\Fixtures\Models\User;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 

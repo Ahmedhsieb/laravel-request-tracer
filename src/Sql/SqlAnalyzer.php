@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Sql;
+namespace Ahmedhsieb\RequestTracer\Sql;
 
 /**
  * Works out what a SQL statement does: its kind, the tables it writes and reads, and a fingerprint of its shape.

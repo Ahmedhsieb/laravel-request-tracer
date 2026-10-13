@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Console;
+namespace Ahmedhsieb\RequestTracer\Console;
 
+use Ahmedhsieb\RequestTracer\Journal\Journal;
+use Ahmedhsieb\RequestTracer\Replay\UndoLog;
+use Ahmedhsieb\RequestTracer\Storage\TraceStorage;
+use Ahmedhsieb\RequestTracer\Support\Failure;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
-use RequestTracer\Journal\Journal;
-use RequestTracer\Replay\UndoLog;
-use RequestTracer\Storage\TraceStorage;
-use RequestTracer\Support\Failure;
 
 /** Deletes old traces: by age (`retention.hours`) and by count (`retention.max_rows`). Scheduled automatically when the tracer is enabled. */
 final class PruneCommand extends Command

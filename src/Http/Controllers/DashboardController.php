@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Http\Controllers;
+namespace Ahmedhsieb\RequestTracer\Http\Controllers;
 
+use Ahmedhsieb\RequestTracer\Recording\RecordingDecider;
+use Ahmedhsieb\RequestTracer\Support\Brand;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use RequestTracer\Recording\RecordingDecider;
-use RequestTracer\Support\Brand;
-use RequestTracer\Tracer;
 
 /** The single page the Vue app lives in. Every non-API, non-asset URL below the dashboard path renders it (client-side routing). */
 final class DashboardController extends Controller

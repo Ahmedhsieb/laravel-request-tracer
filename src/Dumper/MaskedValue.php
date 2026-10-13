@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Dumper;
+namespace Ahmedhsieb\RequestTracer\Dumper;
 
 /**
  * Placeholder that casters put where a secret value would be. The StructureBuilder turns it into a {"$":"mask"} node,

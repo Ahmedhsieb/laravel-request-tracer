@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Storage;
+namespace Ahmedhsieb\RequestTracer\Storage;
 
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Failure;
 use Illuminate\Support\Facades\Schema;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Failure;
 
 /**
  * Creates the five tables when they are missing, so installing the package is `composer require` and nothing else.

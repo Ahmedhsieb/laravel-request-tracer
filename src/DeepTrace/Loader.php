@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\DeepTrace;
+namespace Ahmedhsieb\RequestTracer\DeepTrace;
 
+use Ahmedhsieb\RequestTracer\Recording\Listening;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Brand;
+use Ahmedhsieb\RequestTracer\Support\ClassPatterns;
+use Ahmedhsieb\RequestTracer\Support\CodeScope;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\Files;
+use Ahmedhsieb\RequestTracer\Support\Paths;
 use Composer\Autoload\ClassLoader;
-use RequestTracer\Recording\Listening;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Brand;
-use RequestTracer\Support\ClassPatterns;
-use RequestTracer\Support\CodeScope;
-use RequestTracer\Support\Failure;
-use RequestTracer\Support\Files;
-use RequestTracer\Support\Paths;
 
 /**
  * Prepended autoloader that swaps selected classes for a compiled copy with probes (the way Blade compiles views).
@@ -27,7 +27,7 @@ use RequestTracer\Support\Paths;
  */
 final class Loader
 {
-    public const PACKAGE_VERSION = '0.5.5';
+    public const PACKAGE_VERSION = '0.6.0';
 
     /** @var array<string, string> compiled file => original file (process-wide, constant once set) */
     private static array $origins = [];
@@ -90,7 +90,7 @@ final class Loader
         // This loader sits in front of Composer's, so it is asked for every class, including the ones it needs itself (ClassPatterns,
         // DeepQueue, Paths, the php-parser). PHP refuses to re-enter the autoloader for a class that is being autoloaded, so touching
         // one of those classes from in here would fail with "class not found" the first time. They are never traced: step aside.
-        if ((str_starts_with($class, 'RequestTracer\\') && ! str_starts_with($class, 'RequestTracer\\Tests\\')) || str_starts_with($class, 'PhpParser\\')) {
+        if ((str_starts_with($class, 'Ahmedhsieb\\RequestTracer\\') && ! str_starts_with($class, 'Ahmedhsieb\\RequestTracer\\Tests\\')) || str_starts_with($class, 'PhpParser\\')) {
             return;
         }
         $this->seen[$class] = true;

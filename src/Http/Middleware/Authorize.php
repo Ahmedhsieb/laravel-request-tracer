@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Http\Middleware;
+namespace Ahmedhsieb\RequestTracer\Http\Middleware;
 
+use Ahmedhsieb\RequestTracer\Support\Brand;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use RequestTracer\Support\Brand;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

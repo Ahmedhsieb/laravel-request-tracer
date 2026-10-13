@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Deep\Corpus;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Deep\Corpus;
 
 use Attribute;
 use LogicException;

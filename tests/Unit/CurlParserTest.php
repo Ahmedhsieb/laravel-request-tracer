@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use RequestTracer\Replay\CurlParser;
+use Ahmedhsieb\RequestTracer\Replay\CurlParser;
 
 it('reads a POST that Chrome copies as cURL (bash), quotes, escapes and all', function () {
     $command = <<<'CURL'

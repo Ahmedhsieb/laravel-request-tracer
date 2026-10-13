@@ -26,7 +26,7 @@ When something in a Laravel application behaves strangely, the usual move is `dd
 ## How you use it
 
 ```bash
-composer require your-vendor/laravel-request-tracer
+composer require ahmedhsieb/laravel-request-tracer
 php artisan request-tracer:listen
 ```
 

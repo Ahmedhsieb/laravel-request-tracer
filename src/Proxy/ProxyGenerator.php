@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Proxy;
+namespace Ahmedhsieb\RequestTracer\Proxy;
 
-use RequestTracer\Attributes\NoTrace;
-use RequestTracer\Attributes\Trace;
-use RequestTracer\Support\Files;
-use RequestTracer\Support\Paths;
+use Ahmedhsieb\RequestTracer\Attributes\NoTrace;
+use Ahmedhsieb\RequestTracer\Attributes\Trace;
+use Ahmedhsieb\RequestTracer\Support\Files;
+use Ahmedhsieb\RequestTracer\Support\Paths;
 
 /**
  * Generates, caches and loads "traced" subclasses (layer 2).
  *
- * For a class `Foo` it writes `RequestTracer\Proxies\Foo__Proxy extends Foo` overriding every public, non-static, non-final
+ * For a class `Foo` it writes `Ahmedhsieb\RequestTracer\Proxies\Foo__Proxy extends Foo` overriding every public, non-static, non-final
  * method. Each override costs one boolean check (`Hot::$on`) when nothing is recorded; when recording it opens a span with
  * the arguments, calls `parent::method()`, and closes the span with the return value or the exception.
  *
@@ -27,7 +27,7 @@ final class ProxyGenerator
 {
     public const VERSION = '3';
 
-    private const NAMESPACE = 'RequestTracer\\Proxies';
+    private const NAMESPACE = 'Ahmedhsieb\\RequestTracer\\Proxies';
 
     /** Methods that are never overridden (constructors, destructors, magic accessors, serialization hooks). */
     private const SKIP_METHODS = [
@@ -264,7 +264,7 @@ final class ProxyGenerator
         $label = var_export($middleware ? self::shortName($class->getName()) : self::label($class->getName(), $name, $method), true);
         $file = var_export(Paths::relative($method->getFileName() ?: null), true);
         $line = $method->getStartLine() !== false ? (string) $method->getStartLine() : 'null';
-        $kind = $middleware ? '\\RequestTracer\\Proxy\\Runtime::MIDDLEWARE' : '\\RequestTracer\\Proxy\\Runtime::SERVICE';
+        $kind = $middleware ? '\\Ahmedhsieb\\RequestTracer\\Proxy\\Runtime::MIDDLEWARE' : '\\Ahmedhsieb\\RequestTracer\\Proxy\\Runtime::SERVICE';
         $args = implode(', ', $callArgs);
         $argArray = $middleware ? '[]' : '['.implode(', ', $argNames).']';
         $signature = '    '.str_replace("\n", "\n    ", rtrim($attributes)).($attributes !== '' ? "\n    " : '')
@@ -272,8 +272,8 @@ final class ProxyGenerator
 
         $passThrough = $isVoid ? "parent::{$name}({$args});\n            return;" : ($isNever ? "parent::{$name}({$args});" : "return parent::{$name}({$args});");
 
-        $body = "        if (! \\RequestTracer\\Hot::\$on) {\n            {$passThrough}\n        }\n\n"
-            ."        \$__rt = \\RequestTracer\\Proxy\\Runtime::enter({$label}, {$file}, {$line}, {$kind}, {$argArray});\n"
+        $body = "        if (! \\Ahmedhsieb\\RequestTracer\\Hot::\$on) {\n            {$passThrough}\n        }\n\n"
+            ."        \$__rt = \\Ahmedhsieb\\RequestTracer\\Proxy\\Runtime::enter({$label}, {$file}, {$line}, {$kind}, {$argArray});\n"
             ."        try {\n";
         if ($isVoid || $isNever) {
             $body .= "            parent::{$name}({$args});\n";
@@ -281,13 +281,13 @@ final class ProxyGenerator
             $body .= "            \$__ret = parent::{$name}({$args});\n";
         }
         $body .= "        } catch (\\Throwable \$__e) {\n"
-            ."            \\RequestTracer\\Proxy\\Runtime::fail(\$__rt, \$__e);\n\n"
+            ."            \\Ahmedhsieb\\RequestTracer\\Proxy\\Runtime::fail(\$__rt, \$__e);\n\n"
             ."            throw \$__e;\n"
             ."        }\n";
         if ($isVoid) {
-            $body .= "        \\RequestTracer\\Proxy\\Runtime::leave(\$__rt, null, true);\n";
+            $body .= "        \\Ahmedhsieb\\RequestTracer\\Proxy\\Runtime::leave(\$__rt, null, true);\n";
         } elseif (! $isNever) {
-            $body .= "        \\RequestTracer\\Proxy\\Runtime::leave(\$__rt, \$__ret);\n\n        return \$__ret;\n";
+            $body .= "        \\Ahmedhsieb\\RequestTracer\\Proxy\\Runtime::leave(\$__rt, \$__ret);\n\n        return \$__ret;\n";
         }
 
         return $signature."\n    {\n".$body."    }\n";

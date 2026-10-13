@@ -1,7 +1,7 @@
 # Request Tracer
 
-[![Latest version](https://img.shields.io/packagist/v/your-vendor/laravel-request-tracer.svg)](https://packagist.org/packages/your-vendor/laravel-request-tracer)
-[![Tests](https://github.com/your-vendor/laravel-request-tracer/actions/workflows/ci.yml/badge.svg)](https://github.com/your-vendor/laravel-request-tracer/actions/workflows/ci.yml)
+[![Latest version](https://img.shields.io/packagist/v/ahmedhsieb/laravel-request-tracer.svg)](https://packagist.org/packages/ahmedhsieb/laravel-request-tracer)
+[![Tests](https://github.com/ahmedhsieb/laravel-request-tracer/actions/workflows/ci.yml/badge.svg)](https://github.com/ahmedhsieb/laravel-request-tracer/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/php-8.1%20%E2%80%93%208.4-777bb4.svg)](docs/02-installation.md)
 [![Laravel](https://img.shields.io/badge/laravel-10%20%E2%80%93%2013-ff2d20.svg)](docs/02-installation.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -21,7 +21,7 @@ When a request misbehaves, `dd()` shows you one value in one place and kills the
 ## Two steps
 
 ```bash
-composer require your-vendor/laravel-request-tracer
+composer require ahmedhsieb/laravel-request-tracer
 
 php artisan request-tracer:listen
 ```

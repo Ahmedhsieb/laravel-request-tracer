@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Dumper;
+namespace Ahmedhsieb\RequestTracer\Dumper;
 
+use Ahmedhsieb\RequestTracer\Support\Paths;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\LazyCollection;
-use RequestTracer\Support\Paths;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;

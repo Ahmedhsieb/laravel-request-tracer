@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Http;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Http;
 
 use Closure;
 use Illuminate\Http\Request;

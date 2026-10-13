@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Replay;
+namespace Ahmedhsieb\RequestTracer\Replay;
 
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
@@ -11,8 +13,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
-use RequestTracer\Support\App;
-use RequestTracer\Tracer;
 use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
 

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\DeepTrace\Loader;
+use Ahmedhsieb\RequestTracer\Recording\Listening;
+use Ahmedhsieb\RequestTracer\Replay\Replayer;
+use Ahmedhsieb\RequestTracer\Replay\ReplayRequest;
+use Ahmedhsieb\RequestTracer\Support\Paths;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\DeepTrace\Loader;
-use RequestTracer\Recording\Listening;
-use RequestTracer\Replay\Replayer;
-use RequestTracer\Replay\ReplayRequest;
-use RequestTracer\Support\Paths;
 
 const API = '/request-tracer/api/v1';
 

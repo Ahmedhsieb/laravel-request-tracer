@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Recording;
+namespace Ahmedhsieb\RequestTracer\Recording;
 
 /** Random sampling for `triggers.sampling.rate` (0..1). */
 final class Sampler

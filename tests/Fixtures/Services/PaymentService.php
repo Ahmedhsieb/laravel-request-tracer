@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Services;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Services;
 
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\Order;
 use Illuminate\Support\Facades\Http;
-use RequestTracer\Tests\Fixtures\Models\Order;
 
 class PaymentService
 {

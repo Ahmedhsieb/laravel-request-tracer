@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Http\Middleware\Authorize;
+use Ahmedhsieb\RequestTracer\Http\Middleware\LightWeb;
 use Illuminate\Support\Facades\Gate;
-use RequestTracer\Http\Middleware\Authorize;
-use RequestTracer\Http\Middleware\LightWeb;
 
 it('puts the light web stack and the gate on the dashboard routes by default', function () {
     $route = app('router')->getRoutes()->getByName('request-tracer.api.meta');

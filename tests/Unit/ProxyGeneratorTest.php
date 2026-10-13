@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Hot;
+use Ahmedhsieb\RequestTracer\Proxy\ProxyGenerator;
+use Ahmedhsieb\RequestTracer\Recording\Decision;
+use Ahmedhsieb\RequestTracer\RecordingState;
+use Ahmedhsieb\RequestTracer\Span;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Proxy\EdgeCases;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Proxy\MarkerAttribute;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Proxy\Suit;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Services\CouponService;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Support\ServiceProvider;
-use RequestTracer\Hot;
-use RequestTracer\Proxy\ProxyGenerator;
-use RequestTracer\Recording\Decision;
-use RequestTracer\RecordingState;
-use RequestTracer\Span;
-use RequestTracer\SpanType;
-use RequestTracer\Tests\Fixtures\Proxy\EdgeCases;
-use RequestTracer\Tests\Fixtures\Proxy\MarkerAttribute;
-use RequestTracer\Tests\Fixtures\Proxy\Suit;
-use RequestTracer\Tests\Fixtures\Services\CouponService;
-use RequestTracer\Tracer;
 
 function proxyOf(string $class = EdgeCases::class, array $options = [], ?string $dir = null): object
 {
@@ -53,7 +53,7 @@ it('generates a subclass of the original', function () {
     $proxy = proxyOf();
 
     expect($proxy)->toBeInstanceOf(EdgeCases::class)
-        ->and($proxy::class)->toBe('RequestTracer\Proxies\RequestTracer_Tests_Fixtures_Proxy_EdgeCases__Proxy')
+        ->and($proxy::class)->toBe('Ahmedhsieb\RequestTracer\Proxies\Ahmedhsieb_RequestTracer_Tests_Fixtures_Proxy_EdgeCases__Proxy')
         ->and($proxy->name)->toBe('edge');                       // constructor ran with its defaults
 });
 

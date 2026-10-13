@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Analysis;
+namespace Ahmedhsieb\RequestTracer\Analysis;
 
 /** One exception seen during a trace. `uncaught` means the response was built from it; `ignore` means that is normal control flow (404, 422, ...). */
 final class ExceptionRecord

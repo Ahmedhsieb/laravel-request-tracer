@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Jobs;
+namespace Ahmedhsieb\RequestTracer\Jobs;
 
+use Ahmedhsieb\RequestTracer\Storage\TraceStorage;
+use Ahmedhsieb\RequestTracer\TraceData;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
-use RequestTracer\Storage\TraceStorage;
-use RequestTracer\TraceData;
 
 /**
  * Persists a finished trace from a queue worker instead of in terminate() (`storage.queue.enabled`).

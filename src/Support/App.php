@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Support;
+namespace Ahmedhsieb\RequestTracer\Support;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Config\Repository;

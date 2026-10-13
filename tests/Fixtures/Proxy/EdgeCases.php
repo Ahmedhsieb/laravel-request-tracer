@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Proxy;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Proxy;
 
 use Countable;
 use LogicException;

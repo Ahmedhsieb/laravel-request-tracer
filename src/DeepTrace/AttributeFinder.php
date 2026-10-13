@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\DeepTrace;
+namespace Ahmedhsieb\RequestTracer\DeepTrace;
 
+use Ahmedhsieb\RequestTracer\Attributes\NoTrace;
+use Ahmedhsieb\RequestTracer\Attributes\Trace;
 use PhpParser\Node;
 use PhpParser\Node\Stmt\ClassLike;
 use PhpParser\NodeVisitorAbstract;
-use RequestTracer\Attributes\NoTrace;
-use RequestTracer\Attributes\Trace;
 
 /**
  * Reads class-level `#[Trace(deep: true)]` / `#[NoTrace]` from an AST (names must already be resolved), and offers the

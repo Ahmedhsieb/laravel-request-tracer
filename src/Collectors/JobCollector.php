@@ -2,8 +2,16 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Collectors;
+namespace Ahmedhsieb\RequestTracer\Collectors;
 
+use Ahmedhsieb\RequestTracer\Recording\BackgroundDecider;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\CallSite;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\Locator;
+use Ahmedhsieb\RequestTracer\Support\Summary;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Queue\Events\JobExceptionOccurred;
@@ -12,14 +20,6 @@ use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Events\JobQueued;
 use Illuminate\Queue\Queue;
-use RequestTracer\Recording\BackgroundDecider;
-use RequestTracer\SpanType;
-use RequestTracer\Support\App;
-use RequestTracer\Support\CallSite;
-use RequestTracer\Support\Failure;
-use RequestTracer\Support\Locator;
-use RequestTracer\Support\Summary;
-use RequestTracer\Tracer;
 
 /**
  * Jobs dispatched by the request (`job` spans), and the link from a job to the trace that dispatched it: while recording,

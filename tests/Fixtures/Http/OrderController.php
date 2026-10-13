@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Http;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Http;
 
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Services\OrderService;
 use Illuminate\Http\JsonResponse;
-use RequestTracer\Tests\Fixtures\Services\OrderService;
 
 class OrderController
 {

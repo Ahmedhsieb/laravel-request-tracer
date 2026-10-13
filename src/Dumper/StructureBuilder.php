@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Dumper;
+namespace Ahmedhsieb\RequestTracer\Dumper;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Foundation\Application;

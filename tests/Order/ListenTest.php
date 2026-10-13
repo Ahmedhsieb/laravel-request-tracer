@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Console\ListenCommand;
+use Ahmedhsieb\RequestTracer\Recording\Listening;
+use Ahmedhsieb\RequestTracer\Storage\TableInstaller;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Jobs\RecalculateStats;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
-use RequestTracer\Console\ListenCommand;
-use RequestTracer\Recording\Listening;
-use RequestTracer\Storage\TableInstaller;
-use RequestTracer\Tests\Fixtures\Jobs\RecalculateStats;
-use RequestTracer\Tests\Fixtures\Models\User;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 

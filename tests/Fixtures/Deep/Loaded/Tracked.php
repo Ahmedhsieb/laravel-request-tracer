@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Deep\Loaded;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Deep\Loaded;
 
 class Tracked
 {

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Replay;
+namespace Ahmedhsieb\RequestTracer\Replay;
 
+use Ahmedhsieb\RequestTracer\Sql\SqlAnalyzer;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Failure;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use RequestTracer\Sql\SqlAnalyzer;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Failure;
 use Throwable;
 
 /**
