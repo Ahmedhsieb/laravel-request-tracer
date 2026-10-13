@@ -44,7 +44,7 @@ Git: one branch per phase `phase/<n>-<slug>`, merge to `main` when tests + analy
 - `declare(strict_types=1);` in every file. Small `final` classes, constructor injection, interfaces where a seam is useful (`TraceStorage`, `Collector`).
 - No clever magic where a plain interface works. No closures in config (see `docs/decisions.md` D12).
 - Span = plain data object (`src/Span.php`). Collectors only talk to the `Recorder`; the `Recorder` only talks to `Storage` through `TraceStorage` at terminate time.
-- Frontend: `resources/js` (Vue 3 + TS + Vite). API is versioned `/request-tracer/api/v1`. Payloads are never part of the tree response; they load lazily by span id.
+- Frontend: `resources/js` (Vue 3 + TS + Vite + Tailwind 4). UI is built on ready libraries, not hand-made widgets: Reka UI (dialogs, tabs, select, splitter, tooltip, listbox), motion-v (animation), lucide icons, vue-sonner (toasts), floating-ui (pop-ups), VueUse. Our wrappers are in `resources/js/ui/`; colours are CSS variables in `styles/app.css` (dark default, `.dark`). Logic stays outside components (`store.ts`, `lib/*`, tested). API is versioned `/request-tracer/api/v1`. Payloads are never part of the tree response; they load lazily by span id.
 - Tests: Pest; unit tests under `tests/Unit`, anything that boots Laravel under `tests/Feature`. Example app: `tests/Fixtures` (Order flow). Add a test with every behaviour change.
 - Docs: write them as you go (`docs/`). Every config key must be in `docs/04-configuration.md`. Record non-obvious decisions in `docs/decisions.md`.
 

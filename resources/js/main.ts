@@ -4,6 +4,7 @@ import { HttpApi } from './api/client'
 import { DEMO_META, DemoApi } from './api/demo'
 import type { Api, Meta } from './api/types'
 import { STORE_KEY, createStore } from './store'
+import 'vue-sonner/style.css'
 import './styles/app.css'
 
 /**

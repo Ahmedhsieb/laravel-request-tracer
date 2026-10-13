@@ -1,84 +1,62 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { autoUpdate, flip, offset, shift, size, useFloating } from '@floating-ui/vue'
+import { Pin, X } from 'lucide-vue-next'
+import { computed, ref, toRef } from 'vue'
 import type { CodeLine } from '../lib/code'
 import ValueNode from './ValueNode.vue'
 
 const props = defineProps<{ line: CodeLine; anchor: HTMLElement; pinned: boolean }>()
 const emit = defineEmits<{ close: []; hold: []; release: [] }>()
 
-const el = ref<HTMLElement | null>(null)
-const style = ref<Record<string, string>>({ visibility: 'hidden' })
+const floating = ref<HTMLElement | null>(null)
 
-const WIDTH = 400
-const GAP = 12
-const MARGIN = 8
-
-/** Next to the line, on the side that has room (the code sits at the right edge, so usually on its left), never off the screen. */
-function place(): void {
-  const rect = props.anchor.getBoundingClientRect()
-  const height = el.value?.offsetHeight ?? 220
-  const vw = window.innerWidth
-  const vh = window.innerHeight
-  const width = Math.min(WIDTH, vw - 2 * MARGIN)
-
-  let left: number
-  let top: number
-  if (rect.left - GAP - width >= MARGIN) {
-    left = rect.left - GAP - width
-    top = rect.top - 6
-  } else if (vw - rect.right - GAP - width >= MARGIN) {
-    left = rect.right + GAP
-    top = rect.top - 6
-  } else {
-    left = Math.min(Math.max(MARGIN, rect.left), vw - width - MARGIN)
-    top = rect.bottom + 6 + height > vh - MARGIN ? rect.top - height - 6 : rect.bottom + 6
-  }
-  top = Math.min(Math.max(MARGIN, top), Math.max(MARGIN, vh - height - MARGIN))
-  style.value = { left: `${left}px`, top: `${top}px`, width: `${width}px` }
-}
-
-watch(() => [props.line, props.anchor], async () => {
-  await nextTick()
-  place()
-}, { immediate: false })
-
-onMounted(async () => {
-  await nextTick()
-  place()
-  window.addEventListener('resize', place)
-  window.addEventListener('scroll', place, true)
+// Next to the line, on the side that has room (the code sits at the right edge, so usually on its left), never off the screen.
+const { floatingStyles } = useFloating(toRef(props, 'anchor'), floating, {
+  placement: 'left-start',
+  strategy: 'fixed',
+  transform: false,                                  // left/top, because the entrance animation owns `transform`
+  whileElementsMounted: autoUpdate,
+  middleware: [
+    offset(14),
+    flip({ fallbackPlacements: ['right-start', 'bottom-start', 'top-start'], padding: 10 }),
+    shift({ padding: 10 }),
+    size({
+      padding: 10,
+      apply({ availableHeight, elements }) {
+        elements.floating.style.maxHeight = `${Math.max(180, Math.min(availableHeight, 560))}px`
+      },
+    }),
+  ],
 })
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', place)
-  window.removeEventListener('scroll', place, true)
-})
+
+const hits = computed(() => (props.line.hits > 1 ? `ran ${props.line.hits}×` : ''))
 </script>
 
 <template>
   <Teleport to="body">
     <div
-      ref="el"
-      class="line-popover"
-      :class="{ pinned }"
-      :style="style"
+      ref="floating"
+      class="glass line-popover z-[75] w-[400px] max-w-[calc(100vw-20px)] animate-pop-in overflow-auto rounded-xl border bg-surface/95 p-3.5 shadow-[0_24px_60px_-18px_rgba(0,0,0,.65)]"
+      :class="pinned ? 'border-[var(--accent)]' : 'border-line-strong'"
+      :style="floatingStyles"
       :role="pinned ? 'dialog' : 'tooltip'"
       :aria-label="`Line ${line.n}`"
       @mouseenter="emit('hold')"
       @mouseleave="emit('release')"
     >
-      <header>
-        <h3>Line {{ line.n }}</h3>
-        <span v-if="line.hits > 1" class="muted mono">ran {{ line.hits }}×</span>
-        <span class="spacer"></span>
-        <button v-if="pinned" class="close" type="button" aria-label="Close" @click="emit('close')">✕</button>
-        <span v-else class="hint">click the line to keep this open</span>
+      <header class="mb-2 flex items-center gap-2">
+        <h3 class="font-mono text-[12.5px] font-semibold">Line {{ line.n }}</h3>
+        <span v-if="hits" class="font-mono text-[11px] text-muted">{{ hits }}</span>
+        <span class="flex-1"></span>
+        <button v-if="pinned" class="grid size-6 place-items-center rounded-md text-muted transition-colors hover:bg-hover hover:text-fg" type="button" aria-label="Close" @click="emit('close')"><X class="size-3.5" /></button>
+        <span v-else class="flex items-center gap-1 text-[10.5px] text-faint"><Pin class="size-3" />click the line to keep this open</span>
       </header>
-      <p v-if="line.description">{{ line.description }}</p>
-      <p v-else class="muted">Nothing is recorded for this line.</p>
-      <div v-if="line.variables.length > 0" class="vars">
-        <div v-for="(v, i) in line.variables" :key="i" class="var">
-          <span class="k">{{ v.label }}</span>
-          <div class="mono dd" style="max-height: 200px"><ValueNode :value="v.value" :open-depth="1" /></div>
+      <p v-if="line.description" class="mb-2.5 text-[12.5px] leading-relaxed">{{ line.description }}</p>
+      <p v-else class="mb-2.5 text-muted">Nothing is recorded for this line.</p>
+      <div v-if="line.variables.length > 0" class="space-y-2.5">
+        <div v-for="(v, i) in line.variables" :key="i">
+          <span class="font-mono text-[11.5px] font-semibold text-[var(--t-controller)]">{{ v.label }}</span>
+          <div class="mt-1 max-h-[220px] overflow-auto rounded-lg border border-line bg-bg/50 px-2.5 py-1.5"><ValueNode :value="v.value" :open-depth="1" /></div>
         </div>
       </div>
     </div>

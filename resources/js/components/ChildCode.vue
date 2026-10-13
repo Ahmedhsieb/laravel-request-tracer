@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { ChevronRight } from 'lucide-vue-next'
 import { computed, inject, onMounted, ref } from 'vue'
 import type { SpanLines } from '../api/types'
-import { formatUs, shortClass, shortFile } from '../lib/format'
 import { CODE_CONTEXT } from '../lib/codeContext'
+import { formatUs, shortClass, shortFile } from '../lib/format'
 import { TYPE_LABEL } from '../lib/spans'
 import type { TreeNode } from '../lib/tree'
 import { useStore } from '../store'
+import Pill from '../ui/Pill.vue'
 import CodeView from './CodeView.vue'
 
 const props = defineProps<{ node: TreeNode; name: string; autoOpen?: boolean }>()
@@ -39,20 +41,20 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="code nested child-step">
-    <header>
-      <button class="fold" type="button" :aria-expanded="open" :aria-label="`${open ? 'Hide' : 'Show'} the code of ${name}`" @click="toggle">
-        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M5 3l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
-        <span class="name" :title="name">{{ shortClass(name) }}</span>
+  <section class="my-2 ml-4 overflow-hidden rounded-xl border border-line border-l-2 border-l-[var(--accent)]/70 bg-bg/45">
+    <header class="flex flex-wrap items-center gap-x-3 gap-y-1 bg-raised/60 px-2.5 py-1.5 text-[12px]">
+      <button class="flex min-h-7 items-center gap-1.5 rounded-md pr-1 text-fg outline-none hover:text-accent-ink" type="button" :aria-expanded="open" :aria-label="`${open ? 'Hide' : 'Show'} the code of ${name}`" @click="toggle">
+        <ChevronRight class="size-3.5 shrink-0 text-faint transition-transform duration-200" :class="open ? 'rotate-90' : ''" />
+        <span class="font-mono text-[12.5px] font-semibold" :title="name">{{ shortClass(name) }}</span>
       </button>
-      <span class="muted mono">{{ shortFile(span.file, span.line) }}</span>
-      <span class="tag">{{ TYPE_LABEL[span.type] }} step · {{ formatUs(span.duration_us) }}</span>
+      <span class="font-mono text-[11px] text-faint">{{ shortFile(span.file, span.line) }}</span>
+      <Pill :color="`var(--t-${span.type})`">{{ TYPE_LABEL[span.type] }} step · {{ formatUs(span.duration_us) }}</Pill>
     </header>
-    <div v-if="open" class="child-body">
-      <p v-if="problem" class="tone-bad" role="alert">{{ problem }}</p>
-      <p v-else-if="loading" class="muted" aria-busy="true">Loading…</p>
+    <div v-if="open" class="border-t border-line p-2.5">
+      <p v-if="problem" class="text-bad" role="alert">{{ problem }}</p>
+      <p v-else-if="loading" class="text-muted" aria-busy="true">Loading…</p>
       <CodeView v-else-if="data && data.sources.length > 0" :data="data" :node="node" :nested="true" />
-      <p v-else class="muted info-line">This step was not traced line by line, so there is no code to show. Select it in the flow to queue its file.</p>
+      <p v-else class="text-muted">This step was not traced line by line, so there is no code to show. Select it in the flow to queue its file.</p>
     </div>
   </section>
 </template>

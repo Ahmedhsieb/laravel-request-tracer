@@ -20,7 +20,7 @@ Newest first. Each row shows the method (or `JOB` / `COMMAND` for queued jobs an
 
 **Group by route** puts the requests of one route prefix together: `/api/payments` with its count, its problems and its slowest request, and a click on the header closes or opens it (*Close all* / *Open all* for the lot). The prefix is the first segments of the route up to the first record id (`/api/payments/vouchers/12/edit` is `/api/payments` with two segments, `/api/payments/vouchers` with three; the number of segments is a choice next to the button). Jobs and commands group as *Jobs* and *Commands*. The choice is remembered in the browser.
 
-The page itself does not scroll: the list on the left and the details on the right each scroll inside their own box, however many requests or lines of code there are. *Hide summary* (next to the tabs) folds the figures and the time bar away to give the flow more room.
+The page itself does not scroll: the list on the left and the details on the right each scroll inside their own box, however many requests or lines of code there are. *Show overview* / *Hide overview* (next to the tabs) opens or folds the time map and the figures to give the flow more room; on a screen shorter than 1000 px it starts folded.
 
 ## A request
 
@@ -70,9 +70,17 @@ One card per table and operation: `INSERT`, `UPDATE` or `DELETE`, the rows, and 
 
 Uncaught and caught exceptions, N+1 queries, repeated and slow queries, slow steps and failed HTTP calls, each with an explanation, the file and line, and **Show in the flow**. At the bottom: notes about things the tracer could not follow (a `final` class that cannot be proxied, a file that could not be compiled for Deep trace).
 
+## Moving around fast
+
+- **Ctrl+K (⌘K)** opens the search palette: actions (replay, record, group, theme, reload), the requests of the list and, when a request is open, **its steps**. Pick a step and the flow scrolls to it and opens it. Arrow keys move, Enter picks, Esc closes.
+- **The flow is a waterfall.** Every step is a bar placed at its real start and length on a time ruler; a crosshair follows the pointer and says the time at that point. Above the flow a small **time map** draws the whole request; drag over it to zoom the waterfall into that part of the time, *Reset zoom* gets the whole request back.
+- **The ribbon under the figures** shows where the time went by step type; click a type to filter the flow by it.
+- **The panes are yours.** Drag the line between the list and the request, and between the steps and the details; the sizes are remembered in the browser. The bar of little columns above the list is the *pulse* of the list: one column per request, as high as it was slow, red when it failed.
+- **Dark and light.** The dashboard starts dark; the moon/sun button (or the palette) switches, and the choice is remembered.
+
 ## Keyboard and accessibility
 
-Every control is at least 44 px, has a visible focus ring and a text label; colours meet 4.5:1 contrast; animations stop when the system asks for reduced motion; the layout works from 375 px wide (an open request takes the whole screen, "← All requests" goes back).
+Every control has a visible focus ring and a text label; colours meet 4.5:1 contrast; animations stop when the system asks for reduced motion; the layout works from 375 px wide (an open request takes the whole screen, "← All requests" goes back). Dialogs, menus, tabs and the palette are built on Reka UI, so they trap focus, close with Esc and are announced to screen readers.
 
 ## Replay a request that already happened
 
