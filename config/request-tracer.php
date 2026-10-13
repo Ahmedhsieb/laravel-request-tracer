@@ -66,6 +66,7 @@ return [
         'undo_hours' => 24,         // how long what a real run changed can still be undone
         'undo_path' => null,        // where the (encrypted) undo logs are kept; default storage/framework/request-tracer/undo
         'timeout' => 120,           // seconds
+        'memory_limit' => '2G',     // of the process that runs the request: it traces every line, so it needs several times a normal request's memory; '' = php.ini's
     ],
 
     /*

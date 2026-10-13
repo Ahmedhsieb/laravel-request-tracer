@@ -171,8 +171,15 @@ class Replayer
         try {
             file_put_contents($file, (string) json_encode($replay->toArray()));
             $php = (new PhpExecutableFinder)->find(false) ?: PHP_BINARY;
+            // The child traces the whole request from its first line, which takes several times the memory of a request that is listened to,
+            // so it has a limit of its own. A fatal error is written to stderr (a command line php.ini often hides it), so it can be reported.
+            $limit = trim((string) App::config()->get('request-tracer.replay.memory_limit', '2G'));
+            $options = ['-d', 'display_errors=stderr', '-d', 'log_errors=0'];
+            if ($limit !== '') {
+                array_push($options, '-d', 'memory_limit='.$limit);
+            }
             $process = new Process(
-                [$php, App::application()->basePath('artisan'), 'request-tracer:replay', '--payload-file='.$file, '--json', '--no-interaction'],
+                [$php, ...$options, App::application()->basePath('artisan'), 'request-tracer:replay', '--payload-file='.$file, '--json', '--no-interaction'],
                 App::application()->basePath(),
                 ['REQUEST_TRACER' => '1'],
                 null,
@@ -197,10 +204,26 @@ class Replayer
 
             $output = trim($process->getErrorOutput()."\n".$process->getOutput());
 
-            return ['trace_id' => null, 'status' => null, 'error' => $process->isSuccessful() ? 'The replay produced no result.' : 'The replay process failed: '.mb_substr($output, -600)];
+            return ['trace_id' => null, 'status' => null, 'error' => $process->isSuccessful() ? 'The replay produced no result.' : self::childFailure($process->getExitCode(), $output, $limit)];
         } finally {
             @unlink($file);
         }
+    }
+
+    /** What to tell about a replay process that died: PHP's own message when there is one, otherwise the exit code and the usual cause. */
+    private static function childFailure(?int $exitCode, string $output, string $limit): string
+    {
+        $message = 'The replay process failed'.($exitCode !== null ? ' (exit code '.$exitCode.')' : '').': ';
+        $output = mb_substr($output, -600);
+        $now = $limit === '' ? "the PHP command line's" : $limit;
+        if (stripos($output, 'Allowed memory size') !== false) {
+            return $message.$output.' The request needs more memory than the replay may use: raise `request-tracer.replay.memory_limit` (now '.$now.').';
+        }
+        if ($output === '') {
+            return $message.'it stopped without a message, which is usually PHP running out of memory or time. Raise `request-tracer.replay.memory_limit` (now '.$now.') or `request-tracer.replay.timeout`.';
+        }
+
+        return $message.$output;
     }
 
     /**

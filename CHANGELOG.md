@@ -4,6 +4,10 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.8.6] - 2026-10-13
+
+- **A big request can be replayed.** The replay runs in a process of its own and traces the request from its first line, which can need several times the memory the request needs while it is listened to (measured: 1.15 GB for a request of 517 queries, against +295 MB). When the command line `memory_limit` was lower the process died and the dashboard said only *The replay process failed:*. The process now has its own limit, `replay.memory_limit` (default `2G`, `''` keeps php.ini's), it writes PHP's fatal error to stderr so it can be shown, and the message gives the exit code and names the key to raise (and `replay.timeout`) when it stopped without one.
+
 ## [0.8.5] - 2026-10-13
 
 First version checked by the full CI matrix on GitHub (Laravel 10 to 13, PHP 8.1 to 8.5, lowest and highest dependencies, three databases).

@@ -134,3 +134,15 @@ it('takes a pasted cURL command, headers and a body for the command', function (
     $root = $this->traceSpans()[0];
     expect(json_encode($root['output']))->toContain('abc');
 });
+
+it('tells why the replay process died, and which key to change', function () {
+    $fail = new ReflectionMethod(Replayer::class, 'childFailure');
+
+    $memory = $fail->invoke(null, 255, 'PHP Fatal error:  Allowed memory size of 1073741824 bytes exhausted (tried to allocate 20480 bytes)', '1G');
+    expect($memory)->toContain('exit code 255')->toContain('Allowed memory size')->toContain('replay.memory_limit')->toContain('(now 1G)');
+
+    $silent = $fail->invoke(null, 255, '', '');
+    expect($silent)->toContain('stopped without a message')->toContain('replay.memory_limit')->toContain('replay.timeout')->toContain("the PHP command line's");
+
+    expect($fail->invoke(null, 1, 'Class "Foo" not found', '2G'))->toBe('The replay process failed (exit code 1): Class "Foo" not found');
+});
