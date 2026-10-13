@@ -24,6 +24,8 @@ const RAIL_W = 104
 const CHIP_H = 38
 /** a level with more steps than this shows the first ones and says how many are left: the waterfall is the place for the rest */
 const LIMIT = 60
+/** how many matches the list above the columns shows */
+const MATCHES = 80
 
 const holder = ref<HTMLElement | null>(null)
 const width = ref(720)
@@ -43,7 +45,8 @@ const colW = computed(() => {
 })
 const colX = (j: number): number => PAD + RAIL_W + COL_GAP + j * (colW.value + COL_GAP)
 
-const lit = computed(() => litSteps(props.roots, props.flow.filter.value, props.slowMs, props.flow.include.value))
+/** the graph shows the whole request, so a filter always looks at all of it and lights the way down to a match */
+const lit = computed(() => litSteps(props.roots, props.flow.filter.value, props.slowMs, true))
 
 interface Placed {
   node: TreeNode
@@ -173,6 +176,29 @@ onBeforeUnmount(() => observer?.disconnect())
     <p class="flex shrink-0 items-center gap-1.5 border-b border-line/60 px-3 py-1.5 text-[11.5px] text-muted">
       <MousePointerClick class="size-3.5 shrink-0 text-faint" />Click a step to open what is inside it on the right. Click one on the left to go back.
     </p>
+
+    <!-- while a filter is on: what matched, anywhere in the request. One click opens it in the columns below -->
+    <div v-if="flow.overall.value.filtering" class="max-h-[30%] shrink-0 overflow-auto border-b border-line/60 bg-raised/40 p-1.5" role="list" aria-label="Steps that match the filters">
+      <p v-if="flow.overall.value.entries.length === 0" class="px-2 py-1.5 text-[12px] text-muted">Nothing in the request matches these filters.</p>
+      <button
+        v-for="e in flow.overall.value.entries.slice(0, MATCHES)"
+        :key="e.node.span.id"
+        class="flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left outline-none hover:bg-hover focus-visible:bg-hover"
+        :class="e.node.span.id === pinned ? 'bg-[var(--accent)]/10' : ''"
+        type="button"
+        role="listitem"
+        @click="emit('pin', e.node.span.id)"
+        @pointerenter="emit('hover', e.node.span.id)"
+      >
+        <TypeIcon :type="e.node.span.type" />
+        <span class="min-w-0 flex-1">
+          <span class="block truncate font-mono text-[12px]" :title="e.node.span.label">{{ shortClass(e.node.span.label) }}</span>
+          <span v-if="e.trail.length > 0" class="block truncate text-[10.5px] text-faint [direction:rtl] [text-align:left]"><bdi>{{ e.trail.map((n) => shortClass(n.span.label)).join(' › ') }} ›</bdi></span>
+        </span>
+        <span class="shrink-0 font-mono text-[10.5px] tabular-nums text-muted">{{ formatUs(e.node.span.duration_us) }}</span>
+      </button>
+      <p v-if="flow.overall.value.entries.length > MATCHES" class="px-2 py-1 text-[11.5px] text-muted">{{ flow.overall.value.entries.length - MATCHES }} more. Narrow the filters, or use the waterfall.</p>
+    </div>
 
     <div ref="holder" class="relative min-h-0 flex-1 overflow-auto" role="tree" aria-label="Steps as columns" @pointerleave="emit('hover', null)">
       <div class="relative" :style="{ height: `${height}px`, minWidth: `${contentWidth}px` }">

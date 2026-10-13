@@ -4,6 +4,10 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-10-13
+
+- **The graph's filters cover the whole request.** In the graph the kinds of step (and their counts) were those of the folder the waterfall had open, so deep in a request only a few kinds were offered, and a filter only dimmed nodes that happened to be in view. Now the graph counts the whole request, *N of M steps* is for the whole request, the *Look in* switch (which only means something for a folder) is not shown, and while a filter is on a **list of the matches** (each with the path it is in) sits above the columns: one click opens that step in the columns.
+
 ## [0.8.2] - 2026-10-13
 
 - **The graph is easier to follow.** Clicking a node used to replace the column with what was inside it, so the way back was lost. The graph is now the path to the step you click, as **columns that grow to the right**: one click opens its insides in the next column, the level you came from stays beside it with the clicked step marked, the earlier steps stay at the left as a short path, and clicking any of them goes back. There is no double-click or folder button to learn, a line under the switch says how it works, and filters dim what does not match instead of changing the columns. Switching to the waterfall opens the folder of the chosen step.
