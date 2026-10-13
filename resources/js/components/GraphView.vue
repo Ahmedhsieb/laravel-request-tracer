@@ -14,7 +14,7 @@ import TypeIcon from '../ui/TypeIcon.vue'
 const props = defineProps<{ flow: Flow; roots: TreeNode[]; pinned: number | null; slowMs: number }>()
 const emit = defineEmits<{ hover: [id: number | null]; pin: [id: number] }>()
 
-const NODE_H = 62
+const NODE_H = 74
 const GAP = 8
 const PAD = 14
 const COL_GAP = 34
