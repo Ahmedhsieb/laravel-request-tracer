@@ -65,6 +65,8 @@
   --animate-collapse-up: collapse-up 0.18s ease-in;
   --animate-grow-x: grow-x 0.7s var(--ease-out-expo) both;
   --animate-grow-y: grow-y 0.6s var(--ease-out-expo) both;
+  --animate-folder-in: folder-in 0.32s var(--ease-out-expo) both;
+  --animate-folder-out: folder-out 0.32s var(--ease-out-expo) both;
 
   @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
   @keyframes pop-in { from { opacity: 0; transform: translateY(6px) scale(0.97); } to { opacity: 1; transform: none; } }
@@ -78,6 +80,8 @@
   @keyframes collapse-up { from { height: var(--reka-collapsible-content-height); opacity: 1; } to { height: 0; opacity: 0; } }
   @keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   @keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @keyframes folder-in { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+  @keyframes folder-out { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
   @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 }
 

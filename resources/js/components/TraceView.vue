@@ -11,6 +11,8 @@ import { absoluteTime, formatBytes, formatMs, formatUs, plural, shortClass } fro
 import { emptyForm, formFromRequest, type ReplayForm } from '../lib/replay'
 import { TYPE_LABEL, methodTone, statusTone, timeByType } from '../lib/spans'
 import type { Range } from '../lib/timeline'
+import { useFlow } from '../lib/flow'
+import { folderRange } from '../lib/folder'
 import { buildTree, findNode, type TreeNode } from '../lib/tree'
 import { ui } from '../lib/ui'
 import { useStore } from '../store'
@@ -19,6 +21,8 @@ import Counter from '../ui/Counter.vue'
 import Pill from '../ui/Pill.vue'
 import Tip from '../ui/Tip.vue'
 import DatabaseTab from './DatabaseTab.vue'
+import FlowBar from './FlowBar.vue'
+import GraphView from './GraphView.vue'
 import ProblemsTab from './ProblemsTab.vue'
 import SpanTree from './SpanTree.vue'
 import StepDetail from './StepDetail.vue'
@@ -42,12 +46,14 @@ const hoverId = ref<number | null>(null)
 const pinnedId = ref<number | null>(null)
 const entering = ref(true)
 const tree = ref<InstanceType<typeof SpanTree> | null>(null)
-const types = ref<Set<SpanType>>(new Set())
 const range = ref<Range>({ from: 0, to: 1 })
 let enteringTimer: ReturnType<typeof setTimeout> | null = null
 const stacked = useMediaQuery('(max-width: 1180px)')
 
 const roots = computed<TreeNode[]>(() => buildTree(spans.value))
+const slowMs = computed(() => store.meta?.slow_step_ms ?? 100)
+const flow = useFlow(roots, slowMs)
+const { types } = flow
 const totalUs = computed(() => Math.max(roots.value[0]?.span.duration_us ?? 0, (trace.value?.duration_ms ?? 0) * 1000, 1))
 const slices = computed(() => timeByType(roots.value, totalUs.value))
 const sliceLabel = computed(() => `Time by type: ${slices.value.map((s) => `${TYPE_LABEL[s.type]} ${formatUs(s.us)}`).join(', ')}`)
@@ -144,11 +150,9 @@ async function load(): Promise<void> {
   } finally {
     loading.value = false
   }
-  // open the branches down to the step that is shown first, otherwise a long middleware chain hides everything
-  if (pinnedId.value !== null) {
-    await nextTick()
-    await tree.value?.reveal(pinnedId.value, true)
-  }
+  // open the folder of the step that is shown first (the controller, with what it did inside), otherwise a long middleware chain hides everything
+  flow.reset()
+  if (pinnedId.value !== null) flow.reveal(pinnedId.value, true)
 }
 
 /** Open the replay dialog filled in with this request (the recorded method, path, query, headers and body). */
@@ -173,16 +177,24 @@ function select(id: number): void {
 async function show(id: number): Promise<void> {
   tab.value = 'flow'
   pinnedId.value = id
+  flow.reveal(id)
   await nextTick()
-  await tree.value?.reveal(id)
+  void tree.value?.scrollTo(id)
+}
+
+/** Pin a step without toggling it off (the open folder in the path above the steps). */
+function pin(id: number): void {
+  pinnedId.value = id
 }
 
 function toggleType(type: SpanType): void {
-  const next = new Set(types.value)
-  if (next.has(type)) next.delete(type)
-  else next.add(type)
-  types.value = next
+  flow.toggleType(type)
 }
+
+// opening a folder puts its own stretch of time on the axis: its steps fill the lane instead of a sliver of the request
+watch(flow.folder, (folder) => {
+  range.value = folderRange(folder, totalUs.value)
+})
 
 async function copyLink(): Promise<void> {
   try {
@@ -318,18 +330,21 @@ onBeforeUnmount(() => {
         <TimeMap v-model:range="range" :roots="roots" :total-us="totalUs" :marker="marker" class="shrink-0" />
         <SplitterGroup :direction="stacked ? 'vertical' : 'horizontal'" auto-save-id="request-tracer:flow" class="min-h-0 flex-1">
           <SplitterPanel :default-size="52" :min-size="30" class="min-h-0 min-w-0">
-            <SpanTree
-              ref="tree"
-              v-model:types="types"
-              :roots="roots"
-              :total-us="totalUs"
-              :pinned="pinnedId"
-              :entering="entering"
-              :slow-ms="store.meta?.slow_step_ms ?? 100"
-              :range="range"
-              @hover="hoverId = $event"
-              @select="select"
-            />
+            <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-surface/80">
+              <FlowBar :flow="flow" @select="pin" />
+              <SpanTree
+                v-if="flow.view.value === 'waterfall'"
+                ref="tree"
+                :flow="flow"
+                :total-us="totalUs"
+                :pinned="pinnedId"
+                :entering="entering"
+                :range="range"
+                @hover="hoverId = $event"
+                @select="select"
+              />
+              <GraphView v-else :flow="flow" :pinned="pinnedId" @hover="hoverId = $event" @select="select" />
+            </div>
           </SplitterPanel>
           <SplitterResizeHandle class="group relative outline-none transition-colors" :class="stacked ? 'h-3' : 'w-3'" aria-label="Resize the steps and the details">
             <span class="absolute rounded-full bg-line transition-colors group-hover:bg-accent group-data-[resize-handle-state=drag]:bg-accent" :class="stacked ? 'inset-x-0 top-1/2 h-px' : 'inset-y-0 left-1/2 w-px'"></span>

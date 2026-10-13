@@ -1,54 +1,41 @@
 <script setup lang="ts">
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, ListFilter, Search, X } from 'lucide-vue-next'
-import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
+import { ChevronRight, FolderTree } from 'lucide-vue-next'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import type { SpanType } from '../api/types'
-import { filterSteps, isFiltering, typeCounts, type ResultFilter, type SpeedFilter } from '../lib/filters'
+import { isFolder } from '../lib/folder'
 import { formatUs, plural, shortClass, shortFile } from '../lib/format'
-import { TYPE_LABEL, TYPE_ORDER, subtitle } from '../lib/spans'
+import type { Flow } from '../lib/flow'
+import { subtitle } from '../lib/spans'
 import { bar, ticks, type Range } from '../lib/timeline'
-import { ancestorIds, defaultExpanded, visibleRows, type Row, type TreeNode } from '../lib/tree'
-import Btn from '../ui/Btn.vue'
-import Chip from '../ui/Chip.vue'
-import Seg from '../ui/Seg.vue'
+import type { TreeNode } from '../lib/tree'
 import TypeIcon from '../ui/TypeIcon.vue'
 
-const props = defineProps<{ roots: TreeNode[]; totalUs: number; pinned: number | null; entering: boolean; slowMs: number; range: Range; types: ReadonlySet<SpanType> }>()
-const emit = defineEmits<{ hover: [id: number | null]; select: [id: number]; 'update:types': [types: Set<SpanType>] }>()
+const props = defineProps<{ flow: Flow; totalUs: number; pinned: number | null; entering: boolean; range: Range }>()
+const emit = defineEmits<{ hover: [id: number | null]; select: [id: number] }>()
 
-const ROW = 40
+const ROW = 44
 const OVERSCAN = 8
 
-const expanded = ref<Set<number>>(defaultExpanded(props.roots))
-const query = ref('')
-const speed = ref<SpeedFilter>('all')
-const result = ref<ResultFilter>('all')
+const { list, folder, folderId, direction } = props.flow
+
 const scroller = ref<HTMLElement | null>(null)
 const ruler = ref<HTMLElement | null>(null)
 const scrollTop = ref(0)
 const viewHeight = ref(640)
 /** where the pointer is on the time axis, in percent of the lane (null while it is elsewhere) */
 const hoverPct = ref<number | null>(null)
+/** the step that was just revealed: it flashes once so the eye finds it */
+const flashId = ref<number | null>(null)
+let flashTimer: ReturnType<typeof setTimeout> | null = null
 
-watch(() => props.roots, (roots) => {
-  expanded.value = defaultExpanded(roots)
-})
-
-const filter = computed(() => ({ query: query.value, types: props.types, speed: speed.value, result: result.value }))
-const filtering = computed(() => isFiltering(filter.value))
-const filtered = computed(() => filterSteps(props.roots, filter.value, props.slowMs))
-const forced = computed(() => filtered.value?.keep ?? null)
-const typeList = computed(() => typeCounts(props.roots, TYPE_ORDER))
-const totalSteps = computed(() => typeList.value.reduce((n, t) => n + t.count, 0))
-const rows = computed<Row[]>(() => visibleRows(props.roots, expanded.value, forced.value))
-const total = computed(() => rows.value.length * ROW)
+const entries = computed(() => list.value.entries)
+const total = computed(() => entries.value.length * ROW)
 const first = computed(() => Math.max(0, Math.floor(scrollTop.value / ROW) - OVERSCAN))
-const last = computed(() => Math.min(rows.value.length, Math.ceil((scrollTop.value + viewHeight.value) / ROW) + OVERSCAN))
-const windowed = computed(() => rows.value.slice(first.value, last.value).map((row, i) => ({ row, index: first.value + i })))
+const last = computed(() => Math.min(entries.value.length, Math.ceil((scrollTop.value + viewHeight.value) / ROW) + OVERSCAN))
+const windowed = computed(() => entries.value.slice(first.value, last.value).map((entry, i) => ({ entry, index: first.value + i })))
 const axis = computed(() => ticks(props.range, 6))
-const zoomed = computed(() => props.range.from > 0 || props.range.to < props.totalUs)
+const zoomed = computed(() => props.range.from > 0.5 || props.range.to < props.totalUs - 0.5)
 const hoverUs = computed(() => (hoverPct.value === null ? null : props.range.from + (hoverPct.value / 100) * (props.range.to - props.range.from)))
-const activeFilters = computed(() => (speed.value !== 'all' ? 1 : 0) + (result.value !== 'all' ? 1 : 0))
+const title = computed(() => (folder.value === null ? 'Steps' : shortClass(folder.value.span.label)))
 
 function onScroll(): void {
   scrollTop.value = scroller.value?.scrollTop ?? 0
@@ -61,41 +48,6 @@ function onMove(event: PointerEvent): void {
   hoverPct.value = pct >= 0 && pct <= 100 ? pct : null
 }
 
-function toggle(id: number): void {
-  const next = new Set(expanded.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  expanded.value = next
-}
-
-function toggleType(type: SpanType): void {
-  const next = new Set(props.types)
-  if (next.has(type)) next.delete(type)
-  else next.add(type)
-  emit('update:types', next)
-}
-
-function clearFilters(): void {
-  query.value = ''
-  speed.value = 'all'
-  result.value = 'all'
-  emit('update:types', new Set())
-}
-
-function expandAll(): void {
-  const all = new Set<number>()
-  const visit = (node: TreeNode): void => {
-    if (node.children.length > 0) all.add(node.span.id)
-    node.children.forEach(visit)
-  }
-  props.roots.forEach(visit)
-  expanded.value = all
-}
-
-function collapseAll(): void {
-  expanded.value = new Set(props.roots.filter((r) => r.children.length > 0).map((r) => r.span.id))
-}
-
 function chips(node: TreeNode): Array<{ text: string; tone: 'neutral' | 'warn' | 'bad' }> {
   const out: Array<{ text: string; tone: 'neutral' | 'warn' | 'bad' }> = []
   if (node.span.count > 1) out.push({ text: `×${node.span.count}`, tone: 'neutral' })
@@ -104,10 +56,6 @@ function chips(node: TreeNode): Array<{ text: string; tone: 'neutral' | 'warn' |
   else if (node.span.flag === 'caught') out.push({ text: 'caught', tone: 'warn' })
 
   return out
-}
-
-function isOpen(node: TreeNode): boolean {
-  return forced.value !== null ? node.children.some((c) => forced.value?.has(c.span.id)) : expanded.value.has(node.span.id)
 }
 
 function barOf(node: TreeNode): ReturnType<typeof bar> {
@@ -119,23 +67,30 @@ function labelLeft(b: ReturnType<typeof bar>): boolean {
   return b.left + b.width > 82
 }
 
-/** Open the branches down to a step and scroll it into view (used by "show in flow" links and the command palette). */
-async function reveal(id: number, openItself = false): Promise<void> {
-  clearFilters()
-  const next = new Set(expanded.value)
-  ancestorIds(props.roots, id).forEach((a) => next.add(a))
-  if (openItself) next.add(id)
-  expanded.value = next
+function trailText(trail: TreeNode[]): string {
+  return trail.map((n) => shortClass(n.span.label)).join(' › ')
+}
+
+function enter(node: TreeNode): void {
+  if (isFolder(node)) props.flow.open(node.span.id)
+}
+
+/** Show a step: open the folder it is in, bring its row into view and flash it. */
+async function scrollTo(id: number): Promise<void> {
   await nextTick()
-  const index = rows.value.findIndex((r) => r.node.span.id === id)
-  if (index >= 0 && scroller.value !== null) {
-    scroller.value.scrollTo({ top: Math.max(0, index * ROW - viewHeight.value / 2 + ROW), behavior: 'smooth' })
-    onScroll()
-  }
+  const index = entries.value.findIndex((e) => e.node.span.id === id)
+  if (index < 0 || scroller.value === null) return
+  scroller.value.scrollTo({ top: Math.max(0, index * ROW - viewHeight.value / 2 + ROW), behavior: 'smooth' })
+  onScroll()
+  flashId.value = id
+  if (flashTimer !== null) clearTimeout(flashTimer)
+  flashTimer = setTimeout(() => {
+    flashId.value = null
+  }, 1700)
 }
 
 async function focusIndex(index: number): Promise<void> {
-  const target = Math.min(Math.max(index, 0), rows.value.length - 1)
+  const target = Math.min(Math.max(index, 0), entries.value.length - 1)
   const el = scroller.value
   if (el === null || target < 0) return
   if (target * ROW < el.scrollTop) el.scrollTop = target * ROW
@@ -149,16 +104,21 @@ function onKey(event: KeyboardEvent, index: number, node: TreeNode): void {
   switch (event.key) {
     case 'ArrowDown': event.preventDefault(); void focusIndex(index + 1); break
     case 'ArrowUp': event.preventDefault(); void focusIndex(index - 1); break
-    case 'ArrowRight':
-      if (node.children.length > 0 && !isOpen(node)) { event.preventDefault(); toggle(node.span.id) }
-      break
-    case 'ArrowLeft':
-      if (node.children.length > 0 && isOpen(node)) { event.preventDefault(); toggle(node.span.id) }
-      break
+    case 'ArrowRight': if (isFolder(node)) { event.preventDefault(); enter(node) } break
+    case 'ArrowLeft': case 'Backspace': event.preventDefault(); props.flow.up(); break
     case 'Enter': case ' ': event.preventDefault(); emit('select', node.span.id); break
     default:
   }
 }
+
+// a new folder starts at its top, and its first row takes the keyboard focus only if the focus was already in the list
+watch(folderId, async () => {
+  const hadFocus = scroller.value?.contains(document.activeElement) ?? false
+  if (scroller.value !== null) scroller.value.scrollTop = 0
+  scrollTop.value = 0
+  await nextTick()
+  if (hadFocus) scroller.value?.querySelector<HTMLElement>('[data-index="0"]')?.focus()
+})
 
 let observer: ResizeObserver | null = null
 
@@ -173,166 +133,124 @@ onMounted(() => {
   }
 })
 
-onBeforeUnmount(() => observer?.disconnect())
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  if (flashTimer !== null) clearTimeout(flashTimer)
+})
 
-defineExpose({ reveal })
+defineExpose({ scrollTo })
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-surface/80">
-    <!-- search, filters -->
-    <div class="flex items-center gap-1.5 border-b border-line px-2.5 py-2">
-      <div class="relative min-w-0 flex-1">
-        <Search class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-faint" />
-        <label class="sr-only" for="step-search">Search steps</label>
-        <input id="step-search" v-model="query" class="input h-8 pl-8 text-[12.5px]" type="search" placeholder="Search steps, SQL, files" autocomplete="off">
+  <!-- the steps of the open folder on a timeline -->
+  <div
+    ref="scroller"
+    class="relative min-h-0 flex-1 overflow-auto [--label-w:clamp(250px,52%,560px)]"
+    role="tree"
+    aria-label="Steps of the open folder"
+    @scroll.passive="onScroll"
+    @pointermove="onMove"
+    @pointerleave="hoverPct = null; emit('hover', null)"
+  >
+    <div class="sticky top-0 z-20 grid h-[30px] grid-cols-[var(--label-w)_minmax(0,1fr)] border-b border-line bg-surface/95 text-[11px] text-faint backdrop-blur">
+      <div class="flex min-w-0 items-center gap-2 px-3">
+        <span class="truncate font-medium text-muted">{{ title }}</span>
+        <span v-if="zoomed" class="shrink-0 rounded bg-[var(--accent)]/15 px-1.5 text-[10.5px] text-accent-ink">{{ formatUs(range.from) }} → {{ formatUs(range.to) }}</span>
       </div>
-
-      <PopoverRoot>
-        <PopoverTrigger as-child>
-          <Btn variant="soft" size="sm" aria-label="Filter by speed and result">
-            <ListFilter class="size-3.5" /><span class="hidden xl:inline">Filters</span>
-            <span v-if="activeFilters > 0" class="grid size-4 place-items-center rounded-full bg-[var(--accent)] text-[10px] font-bold text-[#04141c]">{{ activeFilters }}</span>
-          </Btn>
-        </PopoverTrigger>
-        <PopoverPortal>
-          <PopoverContent align="end" :side-offset="8" class="z-[70] w-[270px] space-y-3 rounded-xl border border-line-strong bg-surface p-3.5 shadow-2xl data-[state=open]:animate-pop-in">
-            <div class="space-y-1.5">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-faint">Speed</p>
-              <Seg v-model="speed" label="Speed" size="sm" :options="[{ value: 'all', label: 'Any' }, { value: 'slow', label: 'Slow' }, { value: 'fast', label: 'Fast' }]" />
-              <p class="text-[11px] text-faint">Slow: flagged slow, or at least {{ slowMs }} ms.</p>
-            </div>
-            <div class="space-y-1.5">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-faint">Result</p>
-              <Seg v-model="result" label="Result" size="sm" :options="[{ value: 'all', label: 'Any' }, { value: 'failed', label: 'Failed' }, { value: 'ok', label: 'OK' }]" />
-              <p class="text-[11px] text-faint">Failed: threw, was caught after throwing, or an HTTP call answered 4xx/5xx.</p>
-            </div>
-          </PopoverContent>
-        </PopoverPortal>
-      </PopoverRoot>
-
-      <Btn variant="ghost" size="icon" aria-label="Expand all" title="Expand all" @click="expandAll"><ChevronsUpDown class="size-4" /></Btn>
-      <Btn variant="ghost" size="icon" aria-label="Collapse" title="Collapse" @click="collapseAll"><ChevronsDownUp class="size-4" /></Btn>
+      <div ref="ruler" class="relative overflow-hidden">
+        <span v-for="t in axis" :key="t.us" class="absolute top-0 flex h-full items-center border-l border-line pl-1 font-mono tabular-nums" :style="{ left: `${t.pct}%` }">{{ t.label }}</span>
+        <span
+          v-if="hoverUs !== null"
+          class="absolute top-1/2 z-10 -translate-y-1/2 -translate-x-1/2 rounded-md bg-[var(--accent)] px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-[#04141c] shadow"
+          :style="{ left: `clamp(24px, ${hoverPct}%, calc(100% - 24px))` }"
+        >{{ formatUs(hoverUs) }}</span>
+      </div>
     </div>
 
-    <!-- the kinds of step: a legend that is also a filter -->
-    <div class="flex items-center gap-1.5 overflow-x-auto border-b border-line px-2.5 py-2" role="group" aria-label="Show only these kinds of step">
-      <Chip v-for="t in typeList" :key="t.type" :active="types.has(t.type)" :color="`var(--t-${t.type})`" class="h-6 px-2.5 text-[11.5px]" @click="toggleType(t.type)">
-        <span class="size-1.5 rounded-full" :style="{ background: `var(--t-${t.type})` }"></span>{{ TYPE_LABEL[t.type] }}<span class="font-mono text-[10.5px] text-faint">{{ t.count }}</span>
-      </Chip>
-      <template v-if="filtering">
-        <span class="ml-1 shrink-0 text-[11.5px] text-muted" role="status">{{ filtered?.matched.size ?? 0 }} of {{ plural(totalSteps, 'step') }}</span>
-        <button class="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] text-muted hover:bg-hover hover:text-fg" type="button" @click="clearFilters"><X class="size-3" />Clear</button>
-      </template>
-    </div>
-
-    <!-- the steps on a timeline -->
-    <div
-      ref="scroller"
-      class="relative min-h-0 flex-1 overflow-auto [--label-w:clamp(220px,40%,440px)]"
-      role="tree"
-      aria-label="Steps of the request"
-      @scroll.passive="onScroll"
-      @pointermove="onMove"
-      @pointerleave="hoverPct = null; emit('hover', null)"
-    >
-      <div class="sticky top-0 z-20 grid h-[30px] grid-cols-[var(--label-w)_minmax(0,1fr)] border-b border-line bg-surface/95 text-[11px] text-faint backdrop-blur">
-        <div class="flex items-center gap-2 px-3">
-          <span class="font-medium text-muted">Steps</span>
-          <span v-if="zoomed" class="rounded bg-[var(--accent)]/15 px-1.5 text-[10.5px] text-accent-ink">zoomed: {{ formatUs(range.from) }} → {{ formatUs(range.to) }}</span>
-        </div>
-        <div ref="ruler" class="relative overflow-hidden">
-          <span v-for="t in axis" :key="t.us" class="absolute top-0 flex h-full items-center border-l border-line pl-1 font-mono tabular-nums" :style="{ left: `${t.pct}%` }">{{ t.label }}</span>
-          <span
-            v-if="hoverUs !== null"
-            class="absolute top-1/2 z-10 -translate-y-1/2 -translate-x-1/2 rounded-md bg-[var(--accent)] px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-[#04141c] shadow"
-            :style="{ left: `clamp(24px, ${hoverPct}%, calc(100% - 24px))` }"
-          >{{ formatUs(hoverUs) }}</span>
-        </div>
+    <div :key="`${folderId ?? 'top'}`" class="relative" :class="direction === 'in' ? 'animate-folder-in' : 'animate-folder-out'" :style="{ height: `${Math.max(total, 1)}px` }">
+      <!-- the grid of the time axis, and the line that follows the pointer -->
+      <div class="pointer-events-none absolute inset-y-0 left-[var(--label-w)] right-0" aria-hidden="true">
+        <span v-for="t in axis" :key="t.us" class="absolute inset-y-0 border-l border-line/50" :style="{ left: `${t.pct}%` }"></span>
+        <span v-if="hoverPct !== null" class="absolute inset-y-0 w-px bg-[var(--accent)]/70 shadow-[0_0_8px_var(--accent)]" :style="{ left: `${hoverPct}%` }"></span>
       </div>
 
-      <div :style="{ height: `${total}px`, position: 'relative' }">
-        <!-- the grid of the time axis, and the line that follows the pointer -->
-        <div class="pointer-events-none absolute inset-y-0 left-[var(--label-w)] right-0" aria-hidden="true">
-          <span v-for="t in axis" :key="t.us" class="absolute inset-y-0 border-l border-line/50" :style="{ left: `${t.pct}%` }"></span>
-          <span v-if="hoverPct !== null" class="absolute inset-y-0 w-px bg-[var(--accent)]/70 shadow-[0_0_8px_var(--accent)]" :style="{ left: `${hoverPct}%` }"></span>
+      <div v-if="entries.length === 0" class="absolute inset-x-0 top-8 px-6 text-center text-muted">
+        <FolderTree class="mx-auto mb-2 size-6 text-faint" />
+        <template v-if="list.filtering">Nothing {{ flow.include.value ? 'inside' : 'here' }} matches these filters.</template>
+        <template v-else>Nothing inside this step.</template>
+      </div>
+
+      <div
+        v-for="{ entry, index } in windowed"
+        :key="entry.node.span.id"
+        class="group/row absolute inset-x-0 grid cursor-pointer grid-cols-[var(--label-w)_minmax(0,1fr)] items-center border-b border-line/40 outline-none transition-colors hover:bg-hover/80 focus-visible:bg-hover/80"
+        :class="[pinned === entry.node.span.id ? 'bg-hover' : '', flashId === entry.node.span.id ? 'animate-flash' : '']"
+        :style="{ top: `${index * ROW}px`, height: `${ROW}px` }"
+        role="treeitem"
+        tabindex="0"
+        :data-index="index"
+        :aria-selected="pinned === entry.node.span.id"
+        :aria-label="isFolder(entry.node) ? `${shortClass(entry.node.span.label)}, a folder with ${plural(entry.node.descendants, 'step')} inside` : undefined"
+        @click="emit('select', entry.node.span.id)"
+        @dblclick="enter(entry.node)"
+        @pointerenter="emit('hover', entry.node.span.id)"
+        @focus="emit('hover', entry.node.span.id)"
+        @keydown="onKey($event, index, entry.node)"
+      >
+        <span v-if="pinned === entry.node.span.id" class="absolute inset-y-1 left-0 w-[3px] rounded-r-full grad-bg"></span>
+
+        <!-- the step: its kind, its full name and where it is -->
+        <div class="flex min-w-0 items-center gap-2 pl-3 pr-2">
+          <span class="grid size-7 shrink-0 place-items-center rounded-lg" :style="{ background: `color-mix(in srgb, var(--t-${entry.node.span.type}) 14%, transparent)` }"><TypeIcon :type="entry.node.span.type" /></span>
+          <span class="grid min-w-0 flex-1 leading-tight">
+            <span class="flex min-w-0 items-center gap-1">
+              <span class="truncate font-mono text-[12.5px]" :title="entry.node.span.label">{{ shortClass(entry.node.span.label) }}</span>
+              <span v-for="c in chips(entry.node)" :key="c.text" class="shrink-0 rounded px-1 font-mono text-[10px] font-semibold" :class="c.tone === 'bad' ? 'bg-bad/15 text-bad' : c.tone === 'warn' ? 'bg-warn/15 text-warn' : 'bg-line text-muted'">{{ c.text }}</span>
+            </span>
+            <!-- a match found deeper down says where: the folders between this one and it -->
+            <span v-if="entry.trail.length > 0" class="truncate text-[11px] text-faint [direction:rtl] [text-align:left]" :title="trailText(entry.trail)"><bdi>{{ trailText(entry.trail) }} ›</bdi></span>
+            <span v-else-if="subtitle(entry.node.span) || entry.node.span.file" class="truncate text-[11px] text-muted">
+              {{ subtitle(entry.node.span) }}<template v-if="subtitle(entry.node.span) && entry.node.span.file"> · </template><span class="text-faint">{{ shortFile(entry.node.span.file, entry.node.span.line) }}</span>
+            </span>
+          </span>
+          <!-- a folder: how much is inside, and the way in -->
+          <button
+            v-if="isFolder(entry.node)"
+            class="flex h-7 shrink-0 items-center gap-1 rounded-lg border border-line bg-raised px-2 font-mono text-[11px] text-muted outline-none transition-all hover:border-[var(--accent)] hover:bg-[var(--accent)]/10 hover:text-fg focus-visible:border-[var(--accent)] group-hover/row:border-line-strong"
+            type="button"
+            :aria-label="`Open ${shortClass(entry.node.span.label)}: ${plural(entry.node.descendants, 'step')} inside`"
+            @click.stop="enter(entry.node)"
+          >
+            <FolderTree class="size-3" />{{ entry.node.descendants }}<ChevronRight class="size-3 transition-transform group-hover/row:translate-x-0.5" />
+          </button>
         </div>
 
-        <div v-if="rows.length === 0" class="absolute inset-x-0 top-6 text-center text-muted">No step matches these filters.</div>
-
-        <div
-          v-for="{ row, index } in windowed"
-          :key="row.node.span.id"
-          class="group/row absolute inset-x-0 grid cursor-pointer grid-cols-[var(--label-w)_minmax(0,1fr)] items-center border-b border-line/40 outline-none transition-colors hover:bg-hover/80 focus-visible:bg-hover/80"
-          :class="[pinned === row.node.span.id ? 'bg-hover' : '', filtered !== null && !filtered.matched.has(row.node.span.id) ? 'opacity-45 hover:opacity-100' : '']"
-          :style="{ top: `${index * ROW}px`, height: `${ROW}px` }"
-          role="treeitem"
-          tabindex="0"
-          :data-index="index"
-          :aria-level="row.node.depth + 1"
-          :aria-expanded="row.node.children.length > 0 ? isOpen(row.node) : undefined"
-          :aria-selected="pinned === row.node.span.id"
-          @click="emit('select', row.node.span.id)"
-          @pointerenter="emit('hover', row.node.span.id)"
-          @focus="emit('hover', row.node.span.id)"
-          @keydown="onKey($event, index, row.node)"
-        >
-          <span v-if="pinned === row.node.span.id" class="absolute inset-y-1 left-0 w-[3px] rounded-r-full grad-bg"></span>
-
-          <!-- the step: indentation, a fold button, its kind and what it is -->
-          <div class="flex min-w-0 items-center pr-2">
-            <span v-if="row.node.depth > 0" class="flex h-full shrink-0" aria-hidden="true">
-              <i v-for="(g, k) in row.guides.slice(1)" :key="k" class="relative block w-[14px]" :class="g ? 'before:absolute before:inset-y-0 before:left-[6px] before:border-l before:border-line' : ''"></i>
-              <i class="relative block w-[14px] before:absolute before:left-[6px] before:top-0 before:h-1/2 before:w-[7px] before:rounded-bl-[5px] before:border-b before:border-l before:border-line" :class="!row.node.last ? 'after:absolute after:bottom-0 after:left-[6px] after:top-1/2 after:border-l after:border-line' : ''"></i>
-            </span>
-            <button
-              v-if="row.node.children.length > 0"
-              class="grid size-5 shrink-0 place-items-center rounded text-faint transition-colors hover:bg-line hover:text-fg"
-              type="button"
-              :aria-expanded="isOpen(row.node)"
-              :aria-label="`${isOpen(row.node) ? 'Collapse' : 'Expand'} ${plural(row.node.descendants, 'step below', 'steps below')}`"
-              @click.stop="toggle(row.node.span.id)"
-            >
-              <ChevronRight class="size-3.5 transition-transform duration-200" :class="isOpen(row.node) ? 'rotate-90' : ''" />
-            </button>
-            <span v-else class="size-5 shrink-0" aria-hidden="true"></span>
-            <span class="mr-1.5 grid size-6 shrink-0 place-items-center rounded-md" :style="{ background: `color-mix(in srgb, var(--t-${row.node.span.type}) 14%, transparent)` }"><TypeIcon :type="row.node.span.type" /></span>
-            <span class="grid min-w-0 flex-1 leading-tight">
-              <span class="truncate font-mono text-[12.5px]" :title="row.node.span.label">{{ shortClass(row.node.span.label) }}</span>
-              <span v-if="subtitle(row.node.span) || row.node.span.file" class="truncate text-[11px] text-muted">
-                {{ subtitle(row.node.span) }}<template v-if="subtitle(row.node.span) && row.node.span.file"> · </template><span class="text-faint">{{ shortFile(row.node.span.file, row.node.span.line) }}</span>
-              </span>
-            </span>
-            <span v-for="c in chips(row.node)" :key="c.text" class="ml-1 shrink-0 rounded px-1 font-mono text-[10px] font-semibold" :class="c.tone === 'bad' ? 'bg-bad/15 text-bad' : c.tone === 'warn' ? 'bg-warn/15 text-warn' : 'bg-line text-muted'">{{ c.text }}</span>
-          </div>
-
-          <!-- when it ran, and for how long -->
-          <div class="relative h-full overflow-hidden">
-            <template v-if="barOf(row.node).visible">
-              <span
-                class="absolute top-1/2 h-[14px] -translate-y-1/2 origin-left rounded-[5px]"
-                :class="entering && index < 30 ? 'animate-grow-x' : ''"
-                :style="{
-                  left: `${barOf(row.node).left}%`,
-                  width: `${barOf(row.node).width}%`,
-                  background: `linear-gradient(90deg, color-mix(in srgb, var(--t-${row.node.span.type}) 70%, transparent), var(--t-${row.node.span.type}))`,
-                  boxShadow: row.node.span.flag === 'slow' ? `0 0 12px -1px var(--t-${row.node.span.type})` : undefined,
-                  animationDelay: entering ? `${Math.min(index, 30) * 14}ms` : undefined,
-                  borderTopLeftRadius: barOf(row.node).cutLeft ? '0' : undefined,
-                  borderBottomLeftRadius: barOf(row.node).cutLeft ? '0' : undefined,
-                  borderTopRightRadius: barOf(row.node).cutRight ? '0' : undefined,
-                  borderBottomRightRadius: barOf(row.node).cutRight ? '0' : undefined,
-                }"
-              ></span>
-              <span
-                class="absolute top-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[11px] tabular-nums text-muted"
-                :style="labelLeft(barOf(row.node))
-                  ? { right: `calc(${100 - barOf(row.node).left}% + 6px)` }
-                  : { left: `calc(${barOf(row.node).left + barOf(row.node).width}% + 6px)` }"
-              >{{ formatUs(row.node.span.duration_us) }}</span>
-            </template>
-            <span v-else class="absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[11px] text-faint">{{ formatUs(row.node.span.duration_us) }}</span>
-          </div>
+        <!-- when it ran, and for how long -->
+        <div class="relative h-full overflow-hidden">
+          <template v-if="barOf(entry.node).visible">
+            <span
+              class="absolute top-1/2 h-[14px] -translate-y-1/2 origin-left rounded-[5px]"
+              :class="entering && index < 30 ? 'animate-grow-x' : ''"
+              :style="{
+                left: `${barOf(entry.node).left}%`,
+                width: `${barOf(entry.node).width}%`,
+                background: `linear-gradient(90deg, color-mix(in srgb, var(--t-${entry.node.span.type}) 70%, transparent), var(--t-${entry.node.span.type}))`,
+                boxShadow: entry.node.span.flag === 'slow' ? `0 0 12px -1px var(--t-${entry.node.span.type})` : undefined,
+                animationDelay: entering ? `${Math.min(index, 30) * 14}ms` : undefined,
+                borderTopLeftRadius: barOf(entry.node).cutLeft ? '0' : undefined,
+                borderBottomLeftRadius: barOf(entry.node).cutLeft ? '0' : undefined,
+                borderTopRightRadius: barOf(entry.node).cutRight ? '0' : undefined,
+                borderBottomRightRadius: barOf(entry.node).cutRight ? '0' : undefined,
+              }"
+            ></span>
+            <span
+              class="absolute top-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[11px] tabular-nums text-muted"
+              :style="labelLeft(barOf(entry.node))
+                ? { right: `calc(${100 - barOf(entry.node).left}% + 6px)` }
+                : { left: `calc(${barOf(entry.node).left + barOf(entry.node).width}% + 6px)` }"
+            >{{ formatUs(entry.node.span.duration_us) }}</span>
+          </template>
+          <span v-else class="absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[11px] text-faint">{{ formatUs(entry.node.span.duration_us) }}</span>
         </div>
       </div>
     </div>
