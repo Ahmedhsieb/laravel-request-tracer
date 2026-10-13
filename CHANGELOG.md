@@ -4,6 +4,14 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-10-13
+
+First version checked by the full CI matrix on GitHub (Laravel 10 to 13, PHP 8.1 to 8.5, lowest and highest dependencies, three databases).
+
+- **An anonymous class is named by its parent** (`Model@anonymous`): its real name carries a NUL byte and the path of the file, which clipped summaries and labels.
+- **Closures are recognised with an older Symfony VarDumper on PHP 8.4**, which names them `Class::{closure:...}()`: they are stored as `Closure` and not walked into as objects.
+- CI: the matrix really runs every Laravel / PHP pair (it ran one before), old test tools can be installed on PHP 8.1, failures of Composer and Pest are shown in annotations, and a timing test no longer depends on the speed of the machine.
+
 ## [0.8.4] - 2026-10-13
 
 - **README rewritten** (English and Arabic): install, start, every feature with a screenshot, configuration, commands, examples and production notes, in that order. The screenshots are in `docs/images` (JPEG, retaken from the demo dashboard).

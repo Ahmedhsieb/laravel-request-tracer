@@ -27,7 +27,7 @@ use Composer\Autoload\ClassLoader;
  */
 final class Loader
 {
-    public const PACKAGE_VERSION = '0.8.4';
+    public const PACKAGE_VERSION = '0.8.5';
 
     /** @var array<string, string> compiled file => original file (process-wide, constant once set) */
     private static array $origins = [];
