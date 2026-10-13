@@ -46,6 +46,7 @@ export function useFlow(roots: Ref<TreeNode[]>, slowMs: Ref<number>) {
 
     return map
   })
+  const nodeOf = (id: number): TreeNode | null => index.value.get(id) ?? null
   const folder = computed(() => (folderId.value === null ? null : (index.value.get(folderId.value) ?? null)))
   const path = computed(() => crumbs(folder.value))
   const filter = computed<StepFilter>(() => ({ query: query.value, types: types.value, speed: speed.value, result: result.value }))
@@ -105,7 +106,7 @@ export function useFlow(roots: Ref<TreeNode[]>, slowMs: Ref<number>) {
     }
   })
 
-  return { folderId, folder, path, query, types, speed, result, include, view, direction, filter, list, kinds, activeFilters, reset, open, up, toggleType, clearFilters, reveal }
+  return { nodeOf, folderId, folder, path, query, types, speed, result, include, view, direction, filter, list, kinds, activeFilters, reset, open, up, toggleType, clearFilters, reveal }
 }
 
 export type Flow = ReturnType<typeof useFlow>

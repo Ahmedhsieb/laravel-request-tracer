@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SpanRow } from '../api/types'
 import { emptyFilter, type StepFilter } from './filters'
-import { below, crumbs, folderCount, folderRange, isFolder, listFolder, scopeNodes, scopeTypeCounts } from './folder'
+import { below, crumbs, folderCount, folderRange, graphColumns, isFolder, listFolder, litSteps, scopeNodes, scopeTypeCounts } from './folder'
 import { buildTree, findNode } from './tree'
 
 function span(id: number, parent: number | null, over: Partial<SpanRow> = {}): SpanRow {
@@ -104,5 +104,46 @@ describe('the time axis of a folder', () => {
     const quick = buildTree([span(1, null, { duration_us: 5000 }), span(2, 1, { start_us: 100, duration_us: 3 })])
     const range = folderRange(findNode(quick, 2), 5000)
     expect(range.to - range.from).toBeGreaterThanOrEqual(1000)
+  })
+})
+
+describe('what lights up in the graph', () => {
+  it('lights everything while nothing is filtered', () => {
+    expect(litSteps(roots, emptyFilter(), 100, true)).toBeNull()
+  })
+
+  it('lights the matches and, looking inside, the way down to them', () => {
+    expect([...litSteps(roots, filter({ query: 'select' }), 100, true)!].sort()).toEqual([1, 2, 3, 4, 5])
+    expect([...litSteps(roots, filter({ query: 'select' }), 100, false)!]).toEqual([5])
+  })
+})
+
+describe('the columns of the graph', () => {
+  it('are the children of every step on the way down to the one that is open, and the last ones that fit', () => {
+    const { columns, rail } = graphColumns(roots, node(4), 3)
+    expect(columns.map((c) => c.parent!.span.id)).toEqual([2, 3, 4])
+    expect(columns.map((c) => c.nodes.map((n) => n.span.id))).toEqual([[3], [4], [5, 6]])
+    expect(columns[0]!.selected!.span.id).toBe(3)
+    expect(columns[2]!.selected).toBeNull()
+    expect(rail.map((n) => n.span.id)).toEqual([1, 2])                     // what is left behind on the way
+  })
+
+  it('shows fewer columns in a narrow space and keeps the path to the left', () => {
+    const { columns, rail } = graphColumns(roots, node(4), 2)
+    expect(columns.map((c) => c.parent!.span.id)).toEqual([3, 4])
+    expect(rail.map((n) => n.span.id)).toEqual([1, 2, 3])
+  })
+
+  it('leaves out the empty column of a step with nothing inside it', () => {
+    const { columns } = graphColumns(roots, node(5), 3)
+    expect(columns.map((c) => c.parent!.span.id)).toEqual([2, 3, 4])
+    expect(columns[2]!.selected!.span.id).toBe(5)
+  })
+
+  it('starts from the roots when no step is chosen', () => {
+    const { columns, rail } = graphColumns(roots, null, 3)
+    expect(columns).toHaveLength(1)
+    expect(columns[0]!.nodes.map((n) => n.span.id)).toEqual([1])
+    expect(rail).toEqual([])
   })
 })
