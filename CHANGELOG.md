@@ -4,6 +4,10 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-13
+
+- **Copy works on a dashboard opened over plain http.** Browsers only offer the clipboard API on a secure page (https or `localhost`); a project served on `http://app.test` or a LAN address got *Copy failed* from every copy button (a value, the link, the listen command, a signed header). One helper (`lib/clipboard.ts`) now tries the API and falls back to selecting a hidden field and the browser's `copy` command, which works on any page (inside an open dialog too). Where both are refused the notice says so and the text can still be selected by hand.
+
 ## [0.8.0] - 2026-10-13
 
 **The flow is made of folders.** In a deep request the names of the steps disappeared: every level took a piece of the name column. A step with steps inside is now a folder and the flow shows one folder at a time, so a name always has the whole column.

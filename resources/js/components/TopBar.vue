@@ -8,6 +8,7 @@ import Btn from '../ui/Btn.vue'
 import Pick from '../ui/Pick.vue'
 import Pill from '../ui/Pill.vue'
 import Tip from '../ui/Tip.vue'
+import { copyText } from '../lib/clipboard'
 
 const store = useStore()
 const { mode, toggle } = useTheme()
@@ -42,12 +43,7 @@ const moduleModel = computed({
 
 async function copyCommand(): Promise<void> {
   const command = store.meta?.listen_command ?? 'php artisan request-tracer:listen'
-  try {
-    await navigator.clipboard.writeText(command)
-    store.toast('Copied: run it in your project, then use your app')
-  } catch {
-    store.toast(command)
-  }
+  store.toast((await copyText(command)) ? 'Copied: run it in your project, then use your app' : command)
 }
 </script>
 
