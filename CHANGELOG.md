@@ -4,6 +4,11 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-10-13
+
+- **README rewritten** (English and Arabic): install, start, every feature with a screenshot, configuration, commands, examples and production notes, in that order. The screenshots are in `docs/images` (JPEG, retaken from the demo dashboard).
+- The graph's nodes are taller, so a two-line name no longer overlaps the duration.
+
 ## [0.8.3] - 2026-10-13
 
 - **The graph's filters cover the whole request.** In the graph the kinds of step (and their counts) were those of the folder the waterfall had open, so deep in a request only a few kinds were offered, and a filter only dimmed nodes that happened to be in view. Now the graph counts the whole request, *N of M steps* is for the whole request, the *Look in* switch (which only means something for a folder) is not shown, and while a filter is on a **list of the matches** (each with the path it is in) sits above the columns: one click opens that step in the columns.
