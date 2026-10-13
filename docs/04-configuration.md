@@ -48,6 +48,7 @@ Running a request that already happened again, traced (dashboard: *Replay a requ
 | `undo_path` | `null` | Folder of the encrypted undo logs. `null` = `storage/framework/request-tracer/undo`. |
 | `undo_hours` | `24` | How long what a real replay changed can still be undone. The exact values live in an encrypted file under `storage/framework/request-tracer/undo`, deleted when undone, when it expires and by `request-tracer:prune`. |
 | `timeout` | `120` | Seconds a replay may run. |
+| `memory_limit` | `'2G'` | `memory_limit` of the PHP process that runs the replayed request. A replay traces the request from its first line, so a large request (hundreds of queries, big models) can need several times the memory it needs while it is listened to. When it is too low the dashboard says *The replay process failed*, with PHP's message and this key. `''` keeps the command line php.ini's value. |
 
 ## `scope` and `exclude`
 
