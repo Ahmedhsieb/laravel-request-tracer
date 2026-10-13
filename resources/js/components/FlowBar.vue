@@ -40,7 +40,7 @@ const scopeName = computed(() => (folder.value === null ? 'the request' : shortC
       <div class="relative min-w-0 flex-1">
         <Search class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-faint" />
         <label class="sr-only" for="step-search">Search the steps inside this folder</label>
-        <input id="step-search" v-model="query" class="input h-8 pl-8 text-[12.5px]" type="search" :placeholder="`Search inside ${scopeName}`" autocomplete="off">
+        <input id="step-search" v-model="query" class="input h-8 pl-8 text-[12.5px]" type="search" :placeholder="view === 'graph' ? 'Search steps' : `Search inside ${scopeName}`" autocomplete="off">
       </div>
 
       <PopoverRoot>
@@ -84,7 +84,7 @@ const scopeName = computed(() => (folder.value === null ? 'the request' : shortC
     </div>
 
     <!-- where you are: the folders from the request down to this one -->
-    <nav class="flex items-center gap-0.5 border-t border-line bg-raised/40 px-2 py-1.5" aria-label="Folders">
+    <nav v-if="view === 'waterfall'" class="flex items-center gap-0.5 border-t border-line bg-raised/40 px-2 py-1.5" aria-label="Folders">
       <Tip text="Up one folder (Backspace)">
         <Btn variant="ghost" size="icon-sm" aria-label="Up one folder" :disabled="path.length <= 1" @click="flow.up()"><CornerLeftUp class="size-3.5" /></Btn>
       </Tip>

@@ -107,3 +107,49 @@ export function isFolder(node: TreeNode): boolean {
 export function folderCount(node: TreeNode | null, roots: TreeNode[]): number {
   return (node === null ? roots : node.children).filter(isFolder).length
 }
+
+/**
+ * The steps that "light up" for a filter: those that match it and, when the filter looks inside (`include`), the steps that have a match
+ * below them, so a path to a match stays visible. Everything is lit while nothing is filtered. One pass over the trace.
+ */
+export function litSteps(roots: TreeNode[], filter: StepFilter, slowMs: number, include: boolean): Set<number> | null {
+  if (!isFiltering(filter)) return null
+  const lit = new Set<number>()
+  const visit = (node: TreeNode): boolean => {
+    let any = matches(node.span, filter, slowMs)
+    let below = false
+    for (const child of node.children) below = visit(child) || below
+    if (any || (include && below)) lit.add(node.span.id)
+    any = any || below
+
+    return any
+  }
+  roots.forEach(visit)
+
+  return lit
+}
+
+/** The columns of the graph for a step: the children of each step on the way down to it, the last ones that fit (`count`), and the path left behind. */
+export interface GraphColumn {
+  /** the step whose children these are */
+  parent: TreeNode | null
+  nodes: TreeNode[]
+  /** the one of them the path goes through (null in the last column) */
+  selected: TreeNode | null
+}
+
+export function graphColumns(roots: TreeNode[], focus: TreeNode | null, count: number): { columns: GraphColumn[]; rail: TreeNode[] } {
+  const path = crumbs(focus)
+  const all: GraphColumn[] = []
+  if (path.length === 0) {
+    all.push({ parent: null, nodes: roots, selected: null })
+  } else {
+    path.forEach((step, i) => {
+      if (step.children.length > 0) all.push({ parent: step, nodes: step.children, selected: path[i + 1] ?? null })
+    })
+  }
+  const columns = all.slice(Math.max(0, all.length - Math.max(1, count)))
+  const first = columns[0]?.parent ?? null
+
+  return { columns, rail: first === null ? [] : crumbs(first) }
+}

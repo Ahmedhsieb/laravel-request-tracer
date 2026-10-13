@@ -192,6 +192,15 @@ function toggleType(type: SpanType): void {
   flow.toggleType(type)
 }
 
+// back from the graph to the waterfall: open the folder the chosen step is in, so the row is there
+watch(() => flow.view.value, (view) => {
+  const node = pinnedId.value === null ? null : flow.nodeOf(pinnedId.value)
+  if (view === 'waterfall' && node !== null) {
+    flow.open(node.parent?.span.id ?? null)
+    void nextTick().then(() => tree.value?.scrollTo(node.span.id))
+  }
+})
+
 // opening a folder puts its own stretch of time on the axis: its steps fill the lane instead of a sliver of the request
 watch(flow.folder, (folder) => {
   range.value = folderRange(folder, totalUs.value)
@@ -340,7 +349,7 @@ onBeforeUnmount(() => {
                 @hover="hoverId = $event"
                 @select="select"
               />
-              <GraphView v-else :flow="flow" :pinned="pinnedId" @hover="hoverId = $event" @select="select" />
+              <GraphView v-else :flow="flow" :roots="roots" :pinned="pinnedId" :slow-ms="slowMs" @hover="hoverId = $event" @pin="pin" />
             </div>
           </SplitterPanel>
           <SplitterResizeHandle class="group relative outline-none transition-colors" :class="stacked ? 'h-3' : 'w-3'" aria-label="Resize the steps and the details">

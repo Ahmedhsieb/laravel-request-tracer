@@ -4,6 +4,10 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-10-13
+
+- **The graph is easier to follow.** Clicking a node used to replace the column with what was inside it, so the way back was lost. The graph is now the path to the step you click, as **columns that grow to the right**: one click opens its insides in the next column, the level you came from stays beside it with the clicked step marked, the earlier steps stay at the left as a short path, and clicking any of them goes back. There is no double-click or folder button to learn, a line under the switch says how it works, and filters dim what does not match instead of changing the columns. Switching to the waterfall opens the folder of the chosen step.
+
 ## [0.8.1] - 2026-10-13
 
 - **Copy works on a dashboard opened over plain http.** Browsers only offer the clipboard API on a secure page (https or `localhost`); a project served on `http://app.test` or a LAN address got *Copy failed* from every copy button (a value, the link, the listen command, a signed header). One helper (`lib/clipboard.ts`) now tries the API and falls back to selecting a hidden field and the browser's `copy` command, which works on any page (inside an open dialog too). Where both are refused the notice says so and the text can still be selected by hand.
