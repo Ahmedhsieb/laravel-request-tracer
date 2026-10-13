@@ -1,12 +1,12 @@
 # Request Tracer
 
-[![Latest version](https://img.shields.io/packagist/v/ahmedhsieb/laravel-request-tracer.svg)](https://packagist.org/packages/ahmedhsieb/laravel-request-tracer)
-[![Tests](https://github.com/ahmedhsieb/laravel-request-tracer/actions/workflows/ci.yml/badge.svg)](https://github.com/ahmedhsieb/laravel-request-tracer/actions/workflows/ci.yml)
-[![PHP](https://img.shields.io/badge/php-8.1%20%E2%80%93%208.4-777bb4.svg)](docs/02-installation.md)
-[![Laravel](https://img.shields.io/badge/laravel-10%20%E2%80%93%2013-ff2d20.svg)](docs/02-installation.md)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Latest version](https://img.shields.io/packagist/v/ahmedhsieb/laravel-request-tracer.svg)
+![Tests](https://github.com/ahmedhsieb/laravel-request-tracer/actions/workflows/ci.yml/badge.svg)
+![PHP](https://img.shields.io/badge/php-8.1%20%E2%80%93%208.4-777bb4.svg)
+![Laravel](https://img.shields.io/badge/laravel-10%20%E2%80%93%2013-ff2d20.svg)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 
-**Replace `dd()` with a trace of the whole request.**
+**Replace** `dd()` **with a trace of the whole request.**
 
 `dd()` shows one value in one place and kills the request. Request Tracer records the **whole request**, step by step, and lets you open any step: what went in, what came out, which lines ran, which rows were written.
 
@@ -16,6 +16,8 @@
 
 ---
 
+
+
 ## Install
 
 ```bash
@@ -24,11 +26,13 @@ composer require ahmedhsieb/laravel-request-tracer
 
 That is all. No config file, no migration, nothing to publish: the tables create themselves and the dashboard is served from the package.
 
-| Needs | |
-|---|---|
-| PHP | 8.1 – 8.4 |
-| Laravel | 10, 11, 12, 13 |
+
+| Needs    |                                                        |
+| -------- | ------------------------------------------------------ |
+| PHP      | 8.1 – 8.4                                              |
+| Laravel  | 10, 11, 12, 13                                         |
 | Database | MySQL / MariaDB, PostgreSQL or SQLite (for the traces) |
+
 
 Want to look around first? `npm ci && npm run dev` in the package folder opens the dashboard with demo data, no backend needed.
 
@@ -38,7 +42,7 @@ Want to look around first? `npm ci && npm run dev` in the package folder opens t
 php artisan request-tracer:listen
 ```
 
-Use your application as usual, then open **`/request-tracer`**.
+Use your application as usual, then open `/request-tracer`.
 
 It works like `queue:work`: **while it runs**, everything the project does is traced (requests, queued jobs, artisan commands, scheduled tasks) and each trace is printed in the terminal. Press Ctrl+C and it stops. **When it is not running nothing is recorded**, and the package costs 25 to 65 µs per request.
 
@@ -47,7 +51,11 @@ It works like `queue:work`: **while it runs**, everything the project does is tr
 
 ---
 
+
+
 ## Features
+
+
 
 ### The flow: everything the request did
 
@@ -79,13 +87,17 @@ Every condition, block and variable of a step: which `if` was true, which block 
 
 ![The code of a step: green lines ran, a purple one was false, and a pop-up shows the condition](docs/images/code.jpg)
 
-| Dot | Meaning |
-|---|---|
-| green | the line ran |
-| purple | a condition was `false` |
-| red | the line threw |
+
+| Dot    | Meaning                      |
+| ------ | ---------------------------- |
+| green  | the line ran                 |
+| purple | a condition was `false`      |
+| red    | the line threw               |
 | orange | an exception was caught here |
-| blue | a loop (with its iterations) |
+| blue   | a loop (with its iterations) |
+
+
+
 
 ### Database: what the request wrote
 
@@ -103,11 +115,13 @@ Uncaught and caught exceptions, **N+1 queries**, repeated and slow queries, slow
 
 Nothing was recording when it happened? Run it again. In the dashboard press **Replay a request**, paste a cURL command (browser: Network tab, *Copy as cURL*) or describe the request. You choose what it may change:
 
-| | Simulation (default) | Run for real |
-|---|---|---|
-| Database | rolled back, nothing changes | changes are kept |
-| E-mails, notifications, jobs, HTTP-client calls | do not go out | go out |
-| Afterwards | | **Undo** puts every Eloquent write back |
+
+|                                                 | Simulation (default)         | Run for real                            |
+| ----------------------------------------------- | ---------------------------- | --------------------------------------- |
+| Database                                        | rolled back, nothing changes | changes are kept                        |
+| E-mails, notifications, jobs, HTTP-client calls | do not go out                | go out                                  |
+| Afterwards                                      |                              | **Undo** puts every Eloquent write back |
+
 
 ![The replay dialog: simulation or run for real](docs/images/replay.jpg)
 
@@ -136,6 +150,8 @@ Turn it on (`REQUEST_TRACER_JOURNAL=true`) and every request leaves one light ro
 
 ---
 
+
+
 ## Configure
 
 There is nothing to configure to start. To change something publish the file and keep only the keys you change (every key has a default):
@@ -146,19 +162,21 @@ php artisan vendor:publish --tag=request-tracer-config
 
 The keys you will reach for first:
 
-| Key | Default | What it does |
-|---|---|---|
-| `code.paths` | `['app']` | Folders or files whose code is traced, line by line. Everything inside is traced, you never list classes. |
-| `code.except` | `[]` | Folders, files or classes to leave out (`'app/Legacy'`, `'App\Reports\*'`). `#[NoTrace]` on a class does the same. |
-| `dashboard.path` | `request-tracer` | URL of the dashboard. |
-| `dashboard.gate` | `viewRequestTracer` | The gate that decides who may open it. |
-| `journal.enabled` | `false` | Note every request so it can be replayed (`REQUEST_TRACER_JOURNAL`). |
-| `replay.enabled`, `replay.real` | `null` | Allow replay (and running for real). `null` = everywhere except production. |
-| `masking.keys` | `password`, `token`, `secret`, `card`... | Field names whose values are masked **before** anything is stored. Yours are added. |
-| `exclude.paths` | login, webhooks, health checks... | URLs that are never recorded. Yours are added. |
-| `retention.hours`, `retention.max_rows` | `24`, `5000` | How long traces are kept (cleaned up automatically). |
-| `limits.max_spans` | `5000` | Steps stored per trace. |
-| `storage.connection` | app default | Database connection that holds the tables (`REQUEST_TRACER_DB_CONNECTION`). |
+
+| Key                                     | Default                                  | What it does                                                                                                       |
+| --------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `code.paths`                            | `['app']`                                | Folders or files whose code is traced, line by line. Everything inside is traced, you never list classes.          |
+| `code.except`                           | `[]`                                     | Folders, files or classes to leave out (`'app/Legacy'`, `'App\Reports\*'`). `#[NoTrace]` on a class does the same. |
+| `dashboard.path`                        | `request-tracer`                         | URL of the dashboard.                                                                                              |
+| `dashboard.gate`                        | `viewRequestTracer`                      | The gate that decides who may open it.                                                                             |
+| `journal.enabled`                       | `false`                                  | Note every request so it can be replayed (`REQUEST_TRACER_JOURNAL`).                                               |
+| `replay.enabled`, `replay.real`         | `null`                                   | Allow replay (and running for real). `null` = everywhere except production.                                        |
+| `masking.keys`                          | `password`, `token`, `secret`, `card`... | Field names whose values are masked **before** anything is stored. Yours are added.                                |
+| `exclude.paths`                         | login, webhooks, health checks...        | URLs that are never recorded. Yours are added.                                                                     |
+| `retention.hours`, `retention.max_rows` | `24`, `5000`                             | How long traces are kept (cleaned up automatically).                                                               |
+| `limits.max_spans`                      | `5000`                                   | Steps stored per trace.                                                                                            |
+| `storage.connection`                    | app default                              | Database connection that holds the tables (`REQUEST_TRACER_DB_CONNECTION`).                                        |
+
 
 Environment variables: `REQUEST_TRACER_ENABLED`, `REQUEST_TRACER_MODE`, `REQUEST_TRACER_JOURNAL`, `REQUEST_TRACER_DB_CONNECTION`. Every key is in [docs/04-configuration.md](docs/04-configuration.md).
 
@@ -176,16 +194,22 @@ return [
 
 ---
 
+
+
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `php artisan request-tracer:listen` | Trace everything while it runs. `--seconds=60` stops after a minute, `--no-feed` prints nothing. |
+
+| Command                                            | What it does                                                                                                             |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `php artisan request-tracer:listen`                | Trace everything while it runs. `--seconds=60` stops after a minute, `--no-feed` prints nothing.                         |
 | `php artisan request-tracer:replay "POST /orders"` | Run a request again, traced. Options: `--data=`, `--header=`, `--as=<user id>`, `--curl=`, `--journal=failed`, `--real`. |
-| `php artisan request-tracer:undo <trace>` | Take back what a real replay changed. |
-| `php artisan request-tracer:token` | Make a signed header for one request (`--ttl=`, `--user=`, `--route=`). |
-| `php artisan request-tracer:prune` | Delete old traces (scheduled automatically). |
-| `php artisan request-tracer:install` | Optional: publish the config and assets. |
+| `php artisan request-tracer:undo <trace>`          | Take back what a real replay changed.                                                                                    |
+| `php artisan request-tracer:token`                 | Make a signed header for one request (`--ttl=`, `--user=`, `--route=`).                                                  |
+| `php artisan request-tracer:prune`                 | Delete old traces (scheduled automatically).                                                                             |
+| `php artisan request-tracer:install`               | Optional: publish the config and assets.                                                                                 |
+
+
+
 
 ## Examples
 
@@ -215,7 +239,7 @@ php artisan request-tracer:token --ttl=300 --route='api/orders*'
 # then send it:  curl -H "X-Request-Tracer: <token>" https://example.com/api/orders
 ```
 
-**Trace something outside `app/`, or leave a class out**
+**Trace something outside** `app/`**, or leave a class out**
 
 ```php
 use Ahmedhsieb\RequestTracer\Attributes\Trace;
@@ -240,6 +264,8 @@ Tracer::resolveModuleUsing(fn ($request) => $request?->segment(1));
 
 ---
 
+
+
 ## In production
 
 Same two steps, on the server. The dashboard stays closed until you say who may open it:
@@ -252,6 +278,8 @@ Gate::define('viewRequestTracer', fn ($user) => in_array($user->email, ['ops@exa
 - **A failure inside the tracer never breaks a request**; it is logged and swallowed.
 - **Nothing records on its own**: only while `request-tracer:listen` runs, or for a signed header, a watched user, a sample, or a replay.
 - To trace without the command: [signed header, watched user, sampling](docs/07-running-in-production.md).
+
+
 
 ## What it costs
 
@@ -267,4 +295,6 @@ Proxies cannot see `new`, final classes, private or static methods. Line-by-line
 
 ## License
 
-MIT. See [LICENSE](LICENSE). العربية: [README.ar.md](README.ar.md)
+MIT. 
+
+See [LICENSE](LICENSE). العربية: [README.ar.md](README.ar.md)
