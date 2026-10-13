@@ -4,6 +4,10 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-10-13
+
+- **The journal no longer forgets the pages you loaded.** The list refreshed itself every few seconds by fetching the first page and *replacing* the list with it, so what *Load more* had added disappeared and the list jumped back to the first 50. The refresh now only puts requests noted since the last look on top and leaves everything that is shown as it is; *Load more* cannot start twice (the button shows *Loading…*), skips an entry that is already listed, and a page that was still on its way when the search or the filter changed is dropped instead of being mixed into the new list.
+
 ## [0.5.4] - 2026-10-12
 
 - **A function with no run data says why.** The code view called every function without lines *not traced line by line*, but there are three different reasons and only one is a setting: the folder is outside `code.paths` (*not traced line by line*, with the line to add); other functions of the step were recorded but not this one, so it **did not run** (a form request failed its validation and Laravel redirected, an authorization refused: the tag says *did not run* and the notice points at the validation step); or nothing at all was recorded for the step (the request was not recorded with line-by-line tracing: the notice offers *Trace this file line by line*, which the static-text fallback of 0.5.1 had hidden).
