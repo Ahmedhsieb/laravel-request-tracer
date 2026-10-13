@@ -136,7 +136,7 @@ function note(entry: JournalEntry): string {
       </li>
     </template>
     <li v-if="store.journalCursor" style="padding: 10px; text-align: center">
-      <button class="btn small" type="button" @click="store.moreJournal()">Load more</button>
+      <button class="btn small" type="button" :disabled="store.journalLoadingMore" @click="store.moreJournal()">{{ store.journalLoadingMore ? 'Loading…' : 'Load more' }}</button>
     </li>
     <li style="padding: 10px; text-align: center">
       <button class="btn small ghost" type="button" @click="clear">Clear the journal</button>

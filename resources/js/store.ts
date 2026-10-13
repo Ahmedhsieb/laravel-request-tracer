@@ -1,5 +1,5 @@
 import { computed, inject, markRaw, reactive, ref, shallowRef, type InjectionKey } from 'vue'
-import type { Api, JournalEntry, Meta, TraceFilters, TraceSummary } from './api/types'
+import type { Api, JournalEntry, JournalFilters, Meta, TraceFilters, TraceSummary } from './api/types'
 import { formFromJournal, type ReplayForm } from './lib/replay'
 
 export type Chip = 'all' | 'problems' | 'slow'
@@ -45,6 +45,8 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   const journalLoading = ref(false)
   const journalCursor = ref<string | null>(null)
   const journalError = ref<string | null>(null)
+  const journalLoadingMore = ref(false)
+  let journalGeneration = 0
   const replayInitial = shallowRef<ReplayForm | null>(null)
   // the request list grouped by route prefix: on/off, how many segments the prefix has, and the groups the user closed
   const grouping = readGrouping()
@@ -143,7 +145,7 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   async function poll(): Promise<void> {
     if (document.hidden) return
     if (view.value === 'journal') {
-      if (!journalLoading.value) void reloadJournal()
+      await pollJournal()
 
       return
     }
@@ -207,7 +209,15 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
     debounce = setTimeout(() => void reload(), delay)
   }
 
+  function journalFilters(): JournalFilters {
+    const text = journalSearch.value.trim()
+
+    return { status: journalStatus.value === 'failed' ? 'failed' : undefined, search: text === '' ? undefined : text }
+  }
+
+  /** Start the journal over: the first page for the current filters. Whatever a slower request was still bringing is dropped. */
   async function reloadJournal(): Promise<void> {
+    const mine = ++journalGeneration
     if (meta.value?.journal.enabled === false) {
       journal.value = []
       journalCursor.value = null
@@ -216,24 +226,50 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
     journalLoading.value = true
     journalError.value = null
     try {
-      const page = await api.journal({ status: journalStatus.value === 'failed' ? 'failed' : undefined, search: journalSearch.value.trim() === '' ? undefined : journalSearch.value.trim() })
+      const page = await api.journal(journalFilters())
+      if (mine !== journalGeneration) return
       journal.value = page.data
+      journalCursor.value = page.next_cursor
+    } catch (e) {
+      if (mine === journalGeneration) journalError.value = e instanceof Error ? e.message : String(e)
+    } finally {
+      if (mine === journalGeneration) journalLoading.value = false
+    }
+  }
+
+  /**
+   * The next page, below what is shown. Pages that were loaded stay: the list is only ever replaced by a new search or filter,
+   * never by the refresh that looks for new requests.
+   */
+  async function moreJournal(): Promise<void> {
+    if (journalCursor.value === null || journalLoadingMore.value) return
+    const mine = journalGeneration
+    journalLoadingMore.value = true
+    try {
+      const page = await api.journal(journalFilters(), journalCursor.value)
+      if (mine !== journalGeneration) return                 // the list was started over meanwhile: this page belongs to the old one
+      const known = new Set(journal.value.map((e) => e.id))
+      journal.value = [...journal.value, ...page.data.filter((e) => !known.has(e.id))]
       journalCursor.value = page.next_cursor
     } catch (e) {
       journalError.value = e instanceof Error ? e.message : String(e)
     } finally {
-      journalLoading.value = false
+      journalLoadingMore.value = false
     }
   }
 
-  async function moreJournal(): Promise<void> {
-    if (journalCursor.value === null) return
+  /** Looks for requests noted since the last look and puts them on top; what is already shown, loaded pages included, stays as it is. */
+  async function pollJournal(): Promise<void> {
+    if (journalLoading.value || journalLoadingMore.value || meta.value?.journal.enabled === false) return
+    const mine = journalGeneration
     try {
-      const page = await api.journal({ status: journalStatus.value === 'failed' ? 'failed' : undefined, search: journalSearch.value.trim() === '' ? undefined : journalSearch.value.trim() }, journalCursor.value)
-      journal.value = [...journal.value, ...page.data]
-      journalCursor.value = page.next_cursor
-    } catch (e) {
-      journalError.value = e instanceof Error ? e.message : String(e)
+      const page = await api.journal(journalFilters())
+      if (mine !== journalGeneration || journalLoadingMore.value) return
+      const known = new Set(journal.value.map((e) => e.id))
+      const added = page.data.filter((e) => !known.has(e.id))
+      if (added.length > 0) journal.value = [...added, ...journal.value]
+    } catch {
+      // a refresh is best effort: a failed one must not replace the list with an error
     }
   }
 
@@ -270,7 +306,7 @@ export function createStore(api: Api, basePath: string, initialMeta: Meta | null
   }
 
   // reactive() unwraps the refs, so templates (and callers) use `store.meta`, not `store.meta.value`
-  return reactive({ api: markRaw(api), basePath, meta, traces, fresh, search, chip, module, modules, loading, loadingMore, error, cursor, selected, toastText, replayOpen, replayInitial, grouped, groupDepth, collapsedGroups, collapsedJournalGroups, setGrouping, toggleGroup, setAllGroups, toggleJournalGroup, setAllJournalGroups, view, journal, journalStatus, journalSearch, journalLoading, journalCursor, journalError, start, stop, reload, more, open, close, refilter, toast, openReplay, closeReplay, reloadJournal, moreJournal, showView, replayJournalEntry })
+  return reactive({ api: markRaw(api), basePath, meta, traces, fresh, search, chip, module, modules, loading, loadingMore, error, cursor, selected, toastText, replayOpen, replayInitial, grouped, groupDepth, collapsedGroups, collapsedJournalGroups, setGrouping, toggleGroup, setAllGroups, toggleJournalGroup, setAllJournalGroups, view, journal, journalStatus, journalSearch, journalLoading, journalCursor, journalError, journalLoadingMore, start, stop, reload, more, open, close, refilter, toast, openReplay, closeReplay, reloadJournal, moreJournal, showView, replayJournalEntry })
 }
 
 export type Store = ReturnType<typeof createStore>
