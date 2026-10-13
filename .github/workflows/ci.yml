@@ -60,7 +60,17 @@ jobs:
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress
 
       - name: Run tests
-        run: vendor/bin/pest --compact
+        shell: bash
+        run: |
+          set +e
+          vendor/bin/pest --compact 2>&1 | tee pest.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            # the log of a public run needs a login: put the failures into an annotation, which does not
+            message=$(grep -v '^\s*$' pest.log | grep -A14 -E 'FAILED|Fatal error|Error:|Exception' | head -45 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=pest failed::$message"
+          fi
+          exit "$status"
 
   # ---------------------------------------------------------------------------
   # Same suite against MySQL, PostgreSQL and SQLite (file) databases
@@ -104,7 +114,17 @@ jobs:
           extensions: mbstring, pdo_sqlite, sqlite3, pdo_mysql, pdo_pgsql, zlib, json, openssl
           coverage: none
       - run: composer update --prefer-stable --prefer-dist --no-interaction --no-progress
-      - run: vendor/bin/pest --compact
+      - name: Run tests
+        shell: bash
+        run: |
+          set +e
+          vendor/bin/pest --compact 2>&1 | tee pest.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            message=$(grep -v '^\s*$' pest.log | grep -A14 -E 'FAILED|Fatal error|Error:|Exception' | head -45 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=pest failed::$message"
+          fi
+          exit "$status"
 
   # ---------------------------------------------------------------------------
   # Style + static analysis + frontend checks
