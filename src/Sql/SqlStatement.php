@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Sql;
+namespace Ahmedhsieb\RequestTracer\Sql;
 
 /** What the tracer knows about one SQL statement. */
 final class SqlStatement

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Collectors;
+namespace Ahmedhsieb\RequestTracer\Collectors;
 
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\Locator;
+use Ahmedhsieb\RequestTracer\Support\Paths;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Str;
-use RequestTracer\SpanType;
-use RequestTracer\Support\Failure;
-use RequestTracer\Support\Locator;
-use RequestTracer\Support\Paths;
-use RequestTracer\Tracer;
 
 /**
  * Application events with the list of listeners that handled them.

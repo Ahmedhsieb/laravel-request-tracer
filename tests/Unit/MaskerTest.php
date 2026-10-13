@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use RequestTracer\Dumper\Masker;
+use Ahmedhsieb\RequestTracer\Dumper\Masker;
 
 function defaultMasker(): Masker
 {

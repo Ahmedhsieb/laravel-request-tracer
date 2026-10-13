@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Deep\Other;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Deep\Other;
 
 class QueuedThing
 {

@@ -13,13 +13,13 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\DeepTrace\Loader;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\User;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Services\CouponService;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Services\PricingService;
 use Illuminate\Config\Repository;
 use Illuminate\Foundation\Application;
-use RequestTracer\DeepTrace\Loader;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tests\Fixtures\Models\User;
-use RequestTracer\Tests\Fixtures\Services\CouponService;
-use RequestTracer\Tests\Fixtures\Services\PricingService;
 
 require dirname(__DIR__, 3).'/vendor/autoload.php';
 

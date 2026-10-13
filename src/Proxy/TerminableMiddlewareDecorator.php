@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Proxy;
+namespace Ahmedhsieb\RequestTracer\Proxy;
 
 /** A {@see MiddlewareDecorator} for middleware that defines `terminate($request, $response)`. */
 final class TerminableMiddlewareDecorator extends MiddlewareDecorator

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer;
+namespace Ahmedhsieb\RequestTracer;
 
 /**
  * Everything one finished trace consists of, ready to be persisted by a TraceStorage.

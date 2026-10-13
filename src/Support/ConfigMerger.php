@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Support;
+namespace Ahmedhsieb\RequestTracer\Support;
 
 /**
  * Lays the application's `config/request-tracer.php` over the package defaults, so a config file only has to contain what it changes.
@@ -25,6 +25,26 @@ final class ConfigMerger
         'capture.ignore_events', 'capture.request_headers', 'capture.response_headers',
         'problems.ignore_exceptions',
     ];
+
+    /**
+     * A config file written for the package before its namespace was `Ahmedhsieb\RequestTracer\` names classes as `RequestTracer\...`
+     * (`RequestTracer\Http\Middleware\Authorize`, a custom collector): read those as the classes they became.
+     *
+     * @param  array<array-key, mixed>  $config
+     * @return array<array-key, mixed>
+     */
+    public static function modernize(array $config): array
+    {
+        foreach ($config as $key => $value) {
+            if (is_array($value)) {
+                $config[$key] = self::modernize($value);
+            } elseif (is_string($value) && preg_match('/^\\\\?RequestTracer\\\\/', $value) === 1) {
+                $config[$key] = 'Ahmedhsieb\\'.ltrim($value, '\\');
+            }
+        }
+
+        return $config;
+    }
 
     /**
      * @param  array<array-key, mixed>  $defaults

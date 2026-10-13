@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Recording;
+namespace Ahmedhsieb\RequestTracer\Recording;
 
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Failure;
 use Illuminate\Http\Request;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Failure;
 
 /**
  * "Is somebody listening?": the switch behind `php artisan request-tracer:listen`.

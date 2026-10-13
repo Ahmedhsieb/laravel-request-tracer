@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer;
+namespace Ahmedhsieb\RequestTracer;
 
 /**
  * Collects the spans of one trace.

@@ -15,7 +15,7 @@ Compatibility is checked in CI on every Laravel version with both the lowest and
 ## Install
 
 ```bash
-composer require your-vendor/laravel-request-tracer
+composer require ahmedhsieb/laravel-request-tracer
 ```
 
 That is the whole installation. The service provider is discovered automatically, and there is **nothing to publish or migrate**:
@@ -61,9 +61,9 @@ php artisan vendor:publish --tag=request-tracer-assets       # public/vendor/req
 
 ## Upgrading, uninstalling
 
-- Upgrading: `composer update your-vendor/laravel-request-tracer`, and read [the upgrade notes](13-troubleshooting-faq-upgrade.md#upgrading). If you published the assets, publish them again with `--force`.
+- Upgrading: `composer update ahmedhsieb/laravel-request-tracer`, and read [the upgrade notes](13-troubleshooting-faq-upgrade.md#upgrading). If you published the assets, publish them again with `--force`.
 - Switching it off without removing it: `REQUEST_TRACER_ENABLED=false` (the package then registers nothing).
-- Uninstalling: `composer remove your-vendor/laravel-request-tracer`, delete `config/request-tracer.php` and `public/vendor/request-tracer` if you published them, and drop the five `tracer_*` tables. Generated code lives in `storage/framework/request-tracer` and can be deleted too.
+- Uninstalling: `composer remove ahmedhsieb/laravel-request-tracer`, delete `config/request-tracer.php` and `public/vendor/request-tracer` if you published them, and drop the five `tracer_*` tables. Generated code lives in `storage/framework/request-tracer` and can be deleted too.
 
 ## Laravel Octane, Horizon, queue workers
 

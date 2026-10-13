@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer;
+namespace Ahmedhsieb\RequestTracer;
 
+use Ahmedhsieb\RequestTracer\Dumper\DumpLimits;
+use Ahmedhsieb\RequestTracer\Dumper\Masker;
+use Ahmedhsieb\RequestTracer\Dumper\ValueDumper;
+use Ahmedhsieb\RequestTracer\Recording\Decision;
+use Ahmedhsieb\RequestTracer\Recording\RecordingDecider;
+use Ahmedhsieb\RequestTracer\Storage\TraceStorage;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\CallSite;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\Summary;
 use Closure;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use RequestTracer\Dumper\DumpLimits;
-use RequestTracer\Dumper\Masker;
-use RequestTracer\Dumper\ValueDumper;
-use RequestTracer\Recording\Decision;
-use RequestTracer\Recording\RecordingDecider;
-use RequestTracer\Storage\TraceStorage;
-use RequestTracer\Support\App;
-use RequestTracer\Support\CallSite;
-use RequestTracer\Support\Failure;
-use RequestTracer\Support\Summary;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 

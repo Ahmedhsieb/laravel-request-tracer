@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Http\Controllers\TraceController;
+use Ahmedhsieb\RequestTracer\Support\Paths;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Http\PlainController;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\Http\Controllers\TraceController;
-use RequestTracer\Support\Paths;
-use RequestTracer\Tests\Fixtures\Http\PlainController;
 use Tmp\Accounting\UntracedVoucherController;
 
 beforeEach(function () {
@@ -55,7 +55,7 @@ it('lists the function of the step itself first, then the others in the order th
 });
 
 it('shows the action of a controller that Laravel does not know as one once, as the controller step', function () {
-    config(['request-tracer.proxies.namespaces' => ['RequestTracer\Tests\Fixtures\Services', 'RequestTracer\Tests\Fixtures\Http']]);
+    config(['request-tracer.proxies.namespaces' => ['Ahmedhsieb\RequestTracer\Tests\Fixtures\Services', 'Ahmedhsieb\RequestTracer\Tests\Fixtures\Http']]);
     Route::get('/vouchers/{id}', [PlainController::class, 'show']);
 
     $this->get('/vouchers/1057')->assertOk();

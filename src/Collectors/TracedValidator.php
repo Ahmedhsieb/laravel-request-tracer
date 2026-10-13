@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Collectors;
+namespace Ahmedhsieb\RequestTracer\Collectors;
 
+use Ahmedhsieb\RequestTracer\SpanFlag;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Support\CallSite;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Validation\Validator;
-use RequestTracer\SpanFlag;
-use RequestTracer\SpanType;
-use RequestTracer\Support\CallSite;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tracer;
 
 /** Validator that records a `validation` span around passes(): rules and data in, pass/fail and error messages out. */
 final class TracedValidator extends Validator

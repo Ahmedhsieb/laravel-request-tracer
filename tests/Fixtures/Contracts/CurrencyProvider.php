@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Contracts;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Contracts;
 
 interface CurrencyProvider
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Http\Middleware;
+namespace Ahmedhsieb\RequestTracer\Http\Middleware;
 
 use Closure;
 use Illuminate\Contracts\Foundation\Application;

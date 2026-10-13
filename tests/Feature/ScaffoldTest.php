@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use RequestTracer\Facades\Tracer as TracerFacade;
-use RequestTracer\Tracer;
+use Ahmedhsieb\RequestTracer\Facades\Tracer as TracerFacade;
+use Ahmedhsieb\RequestTracer\Tracer;
 
 it('registers the tracer singleton, alias, facade and config', function () {
     expect(app(Tracer::class))->toBe(app('request-tracer'))

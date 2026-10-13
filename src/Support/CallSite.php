@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Support;
+namespace Ahmedhsieb\RequestTracer\Support;
 
 /** Finds the application file:line that caused something (a query, a log line, a trace() call). */
 final class CallSite

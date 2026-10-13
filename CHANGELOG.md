@@ -4,6 +4,19 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-13
+
+**The package is now `ahmedhsieb/laravel-request-tracer` and its classes live in `Ahmedhsieb\RequestTracer\`** (it was `your-vendor/laravel-request-tracer` and `RequestTracer\`, placeholders). Nothing else changes: the config file, the `request-tracer:*` commands, the routes, the tables, the header and the dashboard keep their names.
+
+To upgrade an application:
+
+1. In `composer.json` replace `your-vendor/laravel-request-tracer` with `ahmedhsieb/laravel-request-tracer` (and the `repositories` entry if you use a path), then `composer update ahmedhsieb/laravel-request-tracer`.
+2. Anywhere your own code names a class of the package, use the new namespace: `Ahmedhsieb\RequestTracer\Facades\Tracer`, `Ahmedhsieb\RequestTracer\Attributes\Trace`, a custom collector's `Collector` interface. The `Tracer` alias is unchanged.
+3. A published `config/request-tracer.php` that names classes of the package (`RequestTracer\Http\Middleware\Authorize`, a custom collector) keeps working: such names are read as the classes they became. Change them when you next edit the file.
+4. Generated code is rebuilt on its own (the caches are keyed by package version); delete `storage/framework/request-tracer` if something odd shows up, and run `php artisan package:discover` if the application caches its providers.
+
+- The configuration reads class names of the old namespace as the new ones (`ConfigMerger::modernize()`).
+
 ## [0.5.5] - 2026-10-13
 
 - **The journal no longer forgets the pages you loaded.** The list refreshed itself every few seconds by fetching the first page and *replacing* the list with it, so what *Load more* had added disappeared and the list jumped back to the first 50. The refresh now only puts requests noted since the last look on top and leaves everything that is shown as it is; *Load more* cannot start twice (the button shows *Loading…*), skips an entry that is already listed, and a page that was still on its way when the search or the filter changed is dropped instead of being mixed into the new list.

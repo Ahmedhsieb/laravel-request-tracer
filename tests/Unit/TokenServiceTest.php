@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Recording\TokenService;
 use Illuminate\Http\Request;
-use RequestTracer\Recording\TokenService;
 
 function tokens(): TokenService
 {

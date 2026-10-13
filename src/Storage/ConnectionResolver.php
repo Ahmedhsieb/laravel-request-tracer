@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Storage;
+namespace Ahmedhsieb\RequestTracer\Storage;
 
+use Ahmedhsieb\RequestTracer\Support\App;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Connectors\ConnectionFactory;
 use Illuminate\Database\DatabaseManager;
-use RequestTracer\Support\App;
 
 /**
  * Resolves the connection traces are written to.

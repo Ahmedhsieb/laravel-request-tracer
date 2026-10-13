@@ -1,7 +1,7 @@
 <?php
 
 declare(strict_types=1);
-use RequestTracer\Tracer;
+use Ahmedhsieb\RequestTracer\Tracer;
 
 if (! function_exists('trace')) {
     /**

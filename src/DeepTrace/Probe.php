@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\DeepTrace;
+namespace Ahmedhsieb\RequestTracer\DeepTrace;
 
-use RequestTracer\Dumper\MaskedValue;
-use RequestTracer\Hot;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tracer;
-use RequestTracer\TraceSession;
+use Ahmedhsieb\RequestTracer\Dumper\MaskedValue;
+use Ahmedhsieb\RequestTracer\Hot;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tracer;
+use Ahmedhsieb\RequestTracer\TraceSession;
 
 /**
  * The runtime of Deep trace: the compiled copy of a file calls these static methods.

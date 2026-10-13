@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\DeepTrace;
+namespace Ahmedhsieb\RequestTracer\DeepTrace;
 
 /**
  * Probe id -> {file, line, kind, snippet, function}. Written once per compiled file (next to it), read only for the probes

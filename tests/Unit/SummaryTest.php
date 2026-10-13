@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Support\Summary;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
-use RequestTracer\Support\Summary;
 
 it('summarises values in one short phrase', function (mixed $value, string $expected) {
     expect(Summary::of($value))->toBe($expected);

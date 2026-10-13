@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer;
+namespace Ahmedhsieb\RequestTracer;
 
 /**
  * The hot-path flag for code that cannot reach the Tracer cheaply (generated proxies, Deep trace probes, trace()).

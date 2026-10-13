@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Dumper;
+namespace Ahmedhsieb\RequestTracer\Dumper;
 
-use RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\Failure;
 use Symfony\Component\VarDumper\Cloner\VarCloner;
 
 /**

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Analysis;
+namespace Ahmedhsieb\RequestTracer\Analysis;
 
+use Ahmedhsieb\RequestTracer\Dumper\Masker;
+use Ahmedhsieb\RequestTracer\Sql\TableRef;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Brand;
+use Ahmedhsieb\RequestTracer\TraceSession;
 use Illuminate\Database\Eloquent\Model;
-use RequestTracer\Dumper\Masker;
-use RequestTracer\Sql\TableRef;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Brand;
-use RequestTracer\TraceSession;
 
 /**
  * Collects the rows a request wrote.

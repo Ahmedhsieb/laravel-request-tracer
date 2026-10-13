@@ -25,7 +25,7 @@ A class can also leave itself out with `#[NoTrace]`, or be put in by hand:
 * **Dashboard**: open a step that has no line data and press *Trace this file line by line*. The file is queued for the next recorded request (`deep_trace.queue_ttl`, default one hour) and removed from the queue once a recorded request has used it. Useful for a file outside `code.paths`.
 * **`#[Trace(deep: true)]`** on a class, when `deep_trace.attribute_scan` is on (off by default: it reads every class under `proxies.attribute_namespaces` once per process).
 * **`deep_trace.namespaces`** / **`deep_trace.files`**: classes or files that are compiled all the time, even when nobody listens. Rarely needed now.
-* Queue it from code: `RequestTracer\DeepTrace\Loader::queue()->add($absolutePath, 3600)`.
+* Queue it from code: `Ahmedhsieb\RequestTracer\DeepTrace\Loader::queue()->add($absolutePath, 3600)`.
 
 A long-running worker (Octane, `queue:work`) keeps the classes it had loaded before the listen command started as they were, uncompiled, until it restarts. PHP-FPM and `artisan serve` load the classes again for every request, so for them it just works.
 

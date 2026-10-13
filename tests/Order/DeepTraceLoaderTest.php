@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\DeepTrace\Loader;
+use Ahmedhsieb\RequestTracer\Hot;
+use Ahmedhsieb\RequestTracer\Support\Paths;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Deep\Loaded\FallbackThing;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Deep\Loaded\Tracked;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Deep\Other\Plain;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Deep\Other\QueuedThing;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\DeepTrace\Loader;
-use RequestTracer\Hot;
-use RequestTracer\Support\Paths;
-use RequestTracer\Tests\Fixtures\Deep\Loaded\FallbackThing;
-use RequestTracer\Tests\Fixtures\Deep\Loaded\Tracked;
-use RequestTracer\Tests\Fixtures\Deep\Other\Plain;
-use RequestTracer\Tests\Fixtures\Deep\Other\QueuedThing;
-use RequestTracer\Tracer;
 
-const LOADED_NS = 'RequestTracer\Tests\Fixtures\Deep\Loaded';
+const LOADED_NS = 'Ahmedhsieb\RequestTracer\Tests\Fixtures\Deep\Loaded';
 
 it('loads configured classes from a compiled copy and reports the original file', function () {
     config(['request-tracer.deep_trace.namespaces' => [LOADED_NS]]);
@@ -99,7 +99,7 @@ it('traces a queued file on its next recorded request and then forgets it', func
 });
 
 it('does not touch any class when Deep trace is switched off', function () {
-    config(['request-tracer.deep_trace.enabled' => false, 'request-tracer.deep_trace.namespaces' => ['RequestTracer\Tests\Fixtures\Deep\Never']]);
+    config(['request-tracer.deep_trace.enabled' => false, 'request-tracer.deep_trace.namespaces' => ['Ahmedhsieb\RequestTracer\Tests\Fixtures\Deep\Never']]);
 
     expect(Tracer::$instance)->not->toBeNull();
     expect(Loader::originalOf((string) (new ReflectionClass(Plain::class))->getFileName()))->toBeNull();

@@ -29,7 +29,7 @@ it('gives every service in the folder a step with its input and output, without 
 });
 
 it('leaves out a file named in code.except, and a class pattern', function () {
-    config(['request-tracer.code.except' => [$this->services.'/PricingService.php', 'RequestTracer\\Tests\\Fixtures\\Services\\Payment*']]);
+    config(['request-tracer.code.except' => [$this->services.'/PricingService.php', 'Ahmedhsieb\\RequestTracer\\Tests\\Fixtures\\Services\\Payment*']]);
     $products = $this->seedCatalog();
     $this->actingAs($this->makeUser())->postJson('/api/orders', $this->orderPayload($products))->assertCreated();
 

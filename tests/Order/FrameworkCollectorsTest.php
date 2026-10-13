@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Recording\Decision;
+use Ahmedhsieb\RequestTracer\Recording\RecordingDecider;
+use Ahmedhsieb\RequestTracer\Storage\TraceStorage;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\Order;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\Product;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\User;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\Recording\Decision;
-use RequestTracer\Recording\RecordingDecider;
-use RequestTracer\Storage\TraceStorage;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tests\Fixtures\Models\Order;
-use RequestTracer\Tests\Fixtures\Models\Product;
-use RequestTracer\Tests\Fixtures\Models\User;
 
 /** Run the order endpoint as an authenticated user. */
 function placeOrder($test, array $payload, ?User $user = null)
@@ -234,7 +234,7 @@ it('lists the listeners of an event', function () {
 
     $event = $this->spansOf($this->traceSpans(), 'event', 'OrderPlaced')[0];
 
-    expect($event['meta']['listeners'])->toContain('RequestTracer\Tests\Fixtures\Listeners\SendOrderConfirmation@handle');
+    expect($event['meta']['listeners'])->toContain('Ahmedhsieb\RequestTracer\Tests\Fixtures\Listeners\SendOrderConfirmation@handle');
 });
 
 it('records failed outgoing calls as problems', function () {

@@ -1,7 +1,7 @@
 # CLAUDE.md – Request Tracer
 
 Laravel package that traces a request end to end (spans, per-step input/output, line-by-line "Deep trace", table writes, problems)
-with a Vue 3 dashboard. Composer name `your-vendor/laravel-request-tracer`, namespace `RequestTracer\`, config `config/request-tracer.php`, route prefix `/request-tracer`.
+with a Vue 3 dashboard. Composer name `ahmedhsieb/laravel-request-tracer`, namespace `Ahmedhsieb\RequestTracer\`, config `config/request-tracer.php`, route prefix `/request-tracer`.
 The brand lives in `src/Support/Brand.php` only.
 
 ## Commands

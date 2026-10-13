@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Http\Controllers\AssetController;
+use Ahmedhsieb\RequestTracer\Http\Controllers\DashboardController;
+use Ahmedhsieb\RequestTracer\Http\Controllers\JournalController;
+use Ahmedhsieb\RequestTracer\Http\Controllers\MetaController;
+use Ahmedhsieb\RequestTracer\Http\Controllers\ToolsController;
+use Ahmedhsieb\RequestTracer\Http\Controllers\TraceController;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\Http\Controllers\AssetController;
-use RequestTracer\Http\Controllers\DashboardController;
-use RequestTracer\Http\Controllers\JournalController;
-use RequestTracer\Http\Controllers\MetaController;
-use RequestTracer\Http\Controllers\ToolsController;
-use RequestTracer\Http\Controllers\TraceController;
 
 /*
  * Registered by the service provider inside a group that carries the configured prefix, domain and middleware

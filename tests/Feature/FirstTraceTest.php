@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Storage\TraceStorage;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\Storage\TraceStorage;
-use RequestTracer\Tracer;
 
 beforeEach(function () {
     Route::get('/hello', fn () => response()->json(['ok' => true, 'password' => 'hunter2']));

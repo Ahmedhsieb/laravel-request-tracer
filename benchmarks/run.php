@@ -17,18 +17,18 @@ declare(strict_types=1);
  * *overhead* of the package, not absolute capacity. See docs/benchmarks.md for results and how to read them.
  */
 
+use Ahmedhsieb\RequestTracer\Recording\Listening;
+use Ahmedhsieb\RequestTracer\Recording\RecordingDecider;
+use Ahmedhsieb\RequestTracer\RequestTracerServiceProvider;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Http\OrderController;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\Product;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\User;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Orchestra\Testbench\Concerns\CreatesApplication;
-use RequestTracer\Recording\Listening;
-use RequestTracer\Recording\RecordingDecider;
-use RequestTracer\RequestTracerServiceProvider;
-use RequestTracer\Tests\Fixtures\Http\OrderController;
-use RequestTracer\Tests\Fixtures\Models\Product;
-use RequestTracer\Tests\Fixtures\Models\User;
 
 require __DIR__.'/../vendor/autoload.php';
 

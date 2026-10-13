@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use RequestTracer\Sql\BindingNamer;
-use RequestTracer\Sql\SqlAnalyzer;
-use RequestTracer\Sql\TableRef;
+use Ahmedhsieb\RequestTracer\Sql\BindingNamer;
+use Ahmedhsieb\RequestTracer\Sql\SqlAnalyzer;
+use Ahmedhsieb\RequestTracer\Sql\TableRef;
 
 /** @return list<string> "operation table" pairs the statement writes, e.g. ["insert orders"] */
 function writesOf(string $sql, string $driver = ''): array

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Console;
+namespace Ahmedhsieb\RequestTracer\Console;
 
+use Ahmedhsieb\RequestTracer\Support\Brand;
 use Illuminate\Console\Command;
-use RequestTracer\Support\Brand;
 
 /**
  * Optional. The package needs nothing to be published or migrated: the tables create themselves and the dashboard is served from

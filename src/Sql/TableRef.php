@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Sql;
+namespace Ahmedhsieb\RequestTracer\Sql;
 
 /** A table mentioned in a statement. `operation` is only set for tables the statement writes to. */
 final class TableRef

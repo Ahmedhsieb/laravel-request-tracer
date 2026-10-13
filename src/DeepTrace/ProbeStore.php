@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\DeepTrace;
+namespace Ahmedhsieb\RequestTracer\DeepTrace;
 
-use RequestTracer\TraceSession;
+use Ahmedhsieb\RequestTracer\TraceSession;
 
 /**
  * Aggregated probe hits of one trace, keyed by (span, probe). Hits are counted, not logged: a probe inside a loop that runs

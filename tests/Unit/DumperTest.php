@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Dumper\DumpLimits;
+use Ahmedhsieb\RequestTracer\Dumper\Masker;
+use Ahmedhsieb\RequestTracer\Dumper\ValueDumper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use RequestTracer\Dumper\DumpLimits;
-use RequestTracer\Dumper\Masker;
-use RequestTracer\Dumper\ValueDumper;
 
 function makeDumper(array $limits = [], array $keys = ['password', 'secret', 'token', 'api_key', 'card', 'pan']): ValueDumper
 {

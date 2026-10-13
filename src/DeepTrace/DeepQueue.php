@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\DeepTrace;
+namespace Ahmedhsieb\RequestTracer\DeepTrace;
 
-use RequestTracer\Support\Files;
+use Ahmedhsieb\RequestTracer\Support\Files;
 
 /**
  * "Trace this file line by line" requests queued from the dashboard.

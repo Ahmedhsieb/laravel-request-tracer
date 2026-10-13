@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Tests\LocalTestCase;
+use Ahmedhsieb\RequestTracer\Tests\OrderAppTestCase;
+use Ahmedhsieb\RequestTracer\Tests\TestCase;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use RequestTracer\Tests\LocalTestCase;
-use RequestTracer\Tests\OrderAppTestCase;
-use RequestTracer\Tests\TestCase;
 
 uses(TestCase::class)->in('Unit', 'Feature');
 uses(OrderAppTestCase::class)->in('Order');

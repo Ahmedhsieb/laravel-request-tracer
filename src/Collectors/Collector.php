@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Collectors;
+namespace Ahmedhsieb\RequestTracer\Collectors;
 
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Contracts\Foundation\Application;
-use RequestTracer\Tracer;
 
 /**
  * A collector turns framework events into spans. Register listeners once at boot; every listener starts with

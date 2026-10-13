@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Services;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Services;
 
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Events\OrderPlaced;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Exceptions\CouponException;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Exceptions\OutOfStockException;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\Order;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\OrderItem;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\Product;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
-use RequestTracer\Tests\Fixtures\Events\OrderPlaced;
-use RequestTracer\Tests\Fixtures\Exceptions\CouponException;
-use RequestTracer\Tests\Fixtures\Exceptions\OutOfStockException;
-use RequestTracer\Tests\Fixtures\Models\Order;
-use RequestTracer\Tests\Fixtures\Models\OrderItem;
-use RequestTracer\Tests\Fixtures\Models\Product;
-use RequestTracer\Tests\Fixtures\Models\User;
 
 class OrderService
 {

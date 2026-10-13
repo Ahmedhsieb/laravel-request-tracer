@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Collectors;
+namespace Ahmedhsieb\RequestTracer\Collectors;
 
+use Ahmedhsieb\RequestTracer\Dumper\MaskedValue;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Support\CallSite;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Cache\Events\CacheHit;
 use Illuminate\Cache\Events\CacheMissed;
 use Illuminate\Cache\Events\KeyForgotten;
 use Illuminate\Cache\Events\KeyWritten;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
-use RequestTracer\Dumper\MaskedValue;
-use RequestTracer\SpanType;
-use RequestTracer\Support\CallSite;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tracer;
 
 /** Cache hits, misses, writes and forgets as `cache` spans (identical ones collapse, so hot keys stay cheap). */
 final class CacheCollector implements Collector

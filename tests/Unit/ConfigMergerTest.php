@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use RequestTracer\Http\Middleware\Authorize;
-use RequestTracer\Http\Middleware\LightWeb;
-use RequestTracer\RequestTracerServiceProvider;
-use RequestTracer\Support\ConfigMerger;
+use Ahmedhsieb\RequestTracer\Http\Middleware\Authorize;
+use Ahmedhsieb\RequestTracer\Http\Middleware\LightWeb;
+use Ahmedhsieb\RequestTracer\RequestTracerServiceProvider;
+use Ahmedhsieb\RequestTracer\Support\ConfigMerger;
 
 function defaults(): array
 {
@@ -76,4 +76,18 @@ it('keeps the gate on the dashboard whatever middleware the config lists', funct
         ->and($middleware(['middleware' => ['web', 'auth', Authorize::class]]))->toBe(['web', 'auth', Authorize::class])
         ->and($middleware([]))->toBe([LightWeb::class, Authorize::class])
         ->and($middleware(['middleware' => null]))->toBe([LightWeb::class, Authorize::class]);
+});
+
+it('reads the class names of a config written before the namespace changed as the classes they became', function () {
+    $old = ConfigMerger::modernize([
+        'dashboard' => ['middleware' => ['web', 'RequestTracer\Http\Middleware\Authorize', '\RequestTracer\Http\Middleware\Other']],
+        'collectors' => ['custom' => ['x' => 'RequestTracer\Collectors\CacheCollector', 'y' => 'App\Mine']],
+        'note' => 'RequestTracerServiceProvider is not a namespace',
+        'already' => 'Ahmedhsieb\RequestTracer\Support\Brand',
+    ]);
+
+    expect($old['dashboard']['middleware'])->toBe(['web', 'Ahmedhsieb\RequestTracer\Http\Middleware\Authorize', 'Ahmedhsieb\RequestTracer\Http\Middleware\Other'])
+        ->and($old['collectors']['custom'])->toBe(['x' => 'Ahmedhsieb\RequestTracer\Collectors\CacheCollector', 'y' => 'App\Mine'])
+        ->and($old['note'])->toBe('RequestTracerServiceProvider is not a namespace')
+        ->and($old['already'])->toBe('Ahmedhsieb\RequestTracer\Support\Brand');
 });

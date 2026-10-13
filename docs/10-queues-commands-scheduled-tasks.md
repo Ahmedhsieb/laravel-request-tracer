@@ -23,7 +23,7 @@ The rules are the same idea as for requests: **nothing is recorded unless somebo
 
 So `request-tracer:listen` is enough for a whole project: while it runs, the web requests, the jobs a worker processes, the commands you run and the scheduler's tasks on that machine are all traced, and the job is linked to the request that dispatched it.
 
-In every mode `exclude.jobs` and `exclude.commands` (fnmatch patterns) win. The defaults already exclude the long-running and internal commands: `queue:work`, `queue:listen`, `schedule:run`, `schedule:work`, `schedule:finish`, `serve`, `tinker`, `invoke-serialized-closure`, `migrate*`, `package:*`, `config:*`, `cache:*`, `horizon*`, `octane:*`, `request-tracer:*` and a few more. The tracer's own queued writes (`RequestTracer\Jobs\*`) are never recorded.
+In every mode `exclude.jobs` and `exclude.commands` (fnmatch patterns) win. The defaults already exclude the long-running and internal commands: `queue:work`, `queue:listen`, `schedule:run`, `schedule:work`, `schedule:finish`, `serve`, `tinker`, `invoke-serialized-closure`, `migrate*`, `package:*`, `config:*`, `cache:*`, `horizon*`, `octane:*`, `request-tracer:*` and a few more. The tracer's own queued writes (`Ahmedhsieb\RequestTracer\Jobs\*`) are never recorded.
 
 ```bash
 # trace one run of a command in production

@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer;
+namespace Ahmedhsieb\RequestTracer;
 
+use Ahmedhsieb\RequestTracer\Analysis\ProblemDetector;
+use Ahmedhsieb\RequestTracer\DeepTrace\LinesBuilder;
+use Ahmedhsieb\RequestTracer\DeepTrace\Loader;
+use Ahmedhsieb\RequestTracer\DeepTrace\ProbeMap;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\Paths;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use RequestTracer\Analysis\ProblemDetector;
-use RequestTracer\DeepTrace\LinesBuilder;
-use RequestTracer\DeepTrace\Loader;
-use RequestTracer\DeepTrace\ProbeMap;
-use RequestTracer\Support\Failure;
-use RequestTracer\Support\Paths;
 
 /**
  * Turns a finished TraceSession into the rows storage persists. Runs in terminate(), after the response was sent.

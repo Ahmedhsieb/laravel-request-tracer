@@ -5,7 +5,7 @@ Five minutes from `composer require` to the first trace you can learn something 
 ## Step 1: install and listen
 
 ```bash
-composer require your-vendor/laravel-request-tracer
+composer require ahmedhsieb/laravel-request-tracer
 php artisan request-tracer:listen
 ```
 

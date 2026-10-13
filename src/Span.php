@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer;
+namespace Ahmedhsieb\RequestTracer;
 
 /**
  * One step of a trace. Plain data: collectors create spans through the Recorder, storage reads them.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Replay;
+namespace Ahmedhsieb\RequestTracer\Replay;
 
 use Illuminate\Database\Connection;
 use Illuminate\Database\Events\ConnectionEstablished;

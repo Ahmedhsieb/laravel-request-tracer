@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\DeepTrace;
+namespace Ahmedhsieb\RequestTracer\DeepTrace;
 
+use Ahmedhsieb\RequestTracer\Attributes\NoTrace;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\BinaryOp;
@@ -11,7 +12,6 @@ use PhpParser\Node\PropertyHook;
 use PhpParser\Node\Stmt;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitorAbstract;
-use RequestTracer\Attributes\NoTrace;
 
 /**
  * Decides where probes go. Everything is an insertion at an original offset (see Edits); nothing is re-printed.
@@ -30,9 +30,9 @@ use RequestTracer\Attributes\NoTrace;
  */
 final class CompilerVisitor extends NodeVisitorAbstract
 {
-    private const P = '\\RequestTracer\\DeepTrace\\Probe::';
+    private const P = '\\Ahmedhsieb\\RequestTracer\\DeepTrace\\Probe::';
 
-    private const HOT = '\\RequestTracer\\Hot::$on';
+    private const HOT = '\\Ahmedhsieb\\RequestTracer\\Hot::$on';
 
     /** @var array<class-string, array{0: int, 1: list<string>}> */
     private const COMPARISONS = [

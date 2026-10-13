@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use RequestTracer\Http\Controllers\AssetController;
+use Ahmedhsieb\RequestTracer\Http\Controllers\AssetController;
 
 beforeEach(function () {
     $this->published = public_path('vendor/request-tracer');

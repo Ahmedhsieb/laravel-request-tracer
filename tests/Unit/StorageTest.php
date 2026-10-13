@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Span;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Storage\PayloadCodec;
+use Ahmedhsieb\RequestTracer\Storage\TraceStorage;
+use Ahmedhsieb\RequestTracer\TraceData;
 use Illuminate\Support\Carbon;
-use RequestTracer\Span;
-use RequestTracer\SpanType;
-use RequestTracer\Storage\PayloadCodec;
-use RequestTracer\Storage\TraceStorage;
-use RequestTracer\TraceData;
 
 const TRACE_A = '01h0000000000000000000000a';
 const TRACE_B = '01h0000000000000000000000b';

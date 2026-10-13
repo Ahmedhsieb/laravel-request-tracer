@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Recording\TokenService;
+use Ahmedhsieb\RequestTracer\Recording\WatchList;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\Recording\TokenService;
-use RequestTracer\Recording\WatchList;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tests\Fixtures\Models\User;
 
 beforeEach(function () {
     config(['request-tracer.mode' => 'triggered']);

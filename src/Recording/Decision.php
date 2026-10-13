@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Recording;
+namespace Ahmedhsieb\RequestTracer\Recording;
 
-use RequestTracer\RecordingState;
+use Ahmedhsieb\RequestTracer\RecordingState;
 
 final class Decision
 {

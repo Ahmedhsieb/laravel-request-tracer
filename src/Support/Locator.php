@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Support;
+namespace Ahmedhsieb\RequestTracer\Support;
 
 /** file/line lookups through reflection (never throws). */
 final class Locator

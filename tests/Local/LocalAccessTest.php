@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Recording\Listening;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\Recording\Listening;
 
 it('opens the dashboard to anyone in the local environment (no gate needed)', function () {
     expect(app()->environment('local'))->toBeTrue();

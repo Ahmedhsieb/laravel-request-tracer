@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Events;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Events;
 
-use RequestTracer\Tests\Fixtures\Models\Order;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\Order;
 
 class OrderPlaced
 {

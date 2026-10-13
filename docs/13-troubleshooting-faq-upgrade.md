@@ -72,9 +72,11 @@ Check what is on: a listen command somebody left running, `code.paths` that cove
 
 ## Upgrading
 
+**From a version before 0.6.0 (the rename).** The package was `your-vendor/laravel-request-tracer` with the namespace `RequestTracer\`; it is `ahmedhsieb/laravel-request-tracer` with `Ahmedhsieb\RequestTracer\`. Replace the name in `composer.json`, run `composer update ahmedhsieb/laravel-request-tracer`, change `use RequestTracer\...` to `use Ahmedhsieb\RequestTracer\...` where your own code has it, and run `php artisan package:discover`. The config file, the commands, the routes and the tables are unchanged, and class names in a published config file are translated.
+
 The package follows [semantic versioning](https://semver.org). While it is `0.x`, treat a minor version (`0.2` → `0.3`) as potentially breaking and read the changelog first.
 
-1. `composer update your-vendor/laravel-request-tracer`
+1. `composer update ahmedhsieb/laravel-request-tracer`
 2. `php artisan vendor:publish --tag=request-tracer-assets --force` (the dashboard is part of the package; this refreshes a published copy)
 3. If the changelog mentions a migration, publish and run it: `php artisan vendor:publish --tag=request-tracer-migrations` and `php artisan migrate`
 4. Compare your `config/request-tracer.php` with the new default (every key is in [the reference](04-configuration.md)); new keys fall back to their defaults if they are missing. A key that your published file spells out keeps its old value, for example `dashboard.middleware` (see the FAQ above).

@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Journal;
+namespace Ahmedhsieb\RequestTracer\Journal;
 
+use Ahmedhsieb\RequestTracer\Dumper\Masker;
+use Ahmedhsieb\RequestTracer\Recording\RecordingDecider;
+use Ahmedhsieb\RequestTracer\RecordingState;
+use Ahmedhsieb\RequestTracer\Replay\Replayer;
+use Ahmedhsieb\RequestTracer\Replay\ReplayRequest;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tracer;
+use Ahmedhsieb\RequestTracer\TraceSession;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use RequestTracer\Dumper\Masker;
-use RequestTracer\Recording\RecordingDecider;
-use RequestTracer\RecordingState;
-use RequestTracer\Replay\Replayer;
-use RequestTracer\Replay\ReplayRequest;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tracer;
-use RequestTracer\TraceSession;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Console;
+namespace Ahmedhsieb\RequestTracer\Console;
 
+use Ahmedhsieb\RequestTracer\Replay\Replayer;
+use Ahmedhsieb\RequestTracer\Replay\UndoLog;
 use Illuminate\Console\Command;
-use RequestTracer\Replay\Replayer;
-use RequestTracer\Replay\UndoLog;
 
 /**
  * `php artisan request-tracer:undo <trace id>`: take back what a replay that ran for real (`request-tracer:replay --real`) changed.

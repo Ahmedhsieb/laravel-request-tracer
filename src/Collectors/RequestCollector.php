@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Collectors;
+namespace Ahmedhsieb\RequestTracer\Collectors;
 
+use Ahmedhsieb\RequestTracer\Http\Middleware\TraceAction;
+use Ahmedhsieb\RequestTracer\Proxy\ProxyRegistry;
+use Ahmedhsieb\RequestTracer\Recording\WatchList;
+use Ahmedhsieb\RequestTracer\RecordingState;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Auth\Events\Authenticated;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Str;
-use RequestTracer\Http\Middleware\TraceAction;
-use RequestTracer\Proxy\ProxyRegistry;
-use RequestTracer\Recording\WatchList;
-use RequestTracer\RecordingState;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tracer;
 
 /**
  * Route and authentication facts about the request, plus the `controller` span (via the TraceAction middleware that is

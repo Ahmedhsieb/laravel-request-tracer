@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use RequestTracer\Clock;
-use RequestTracer\Recorder;
-use RequestTracer\SpanFlag;
-use RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Clock;
+use Ahmedhsieb\RequestTracer\Recorder;
+use Ahmedhsieb\RequestTracer\SpanFlag;
+use Ahmedhsieb\RequestTracer\SpanType;
 
 function recorder(int $max = 5000, int $collapse = 20): Recorder
 {

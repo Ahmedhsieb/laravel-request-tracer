@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Analysis;
+namespace Ahmedhsieb\RequestTracer\Analysis;
 
-use RequestTracer\Span;
-use RequestTracer\SpanFlag;
-use RequestTracer\SpanType;
-use RequestTracer\Support\Paths;
-use RequestTracer\Support\Summary;
-use RequestTracer\TraceSession;
+use Ahmedhsieb\RequestTracer\Span;
+use Ahmedhsieb\RequestTracer\SpanFlag;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Support\Paths;
+use Ahmedhsieb\RequestTracer\Support\Summary;
+use Ahmedhsieb\RequestTracer\TraceSession;
 use Throwable;
 
 /**

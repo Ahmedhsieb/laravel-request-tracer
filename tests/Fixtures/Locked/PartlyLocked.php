@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Locked;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Locked;
 
 class PartlyLocked
 {

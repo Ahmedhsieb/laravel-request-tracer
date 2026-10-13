@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Http\Middleware;
+namespace Ahmedhsieb\RequestTracer\Http\Middleware;
 
+use Ahmedhsieb\RequestTracer\Journal\Journal;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Closure;
 use Illuminate\Http\Request;
-use RequestTracer\Journal\Journal;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tracer;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

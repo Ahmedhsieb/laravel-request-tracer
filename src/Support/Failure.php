@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Support;
+namespace Ahmedhsieb\RequestTracer\Support;
 
 /**
  * Internal failures of the tracer end up here: logged to the `request-tracer` channel, never thrown.

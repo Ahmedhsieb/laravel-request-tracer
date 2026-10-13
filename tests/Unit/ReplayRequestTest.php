@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use RequestTracer\Replay\ReplayRequest;
+use Ahmedhsieb\RequestTracer\Replay\ReplayRequest;
 
 it('understands "POST /orders" and a bare path', function () {
     expect(ReplayRequest::fromLine('post /orders?x=1', '{"a":1}', 42)->toArray())->toMatchArray(['method' => 'POST', 'url' => '/orders?x=1', 'body' => '{"a":1}', 'as_user' => 42])

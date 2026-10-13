@@ -2,8 +2,13 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Collectors;
+namespace Ahmedhsieb\RequestTracer\Collectors;
 
+use Ahmedhsieb\RequestTracer\SpanFlag;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tracer;
+use Ahmedhsieb\RequestTracer\TraceSession;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Connection;
@@ -11,11 +16,6 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Events\TransactionBeginning;
 use Illuminate\Database\Events\TransactionCommitted;
 use Illuminate\Database\Events\TransactionRolledBack;
-use RequestTracer\SpanFlag;
-use RequestTracer\SpanType;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tracer;
-use RequestTracer\TraceSession;
 
 /**
  * Follows database transactions so every recorded write knows whether it ran in a transaction and whether that

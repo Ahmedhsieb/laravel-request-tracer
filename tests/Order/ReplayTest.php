@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Replay\Replayer;
+use Ahmedhsieb\RequestTracer\Replay\ReplayRequest;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\Order;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\Product;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\Replay\Replayer;
-use RequestTracer\Replay\ReplayRequest;
-use RequestTracer\Tests\Fixtures\Models\Order;
-use RequestTracer\Tests\Fixtures\Models\Product;
-use RequestTracer\Tests\Fixtures\Models\User;
 
 beforeEach(function () {
     config(['request-tracer.mode' => 'triggered']);     // nothing records on its own: a replay asks for it

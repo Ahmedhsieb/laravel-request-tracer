@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests;
+namespace Ahmedhsieb\RequestTracer\Tests;
 
+use Ahmedhsieb\RequestTracer\RequestTracerServiceProvider;
+use Ahmedhsieb\RequestTracer\Storage\ConnectionResolver;
+use Ahmedhsieb\RequestTracer\Storage\TraceStorage;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Monolog\Handler\NullHandler;
 use Orchestra\Testbench\TestCase as Orchestra;
-use RequestTracer\RequestTracerServiceProvider;
-use RequestTracer\Storage\ConnectionResolver;
-use RequestTracer\Storage\TraceStorage;
 
 abstract class TestCase extends Orchestra
 {

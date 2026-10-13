@@ -4,16 +4,16 @@ Four extension points: your own collector, your own storage, your own masking ru
 
 ## A collector of your own
 
-A collector turns something that happens in your application into steps. Implement `RequestTracer\Collectors\Collector`, register your listeners once at boot, and start every listener with the one boolean check.
+A collector turns something that happens in your application into steps. Implement `Ahmedhsieb\RequestTracer\Collectors\Collector`, register your listeners once at boot, and start every listener with the one boolean check.
 
 ```php
 namespace App\Tracing;
 
 use App\Events\InvoiceIssued;
 use Illuminate\Contracts\Foundation\Application;
-use RequestTracer\Collectors\Collector;
-use RequestTracer\SpanType;
-use RequestTracer\Tracer;
+use Ahmedhsieb\RequestTracer\Collectors\Collector;
+use Ahmedhsieb\RequestTracer\SpanType;
+use Ahmedhsieb\RequestTracer\Tracer;
 
 final class BillingCollector implements Collector
 {
@@ -52,12 +52,12 @@ Register it by name in the `collectors` section; a class name registers it, `fal
 
 Rules of thumb:
 
-- Never throw out of a listener. The package guards its own collectors; guard yours (`try { … } catch (\Throwable) {}` or `RequestTracer\Support\Failure::guard($callback, 'where')`, which logs to the tracer's channel).
+- Never throw out of a listener. The package guards its own collectors; guard yours (`try { … } catch (\Throwable) {}` or `Ahmedhsieb\RequestTracer\Support\Failure::guard($callback, 'where')`, which logs to the tracer's channel).
 - Use `$recorder->begin($type, $label)` and `$recorder->end($span)` for work that has a duration and children, and `$recorder->leaf(...)` for a point in time or something whose duration you already know.
 - Store values with `$session->dump($value)` so masking and size limits apply. Never put a raw value into `meta`.
 - Keep state in `$session->bag` (it is dropped with the trace), not in a static property: workers live for days.
 
-Span types are the `RequestTracer\SpanType` cases: `request`, `command`, `middleware`, `controller`, `validation`, `service`, `query`, `model`, `http`, `event`, `job`, `exception`, `cache`, `log`.
+Span types are the `Ahmedhsieb\RequestTracer\SpanType` cases: `request`, `command`, `middleware`, `controller`, `validation`, `service`, `query`, `model`, `http`, `event`, `job`, `exception`, `cache`, `log`.
 
 ## Adding a note for the dashboard
 
@@ -65,7 +65,7 @@ Span types are the `RequestTracer\SpanType` cases: `request`, `command`, `middle
 
 ## Your own storage
 
-Traces go through the `RequestTracer\Storage\TraceStorage` interface: `store`, `trace`, `traces` (filters and cursor), `spans`, `payload`, `lines`, `writes`, `problems`, `prune`, `count`, `delete`, `clear`. To keep traces somewhere else, implement it and name the class:
+Traces go through the `Ahmedhsieb\RequestTracer\Storage\TraceStorage` interface: `store`, `trace`, `traces` (filters and cursor), `spans`, `payload`, `lines`, `writes`, `problems`, `prune`, `count`, `delete`, `clear`. To keep traces somewhere else, implement it and name the class:
 
 ```php
 'storage' => [
@@ -94,7 +94,7 @@ Masking happens while a value is converted (before anything is stored), applies 
 Tenant, module and user come from invokable classes (`resolvers.tenant`, `resolvers.module`) or, for closures, from a service provider:
 
 ```php
-use RequestTracer\Facades\Tracer;
+use Ahmedhsieb\RequestTracer\Facades\Tracer;
 
 Tracer::resolveTenantUsing(fn (?Request $request) => $request?->header('X-Tenant'));
 Tracer::resolveModuleUsing(fn (?Request $request) => $request?->segment(1));
@@ -105,7 +105,7 @@ A resolver that throws is ignored. Resolvers run when the trace is built, after 
 
 ## Replacing how requests are chosen
 
-`RequestTracer\Recording\RecordingDecider` is deliberately not final. Bind a subclass in the container and override `decide()` to implement your own policy ("only requests with this cookie", "only from the office network"):
+`Ahmedhsieb\RequestTracer\Recording\RecordingDecider` is deliberately not final. Bind a subclass in the container and override `decide()` to implement your own policy ("only requests with this cookie", "only from the office network"):
 
 ```php
 $this->app->singleton(RecordingDecider::class, App\Tracing\OfficeOnlyDecider::class);

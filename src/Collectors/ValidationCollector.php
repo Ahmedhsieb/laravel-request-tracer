@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Collectors;
+namespace Ahmedhsieb\RequestTracer\Collectors;
 
+use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Validation\Factory;
-use RequestTracer\Support\Failure;
-use RequestTracer\Tracer;
 
 /**
  * Validation as a span. Installs a validator resolver on the validation factory so every validator is a TracedValidator.

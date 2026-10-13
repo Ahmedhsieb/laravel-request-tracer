@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\DeepTrace;
+namespace Ahmedhsieb\RequestTracer\DeepTrace;
 
 use PhpParser\Lexer\Emulative;
 use PhpParser\Parser;

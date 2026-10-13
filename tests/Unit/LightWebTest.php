@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Http\Middleware\LightWeb;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Session\Middleware\StartSession;
-use RequestTracer\Http\Middleware\LightWeb;
 
 class AppEncryptCookies extends EncryptCookies {}
 

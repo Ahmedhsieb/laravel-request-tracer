@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Analysis;
+namespace Ahmedhsieb\RequestTracer\Analysis;
 
 /**
  * Per-trace aggregation of queries, independent of how many spans were stored (spans collapse, these counters do not).

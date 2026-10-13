@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Attributes;
+namespace Ahmedhsieb\RequestTracer\Attributes;
 
 use Attribute;
 

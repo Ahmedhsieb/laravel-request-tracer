@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Replay;
+namespace Ahmedhsieb\RequestTracer\Replay;
 
 /**
  * Reads a cURL command ("Copy as cURL (bash)" in a browser's network tab, Postman, a bug report) into a ReplayRequest.

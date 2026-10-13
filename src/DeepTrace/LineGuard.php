@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\DeepTrace;
+namespace Ahmedhsieb\RequestTracer\DeepTrace;
 
 /**
  * Proves that a compiled file keeps every original token on its original line (so stack traces and the dashboard line up

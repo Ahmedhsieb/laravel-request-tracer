@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Support;
+namespace Ahmedhsieb\RequestTracer\Support;
 
-use RequestTracer\DeepTrace\Loader;
+use Ahmedhsieb\RequestTracer\DeepTrace\Loader;
 
 /**
  * File path helpers: stored paths are relative to the application base path (forward slashes) when possible.

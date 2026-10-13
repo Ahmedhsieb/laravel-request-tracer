@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Sql;
+namespace Ahmedhsieb\RequestTracer\Sql;
 
 /**
  * Names the column each `?` placeholder is compared with or assigned to, so bindings can be masked by column name

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Http\Controllers;
+namespace Ahmedhsieb\RequestTracer\Http\Controllers;
 
+use Ahmedhsieb\RequestTracer\Journal\JournalStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use RequestTracer\Journal\JournalStorage;
 
 /** The request journal: the list of recent requests (traced or not), one entry in full, and clearing it. */
 final class JournalController extends Controller

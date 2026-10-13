@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use Ahmedhsieb\RequestTracer\Storage\ConnectionResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use RequestTracer\Storage\ConnectionResolver;
 
 it('writes traces on a dedicated connection, outside the application transaction', function () {
     if (! getenv('TRACER_TEST_DB')) {

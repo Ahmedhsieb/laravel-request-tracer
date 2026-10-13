@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Proxy;
+namespace Ahmedhsieb\RequestTracer\Proxy;
 
 /** Outcome of generating (or loading) the proxy for one class. */
 final class ProxyResult

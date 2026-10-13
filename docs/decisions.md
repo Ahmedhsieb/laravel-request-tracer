@@ -18,8 +18,8 @@ primary source instead of being taken from memory. Dates are absolute. Newest en
 ## Decisions
 
 ### D1 – Brand lives in one place
-`RequestTracer\Support\Brand` holds the name, header, gate name, log channel, mask string and storage directory.
-Renaming = change `composer.json` `name`, find-and-replace the `RequestTracer\` namespace, edit `Brand`.
+`Ahmedhsieb\RequestTracer\Support\Brand` holds the name, header, gate name, log channel, mask string and storage directory.
+Renaming = change `composer.json` `name`, find-and-replace the `Ahmedhsieb\RequestTracer\` namespace, edit `Brand`.
 Config file (`config/request-tracer.php`), route prefix (`/request-tracer`), view namespace and cache keys derive from `Brand::NAME`.
 
 ### D2 – Extra span types
@@ -140,3 +140,5 @@ The output of a line moved to a pop-up for the same reason as everything here: t
 ### D31 – A fixed page with boxes that scroll
 A debugging tool is used with the page open for a long time, on traces with thousands of steps. A page that grows with its content loses the header, the tabs and the list while you read, so the page is the window: the list, the steps and the details each scroll in their own box, and the figures above the flow fold away when the flow needs the room. Below 1280 px two columns do not fit, so the layout stacks and the pane scrolls as a whole, which is the only time the details are below the steps.
 
+### D32 – The package has its own vendor and namespace
+`your-vendor` and `RequestTracer\` were placeholders from the start (`Brand` is the one place that says so). The rename moves every class into `Ahmedhsieb\RequestTracer\`, including the strings that build or compare class names: the proxy namespace (`Ahmedhsieb\RequestTracer\Proxies`), the calls the Deep trace compiler writes into compiled code, and the Loader's and the proxy registry's "never trace the tracer" checks. Everything that is a user-facing name (the config file, `request-tracer:*`, the routes, the table prefix, the `X-Request-Tracer` header, the gate) is `Brand`'s and did not move, so an application changes only its composer requirement and the places where its own code names a class. Generated code (proxies, compiled files) calls classes by name, so the caches are keyed by the package version and the version was raised with the rename. A published config that names an old class is translated rather than refused, because that file is the one place an application is likely to have written such a name.

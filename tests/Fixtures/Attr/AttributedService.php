@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Tests\Fixtures\Attr;
+namespace Ahmedhsieb\RequestTracer\Tests\Fixtures\Attr;
 
-use RequestTracer\Attributes\Trace;
+use Ahmedhsieb\RequestTracer\Attributes\Trace;
 
 class AttributedService
 {

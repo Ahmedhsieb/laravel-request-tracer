@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use RequestTracer\DeepTrace\Loader;
-use RequestTracer\Tests\Fixtures\Services\OrderService;
+use Ahmedhsieb\RequestTracer\DeepTrace\Loader;
+use Ahmedhsieb\RequestTracer\Tests\Fixtures\Services\OrderService;
 
 /** 1-based line of the n-th occurrence of $needle in OrderService.php. */
 function createLine(string $needle, int $nth = 1): int
@@ -59,7 +59,7 @@ it('records the whole flow of POST /api/orders as a tree', function () {
     expect($inside)->toContain('service:PricingService::subtotal')
         ->toContain('service:CouponService::apply')
         ->toContain('service:PaymentService::charge')
-        ->toContain('event:RequestTracer\Tests\Fixtures\Events\OrderPlaced')
+        ->toContain('event:Ahmedhsieb\RequestTracer\Tests\Fixtures\Events\OrderPlaced')
         ->toContain('model:Order #1 created')
         ->toContain('service:InventoryService::reserve');
     expect(array_count_values($inside)['service:InventoryService::reserve'])->toBe(3);

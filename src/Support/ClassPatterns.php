@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Support;
+namespace Ahmedhsieb\RequestTracer\Support;
 
 /**
  * Matches class names against namespace patterns: `App\Services` (the namespace and everything below it, or the class itself),

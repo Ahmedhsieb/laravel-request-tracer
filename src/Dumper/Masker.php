@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Dumper;
+namespace Ahmedhsieb\RequestTracer\Dumper;
 
 /**
  * Decides which keys are secret and scrubs secret-looking string values.

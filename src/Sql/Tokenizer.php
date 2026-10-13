@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Sql;
+namespace Ahmedhsieb\RequestTracer\Sql;
 
 /**
  * A small SQL tokenizer, good enough to find statement types, table names and placeholders in MySQL, PostgreSQL,

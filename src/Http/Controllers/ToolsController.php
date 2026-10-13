@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer\Http\Controllers;
+namespace Ahmedhsieb\RequestTracer\Http\Controllers;
 
+use Ahmedhsieb\RequestTracer\DeepTrace\Loader;
+use Ahmedhsieb\RequestTracer\Recording\TokenService;
+use Ahmedhsieb\RequestTracer\Recording\WatchList;
+use Ahmedhsieb\RequestTracer\Replay\CurlParser;
+use Ahmedhsieb\RequestTracer\Replay\Replayer;
+use Ahmedhsieb\RequestTracer\Replay\ReplayRequest;
+use Ahmedhsieb\RequestTracer\Replay\UndoLog;
+use Ahmedhsieb\RequestTracer\Support\App;
+use Ahmedhsieb\RequestTracer\Support\Paths;
+use Ahmedhsieb\RequestTracer\Tracer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use RequestTracer\DeepTrace\Loader;
-use RequestTracer\Recording\TokenService;
-use RequestTracer\Recording\WatchList;
-use RequestTracer\Replay\CurlParser;
-use RequestTracer\Replay\Replayer;
-use RequestTracer\Replay\ReplayRequest;
-use RequestTracer\Replay\UndoLog;
-use RequestTracer\Support\App;
-use RequestTracer\Support\Paths;
-use RequestTracer\Tracer;
 
 /** Things the dashboard can *do*: issue a signed recording token, manage the watch list, queue a file for Deep trace. */
 final class ToolsController extends Controller

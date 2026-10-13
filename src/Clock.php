@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace RequestTracer;
+namespace Ahmedhsieb\RequestTracer;
 
 /**
  * Monotonic clock for one trace. Times are microseconds since the start of the request (LARAVEL_START when known).
