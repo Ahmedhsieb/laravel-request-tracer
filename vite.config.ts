@@ -1,10 +1,13 @@
-import { defineConfig } from 'vitest/config'
+import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
+import { defineConfig } from 'vitest/config'
 
 // The dashboard is built into dist/ (committed) and served by the package (or published to public/vendor/request-tracer).
-// File names are fixed (app.js / app.css) so the Blade view does not need a manifest.
+// app.js and app.css have fixed names so the Blade view does not need a manifest; the fonts are emitted next to them with a hash, and `base: './'` makes the
+// CSS name them relative to itself, so they resolve under whatever prefix the dashboard is served from (`/request-tracer/assets/`).
 export default defineConfig({
-  plugins: [vue()],
+  base: './',
+  plugins: [vue(), tailwindcss()],
   publicDir: 'resources/public',
   define: {
     __VUE_OPTIONS_API__: 'false',
@@ -16,13 +19,13 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     cssCodeSplit: false,
-    target: 'es2020',
-    chunkSizeWarningLimit: 600,
+    target: 'es2022',
+    chunkSizeWarningLimit: 900,
     rollupOptions: {
       input: 'resources/js/main.ts',
       output: {
         entryFileNames: 'app.js',
-        assetFileNames: 'app.[ext]',
+        assetFileNames: (asset) => (asset.names.some((name) => name.endsWith('.css')) ? 'app.css' : '[name]-[hash][extname]'),
         inlineDynamicImports: true,
       },
     },

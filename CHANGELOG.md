@@ -4,6 +4,18 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-13
+
+**A new dashboard.** Same data, same API, same store and the same logic (`store.ts`, `lib/*`); the whole interface on top of them is new, and built on ready libraries (Reka UI, motion-v, Tailwind 4, lucide, vue-sonner, floating-ui, VueUse) instead of hand-made widgets.
+
+- **Waterfall flow**: every step is a bar at its real start and length on a time ruler, with a crosshair that tells the time, virtual rows for thousands of steps, and filters (type, speed, result) in a popover.
+- **Time map**: a small overview of the whole request; drag over it to zoom the waterfall to that span.
+- **Ctrl+K palette**: actions, requests and the steps of the open request, reached by typing.
+- **Time-by-type ribbon** that doubles as the type filter, count-up metric tiles, a *pulse* strip over the list (one column per request), a sliding selection marker.
+- **Resizable panes** (remembered), dark and light themes (dark by default, remembered, no flash on load), toasts, animated dialogs; replay's choice (simulation or real) is a pair of cards and a sticky replay bar sits over the code.
+- The line pop-up uses floating-ui and stays on screen; the layout stacks below 1180 px and shows one pane at a time below 900 px. Animations stop for `prefers-reduced-motion`.
+- The fonts (Inter, JetBrains Mono) ship inside `dist/`: no request leaves the page. `dist/app.js` is 668 KB (215 KB gzip), more than before, in exchange for the libraries.
+
 ## [0.6.0] - 2026-10-13
 
 **The package is now `ahmedhsieb/laravel-request-tracer` and its classes live in `Ahmedhsieb\RequestTracer\`** (it was `your-vendor/laravel-request-tracer` and `RequestTracer\`, placeholders). Nothing else changes: the config file, the `request-tracer:*` commands, the routes, the tables, the header and the dashboard keep their names.

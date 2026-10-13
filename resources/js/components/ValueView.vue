@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import { ChevronsDownUp, ChevronsUpDown, Copy } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import type { Dump } from '../api/types'
 import { flags, inline, toText } from '../lib/value'
 import { useStore } from '../store'
+import Btn from '../ui/Btn.vue'
+import Pill from '../ui/Pill.vue'
+import Tip from '../ui/Tip.vue'
 import ValueNode from './ValueNode.vue'
 
 const props = defineProps<{ title: string; value: Dump }>()
@@ -34,18 +38,18 @@ async function copy(): Promise<void> {
 </script>
 
 <template>
-  <section class="value-block" :aria-label="title">
-    <header>
-      <strong>{{ title }}</strong>
-      <span class="mono muted" style="text-transform: none; letter-spacing: 0">{{ summary }}</span>
-      <span v-if="marks.masked" class="marker masked" title="Secrets are masked before anything is stored">masked</span>
-      <span v-if="marks.truncated" class="marker truncated" title="Large values are cut to the configured limits">truncated</span>
-      <span class="spacer"></span>
-      <button class="btn small ghost" type="button" @click="expandAll">Expand</button>
-      <button class="btn small ghost" type="button" @click="collapseAll">Collapse</button>
-      <button class="btn small ghost" type="button" @click="copy">Copy</button>
+  <section class="overflow-hidden rounded-xl border border-line bg-bg/40" :aria-label="title">
+    <header class="flex items-center gap-2 border-b border-line bg-raised/60 px-3 py-1.5">
+      <strong class="text-[11px] font-semibold uppercase tracking-[.08em] text-muted">{{ title }}</strong>
+      <span class="min-w-0 truncate font-mono text-[11.5px] text-faint">{{ summary }}</span>
+      <Tip text="Secrets are masked before anything is stored"><Pill v-if="marks.masked" color="var(--t-event)">masked</Pill></Tip>
+      <Tip text="Large values are cut to the configured limits"><Pill v-if="marks.truncated" tone="warn">truncated</Pill></Tip>
+      <span class="flex-1"></span>
+      <Tip text="Expand everything"><Btn variant="ghost" size="icon-sm" aria-label="Expand" @click="expandAll"><ChevronsUpDown class="size-3.5" /></Btn></Tip>
+      <Tip text="Collapse everything"><Btn variant="ghost" size="icon-sm" aria-label="Collapse" @click="collapseAll"><ChevronsDownUp class="size-3.5" /></Btn></Tip>
+      <Tip text="Copy"><Btn variant="ghost" size="icon-sm" aria-label="Copy" @click="copy"><Copy class="size-3.5" /></Btn></Tip>
     </header>
-    <div class="dd mono">
+    <div class="max-h-[440px] overflow-auto px-3 py-2.5">
       <ValueNode :key="generation" :value="value" :open-depth="openDepth" />
     </div>
   </section>

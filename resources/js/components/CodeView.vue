@@ -5,6 +5,7 @@ const counter = { last: 0 }
 <script setup lang="ts">
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from 'vue'
 import type { SpanLines } from '../api/types'
+import { ChevronRight, CircleOff, FolderX, Pause, Play, SkipBack, SkipForward, Wrench } from 'lucide-vue-next'
 import { buildCode, executionOrder, explainUntraced, linkCalls, mainBlock, outsideCodePaths, suggestPath, type CodeLine, type DotState } from '../lib/code'
 import { CODE_CONTEXT, CODE_POPOVER, type CodeContext, type Edge, type LinePopoverApi } from '../lib/codeContext'
 import { plural } from '../lib/format'
@@ -12,6 +13,8 @@ import type { TreeNode } from '../lib/tree'
 import { useStore } from '../store'
 import ChildCode from './ChildCode.vue'
 import CodeBlockView from './CodeBlockView.vue'
+import Btn from '../ui/Btn.vue'
+import Pill from '../ui/Pill.vue'
 import LinePopover from './LinePopover.vue'
 
 const props = defineProps<{ data: SpanLines; node: TreeNode | null; traceId?: string; nested?: boolean }>()
@@ -199,12 +202,12 @@ function visible(block: number): boolean {
 const steps = computed(() => executionOrder(blocks.value).filter((s) => visible(s.block)))
 
 const legend: Array<{ state: DotState; text: string; color: string }> = [
-  { state: 'ran', text: 'ran / true', color: 'var(--green)' },
-  { state: 'false', text: 'false', color: 'var(--purple)' },
-  { state: 'threw', text: 'threw', color: 'var(--red)' },
-  { state: 'caught', text: 'caught', color: 'var(--orange)' },
-  { state: 'loop', text: 'loop', color: 'var(--blue)' },
-  { state: 'notrun', text: 'not run', color: '#5b667a' },
+  { state: 'ran', text: 'ran / true', color: 'var(--ok)' },
+  { state: 'false', text: 'false', color: 'var(--t-controller)' },
+  { state: 'threw', text: 'threw', color: 'var(--bad)' },
+  { state: 'caught', text: 'caught', color: 'var(--warn)' },
+  { state: 'loop', text: 'loop', color: 'var(--info)' },
+  { state: 'notrun', text: 'not run', color: 'var(--faint)' },
 ]
 
 async function goto(index: number): Promise<void> {
@@ -263,66 +266,69 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="root" class="code-view" :class="{ nested }">
-    <p v-if="!nested" class="hint code-hint">
+  <div ref="root" class="space-y-3" :class="nested ? '' : 'pb-1'">
+    <p v-if="!nested" class="text-[11.5px] leading-relaxed text-faint">
       The code of this step, with the functions it called under the line that calls them. Hover a line to see what happened there; click it to keep the pop-up open.
     </p>
 
-    <div v-if="untraced === 'not-run'" class="info-card scope-card" role="note">
-      <strong>This function did not run in this request.</strong>
-      <p>
+    <div v-if="untraced === 'not-run'" class="rounded-xl border border-warn/40 bg-warn/[.07] p-3.5" role="note">
+      <p class="flex items-center gap-2 font-semibold text-warn"><CircleOff class="size-4" />This function did not run in this request.</p>
+      <p class="mt-1.5 leading-relaxed text-muted">
         The step started, but the request left before the first line of <code>{{ node?.span.label }}</code>: nothing was recorded for it, and its text is shown below as it is in the file.
         What ran under the step is listed under <em>The code that ran during this step</em>. A <code>302</code> or <code>422</code> with a failed <em>validation</em> step in the flow, or an authorization
         that refused, are the usual reasons: open the Problems tab and the validation step.
       </p>
     </div>
 
-    <div v-else-if="untraced === 'no-data'" class="info-card scope-card" role="note">
-      <strong>No line was recorded for this step.</strong>
-      <p>
+    <div v-else-if="untraced === 'no-data'" class="rounded-xl border border-dashed border-line-strong bg-raised/50 p-3.5" role="note">
+      <p class="flex items-center gap-2 font-semibold"><Wrench class="size-4 text-accent-ink" />No line was recorded for this step.</p>
+      <p class="mt-1.5 leading-relaxed text-muted">
         The request was recorded without line-by-line tracing, so only the text of the function is shown. Start <code>php artisan request-tracer:listen</code> before the request,
         or queue this file and send the request again; the file is recompiled for a moment and nothing is changed on disk.
       </p>
-      <button v-if="store.meta?.deep_trace.enabled !== false" class="btn" type="button" :disabled="queued" @click="queueFile">{{ queued ? 'Queued: send the request again' : 'Trace this file line by line' }}</button>
-      <p v-if="queueProblem" class="tone-bad" role="alert">{{ queueProblem }}</p>
+      <Btn v-if="store.meta?.deep_trace.enabled !== false" class="mt-2.5" variant="soft" size="md" :disabled="queued" @click="queueFile">{{ queued ? 'Queued: send the request again' : 'Trace this file line by line' }}</Btn>
+      <p v-if="queueProblem" class="mt-2 text-bad" role="alert">{{ queueProblem }}</p>
     </div>
 
-    <div v-if="outside" class="info-card scope-card" role="note">
-      <strong>This step's own code was not traced line by line.</strong>
-      <p>
+    <div v-if="outside" class="rounded-xl border border-warn/40 bg-warn/[.07] p-3.5" role="note">
+      <p class="flex items-center gap-2 font-semibold text-warn"><FolderX class="size-4" />This step's own code was not traced line by line.</p>
+      <p class="mt-1.5 leading-relaxed text-muted">
         <code>{{ outside.file }}</code> is outside <code>request-tracer.code.paths</code> (<code>{{ (store.meta?.code.paths ?? []).join(', ') || 'empty' }}</code>), so only its text is shown,
         without what ran. To trace it, add its folder and send the request again:
       </p>
-      <p><code>'code' => ['paths' => [{{ outside.suggestion }}]]</code></p>
+      <pre class="mt-2 overflow-auto rounded-lg border border-line bg-bg/60 px-3 py-2 text-[12px]">'code' => ['paths' => [{{ outside.suggestion }}]]</pre>
     </div>
 
     <ChildCode v-if="duplicate" :node="duplicate" :name="duplicate.span.label" :auto-open="true" />
     <CodeBlockView v-if="main >= 0" :index="main" :depth="0" />
 
-    <div v-if="plan.others.length > 0" class="others">
-      <button class="others-toggle" type="button" :aria-expanded="showOthers" @click="showOthers = !showOthers">
-        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M5 3l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
-        {{ main >= 0 || duplicate ? 'Other code that ran during this step' : 'The code that ran during this step' }}
-        <span class="count">{{ plan.others.length }}</span>
-        <span v-if="reached > 0" class="muted">{{ plural(reached, 'function') }} above are called from the step itself</span>
+    <div v-if="plan.others.length > 0" class="rounded-xl border border-dashed border-line-strong p-2">
+      <button class="flex min-h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-muted outline-none hover:text-fg" type="button" :aria-expanded="showOthers" @click="showOthers = !showOthers">
+        <ChevronRight class="size-3.5 shrink-0 transition-transform duration-200" :class="showOthers ? 'rotate-90' : ''" />
+        <span class="font-medium">{{ main >= 0 || duplicate ? 'Other code that ran during this step' : 'The code that ran during this step' }}</span>
+        <Pill>{{ plan.others.length }}</Pill>
+        <span v-if="reached > 0" class="text-[11.5px] text-faint">{{ plural(reached, 'function') }} above are called from the step itself</span>
       </button>
-      <template v-if="showOthers">
-        <p class="hint">{{ main >= 0 || duplicate ? 'Functions the step did not call by name (framework hooks, constructors, callbacks, base classes).' : 'The function of the step itself has no lines here: these are the functions that ran under it (constructors, base classes, hooks).' }}</p>
+      <div v-if="showOthers" class="mt-2 animate-fade-in space-y-2">
+        <p class="px-2 text-[11.5px] text-faint">{{ main >= 0 || duplicate ? 'Functions the step did not call by name (framework hooks, constructors, callbacks, base classes).' : 'The function of the step itself has no lines here: these are the functions that ran under it (constructors, base classes, hooks).' }}</p>
         <CodeBlockView v-for="i in plan.others" :key="i" :index="i" :depth="0" />
-      </template>
+      </div>
     </div>
 
     <template v-if="!nested">
-      <div class="replay" role="group" aria-label="Replay the execution">
-        <button class="btn small" type="button" :disabled="steps.length === 0" @click="replay">{{ playing ? 'Pause' : (position >= 0 ? 'Resume' : 'Replay') }}</button>
-        <button class="btn small" type="button" :disabled="position <= 0" @click="back">Back</button>
-        <button class="btn small" type="button" :disabled="position >= steps.length - 1" @click="stop(); next()">Next</button>
-        <div class="progress" role="progressbar" :aria-valuenow="Math.max(0, position + 1)" aria-valuemin="0" :aria-valuemax="steps.length" aria-label="Replay position"><i :style="{ width: `${progress}%` }"></i></div>
-        <span class="muted mono">{{ Math.max(0, position + 1) }} / {{ steps.length }}</span>
+      <!-- the replay of the execution: a bar that stays at the bottom while the code scrolls -->
+      <div class="glass sticky bottom-0 z-10 flex items-center gap-2 rounded-xl border border-line-strong px-2.5 py-2 shadow-[0_10px_30px_-12px_rgba(0,0,0,.6)]" role="group" aria-label="Replay the execution">
+        <Btn variant="primary" size="sm" :disabled="steps.length === 0" @click="replay"><component :is="playing ? Pause : Play" class="size-3.5" />{{ playing ? 'Pause' : (position >= 0 ? 'Resume' : 'Replay') }}</Btn>
+        <Btn variant="soft" size="icon" aria-label="Back" :disabled="position <= 0" @click="back"><SkipBack class="size-3.5" /></Btn>
+        <Btn variant="soft" size="icon" aria-label="Next" :disabled="position >= steps.length - 1" @click="stop(); next()"><SkipForward class="size-3.5" /></Btn>
+        <div class="relative h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-line" role="progressbar" :aria-valuenow="Math.max(0, position + 1)" aria-valuemin="0" :aria-valuemax="steps.length" aria-label="Replay position">
+          <i class="absolute inset-y-0 left-0 rounded-full grad-bg transition-[width] duration-500 ease-[var(--ease-out-expo)]" :style="{ width: `${progress}%` }"></i>
+        </div>
+        <span class="shrink-0 font-mono text-[11.5px] tabular-nums text-muted">{{ Math.max(0, position + 1) }} / {{ steps.length }}</span>
       </div>
 
-      <ul class="dots-legend" aria-label="Legend">
-        <li v-for="item in legend" :key="item.state" style="list-style: none"><span><i :style="{ '--dc': item.color }"></i>{{ item.text }}</span></li>
+      <ul class="flex flex-wrap gap-x-4 gap-y-1 pb-1 text-[11.5px] text-muted" aria-label="Legend">
+        <li v-for="item in legend" :key="item.state" class="flex items-center gap-1.5"><i class="size-2 rounded-full" :style="{ background: item.color }"></i>{{ item.text }}</li>
       </ul>
     </template>
 

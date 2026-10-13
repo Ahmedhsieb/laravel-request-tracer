@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import type { UndoConflict, UndoSummary } from '../api/types'
+import { CircleCheck, Undo2, Zap } from 'lucide-vue-next'
 import { absoluteTime, plural } from '../lib/format'
 import { useStore } from '../store'
+import Btn from '../ui/Btn.vue'
 
 const props = defineProps<{ traceId: string }>()
 
@@ -48,37 +50,37 @@ async function undo(force: boolean): Promise<void> {
 </script>
 
 <template>
-  <section v-if="done !== null && summary === null" class="undo-banner" role="status">
-    <strong>Undone.</strong> {{ plural(done, 'change') }} taken back.
+  <section v-if="done !== null && summary === null" class="flex animate-pop-in items-center gap-2 rounded-xl border border-ok/40 bg-ok/10 px-3.5 py-2.5 text-ok" role="status">
+    <CircleCheck class="size-4" /><strong>Undone.</strong> {{ plural(done, 'change') }} taken back.
   </section>
-  <section v-else-if="summary !== null" class="undo-banner" aria-label="This replay ran for real">
-    <p style="margin: 0">
-      <strong>This replay ran for real.</strong>{{ ' ' }}
+  <section v-else-if="summary !== null" class="animate-pop-in rounded-xl border border-warn/45 bg-warn/[.07] px-3.5 py-3" aria-label="This replay ran for real">
+    <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
+      <Zap class="size-4 text-warn" /><strong>This replay ran for real.</strong>
       <template v-if="summary.available">
-        {{ plural(summary.entries, 'change') }} can be taken back
-        <span v-if="summary.expires_at" class="muted">(until {{ absoluteTime(summary.expires_at) }})</span>:
+        <span>{{ plural(summary.entries, 'change') }} can be taken back</span>
+        <span v-if="summary.expires_at" class="text-muted">(until {{ absoluteTime(summary.expires_at) }})</span>
       </template>
     </p>
-    <ul v-if="summary.available" class="undo-list mono">
-      <li v-for="line in changes" :key="line">{{ line }}</li>
+    <ul v-if="summary.available" class="mt-2 flex flex-wrap gap-1.5">
+      <li v-for="line in changes" :key="line" class="rounded-md border border-line bg-raised/70 px-2 py-0.5 font-mono text-[11.5px] text-muted">{{ line }}</li>
     </ul>
-    <p v-if="uncovered.length > 0" class="tone-warn" style="margin: 6px 0 0">
+    <p v-if="uncovered.length > 0" class="mt-2 text-warn">
       Cannot be undone (query builder or raw SQL): {{ uncovered.join(', ') }}. E-mails, jobs, files and calls to other services cannot be taken back either.
     </p>
 
     <template v-if="conflicts.length > 0">
-      <p class="tone-bad" role="alert" style="margin: 8px 0 4px">
+      <p class="mt-2 text-bad" role="alert">
         Nothing was changed: {{ plural(conflicts.length, 'row') }} {{ conflicts.length === 1 ? 'is' : 'are' }} not as the replay left {{ conflicts.length === 1 ? 'it' : 'them' }}.
       </p>
-      <ul class="undo-list mono">
+      <ul class="mt-1 space-y-0.5 font-mono text-[11.5px] text-muted">
         <li v-for="(c, i) in conflicts" :key="i">{{ c.table }} #{{ c.key }} ({{ c.operation }}): {{ c.reason }}</li>
       </ul>
     </template>
-    <p v-if="problem" class="tone-bad" role="alert" style="margin: 8px 0 0">{{ problem }}</p>
+    <p v-if="problem" class="mt-2 text-bad" role="alert">{{ problem }}</p>
 
-    <div v-if="summary.available" class="row" style="margin-top: 8px">
-      <button v-if="conflicts.length === 0" class="btn small" type="button" :disabled="busy" @click="undo(false)">{{ busy ? 'Undoing…' : 'Undo these changes' }}</button>
-      <button v-else class="btn small danger" type="button" :disabled="busy" @click="undo(true)">{{ busy ? 'Undoing…' : 'Undo anyway' }}</button>
+    <div v-if="summary.available" class="mt-2.5">
+      <Btn v-if="conflicts.length === 0" variant="soft" size="sm" :disabled="busy" @click="undo(false)"><Undo2 class="size-3.5" />{{ busy ? 'Undoing…' : 'Undo these changes' }}</Btn>
+      <Btn v-else variant="danger" size="sm" :disabled="busy" @click="undo(true)">{{ busy ? 'Undoing…' : 'Undo anyway' }}</Btn>
     </div>
   </section>
 </template>

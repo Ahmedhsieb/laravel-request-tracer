@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import type { Dump } from '../api/types'
 import { shortClass } from '../lib/format'
+import Pill from '../ui/Pill.vue'
 
 const props = withDefaults(defineProps<{
   value: Dump
@@ -65,9 +66,11 @@ function quote(text: string): string {
 </script>
 
 <template>
-  <div class="dd-row">
-    <button v-if="expandable" class="dd-toggle" type="button" :aria-expanded="open" :aria-label="open ? 'Collapse' : 'Expand'" @click="open = !open">{{ open ? '▾' : '▸' }}</button>
-    <span v-else class="dd-toggle" aria-hidden="true"></span>
+  <div class="flex min-w-0 items-baseline whitespace-pre font-mono text-[12px] leading-[1.75]">
+    <button v-if="expandable" class="mr-0.5 grid size-4 shrink-0 translate-y-[3px] place-items-center rounded text-faint transition-colors hover:bg-hover hover:text-fg" type="button" :aria-expanded="open" :aria-label="open ? 'Collapse' : 'Expand'" @click="open = !open">
+      <svg viewBox="0 0 10 10" class="size-2.5 transition-transform duration-150" :class="open ? 'rotate-90' : ''" aria-hidden="true"><path d="M3 1.5l4 3.5-4 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    </button>
+    <span v-else class="mr-0.5 inline-block size-4 shrink-0" aria-hidden="true"></span>
 
     <template v-if="label !== undefined">
       <span v-if="visSymbol" class="dd-vis">{{ visSymbol }}</span>
@@ -80,7 +83,7 @@ function quote(text: string): string {
     <template v-else-if="typeof value === 'number'"><span class="dd-n">{{ value }}</span></template>
     <template v-else-if="typeof value === 'string'"><span class="dd-s">{{ quote(value) }}</span></template>
     <template v-else-if="tag === 'str' && 'v' in value && 'cut' in value">
-      <span class="dd-s">{{ quote(value.v) }}…</span> <span class="marker truncated">+{{ value.cut }} more chars</span>
+      <span class="dd-s">{{ quote(value.v) }}…</span> <Pill tone="warn">+{{ value.cut }} more chars</Pill>
     </template>
     <template v-else-if="tag === 'mask'"><span class="dd-mask" title="Masked before it was stored">••••••••</span></template>
     <template v-else-if="tag === 'type' && 't' in value"><span class="dd-m">{{ value.t }}<template v-if="value.size !== undefined"> ({{ value.size }})</template></span></template>
@@ -94,9 +97,9 @@ function quote(text: string): string {
     </template>
   </div>
 
-  <div v-if="open && expandable" class="dd-children">
+  <div v-if="open && expandable" class="ml-[7px] border-l border-line/80 pl-3.5">
     <ValueNode v-for="(child, i) in children" :key="i" :value="child.value" :label="child.label" :vis="child.vis" :depth="depth + 1" :open-depth="openDepth" />
-    <div v-if="more > 0" class="dd-row"><span class="dd-toggle"></span><span class="marker truncated">… {{ more }} more not stored</span></div>
-    <div class="dd-row"><span class="dd-toggle"></span><span class="dd-m">{{ tag === 'arr' ? ']' : '}' }}</span></div>
+    <div v-if="more > 0" class="flex items-baseline whitespace-pre font-mono text-[12px] leading-[1.75]"><span class="mr-0.5 inline-block size-4 shrink-0"></span><Pill tone="warn">… {{ more }} more not stored</Pill></div>
+    <div class="flex items-baseline whitespace-pre font-mono text-[12px] leading-[1.75]"><span class="mr-0.5 inline-block size-4 shrink-0"></span><span class="dd-m">{{ tag === 'arr' ? ']' : '}' }}</span></div>
   </div>
 </template>

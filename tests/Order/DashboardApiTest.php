@@ -83,6 +83,21 @@ it('serves package assets safely', function () {
     $this->get('/request-tracer/assets/%2e%2e/composer.json')->assertNotFound();
 });
 
+it('serves every file the stylesheet points at, under the prefix the dashboard lives at', function () {
+    allowEveryone();
+
+    $css = (string) file_get_contents(dirname(__DIR__, 2).'/dist/app.css');
+    preg_match_all('~url\(\.?/?([A-Za-z0-9._\-]+\.woff2)\)~', $css, $found);
+
+    expect($found[1])->not->toBeEmpty();
+    // a url that starts with a slash would leave the prefix (`/request-tracer/assets/`) and hit the application instead
+    expect($css)->not->toMatch('~url\(/[^)]*woff2~');
+
+    foreach (array_unique($found[1]) as $font) {
+        $this->get('/request-tracer/assets/'.$font)->assertOk()->assertHeader('Content-Type', 'font/woff2');
+    }
+});
+
 // ---------------------------------------------------------------------------------------------------------------------
 // meta
 // ---------------------------------------------------------------------------------------------------------------------
