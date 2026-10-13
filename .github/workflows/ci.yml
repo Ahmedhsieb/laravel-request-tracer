@@ -74,7 +74,16 @@ jobs:
           --no-interaction --no-update
 
       - name: Install dependencies
-        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress
+        shell: bash
+        run: |
+          set +e
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress 2>&1 | tee composer.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            message=$(tail -40 composer.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=composer failed::$message"
+          fi
+          exit "$status"
 
       - name: Run tests
         shell: bash

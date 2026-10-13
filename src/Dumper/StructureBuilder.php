@@ -118,7 +118,7 @@ final class StructureBuilder implements DumperInterface
                 $mode = 'mask';
             }
         }
-        if ($mode === 'normal' && ($type === Cursor::HASH_RESOURCE || ($type === Cursor::HASH_OBJECT && isset(self::TYPE_ONLY[(string) $class]))
+        if ($mode === 'normal' && ($type === Cursor::HASH_RESOURCE || ($type === Cursor::HASH_OBJECT && (isset(self::TYPE_ONLY[(string) $class]) || str_contains((string) $class, '{closure')))
             || ($type === Cursor::HASH_OBJECT && $class === MaskedValue::class))) {
             $mode = $class === MaskedValue::class ? 'mask' : 'type';
         }
@@ -160,8 +160,8 @@ final class StructureBuilder implements DumperInterface
         }
         if ($mode === 'type') {
             $label = $type === Cursor::HASH_RESOURCE ? 'resource ('.$class.')' : rtrim((string) $class, '()');
-            if ($label === 'Closure') {
-                $label = 'Closure';
+            if (str_contains($label, '{closure')) {
+                $label = 'Closure';                // older Symfony VarDumper names a PHP 8.4 closure "Class::{closure:...}()"
             }
             $this->attachWithKey($frame['key'], ['$' => 'type', 't' => $label]);
 
