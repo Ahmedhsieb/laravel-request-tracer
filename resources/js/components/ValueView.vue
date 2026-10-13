@@ -8,6 +8,7 @@ import Btn from '../ui/Btn.vue'
 import Pill from '../ui/Pill.vue'
 import Tip from '../ui/Tip.vue'
 import ValueNode from './ValueNode.vue'
+import { copyText } from '../lib/clipboard'
 
 const props = defineProps<{ title: string; value: Dump }>()
 
@@ -28,12 +29,7 @@ function collapseAll(): void {
 }
 
 async function copy(): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(toText(props.value))
-    store.toast('Copied')
-  } catch {
-    store.toast('Copy failed: select the text and copy it by hand')
-  }
+  store.toast((await copyText(toText(props.value))) ? 'Copied' : 'Copy failed: select the text and copy it by hand')
 }
 </script>
 

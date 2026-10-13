@@ -6,6 +6,7 @@ import { ui } from '../lib/ui'
 import { useStore } from '../store'
 import Btn from '../ui/Btn.vue'
 import Modal from '../ui/Modal.vue'
+import { copyText } from '../lib/clipboard'
 
 const store = useStore()
 
@@ -74,12 +75,7 @@ async function removeWatch(id: string): Promise<void> {
 }
 
 async function copy(text: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text)
-    store.toast('Copied')
-  } catch {
-    store.toast('Copy failed: select the text and copy it by hand')
-  }
+  store.toast((await copyText(text)) ? 'Copied' : 'Copy failed: select the text and copy it by hand')
 }
 
 function until(epoch: number): string {

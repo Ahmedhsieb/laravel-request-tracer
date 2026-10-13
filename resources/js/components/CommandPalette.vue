@@ -14,6 +14,7 @@ import { useTheme } from '../lib/theme'
 import { useStore } from '../store'
 import TypeIcon from '../ui/TypeIcon.vue'
 import type { SpanType } from '../api/types'
+import { copyText } from '../lib/clipboard'
 
 const store = useStore()
 const { mode, toggle } = useTheme()
@@ -51,7 +52,7 @@ const actions = computed<Entry[]>(() => {
     { id: 'a-group', group: 'Actions', title: store.grouped ? 'Stop grouping by route' : 'Group requests by route', hint: 'Requests of one route prefix together', icon: FolderTree, run: () => store.setGrouping(!store.grouped) },
     { id: 'a-theme', group: 'Actions', title: mode.value === 'dark' ? 'Switch to the light theme' : 'Switch to the dark theme', hint: 'Remembered in this browser', icon: mode.value === 'dark' ? Sun : Moon, run: toggle },
     { id: 'a-reload', group: 'Actions', title: 'Reload the list', hint: 'Look for new requests now', icon: RefreshCw, run: () => void store.reload() },
-    { id: 'a-copy', group: 'Actions', title: 'Copy the listen command', hint: store.meta?.listen_command ?? 'php artisan request-tracer:listen', icon: Copy, run: () => void navigator.clipboard?.writeText(store.meta?.listen_command ?? 'php artisan request-tracer:listen').then(() => store.toast('Copied')) },
+    { id: 'a-copy', group: 'Actions', title: 'Copy the listen command', hint: store.meta?.listen_command ?? 'php artisan request-tracer:listen', icon: Copy, run: () => void copyText(store.meta?.listen_command ?? 'php artisan request-tracer:listen').then((ok) => store.toast(ok ? 'Copied' : 'Copy failed: select the text and copy it by hand')) },
   )
   if (store.selected !== null) out.push({ id: 'a-close', group: 'Actions', title: 'Close this request', hint: 'Back to the list', icon: X, run: () => store.close() })
 

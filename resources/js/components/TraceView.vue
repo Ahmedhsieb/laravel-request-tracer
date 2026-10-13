@@ -28,6 +28,7 @@ import SpanTree from './SpanTree.vue'
 import StepDetail from './StepDetail.vue'
 import TimeMap from './TimeMap.vue'
 import UndoBanner from './UndoBanner.vue'
+import { copyText } from '../lib/clipboard'
 
 const props = defineProps<{ traceId: string }>()
 
@@ -197,12 +198,8 @@ watch(flow.folder, (folder) => {
 })
 
 async function copyLink(): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(`${window.location.origin}${store.basePath}/trace/${props.traceId}`)
-    store.toast('Link copied')
-  } catch {
-    store.toast('Copy failed: copy the address from the browser bar')
-  }
+  const link = `${window.location.origin}${store.basePath}/trace/${props.traceId}`
+  store.toast((await copyText(link)) ? 'Link copied' : 'Copy failed: copy the address from the browser bar')
 }
 
 // what this request offers to the command palette: its steps, and the way to jump to one

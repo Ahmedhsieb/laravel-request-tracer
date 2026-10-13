@@ -5,18 +5,14 @@ import { ui } from '../lib/ui'
 import { useStore } from '../store'
 import Btn from '../ui/Btn.vue'
 import Pill from '../ui/Pill.vue'
+import { copyText } from '../lib/clipboard'
 
 /** What the workspace shows before a request is picked: where the code is looked into, and the ways in. */
 const store = useStore()
 
 async function copy(): Promise<void> {
   const command = store.meta?.listen_command ?? 'php artisan request-tracer:listen'
-  try {
-    await navigator.clipboard.writeText(command)
-    store.toast('Copied: run it in your project, then use your app')
-  } catch {
-    store.toast(command)
-  }
+  store.toast((await copyText(command)) ? 'Copied: run it in your project, then use your app' : command)
 }
 
 // the nodes of the animated trace: where they sit on the line, and the colour of the kind of step they stand for
