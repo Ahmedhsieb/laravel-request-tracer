@@ -4,6 +4,15 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-13
+
+**The flow is made of folders.** In a deep request the names of the steps disappeared: every level took a piece of the name column. A step with steps inside is now a folder and the flow shows one folder at a time, so a name always has the whole column.
+
+- **Folders**: open one with the button on its row (it counts what is inside), double-click or the Right arrow; Up, Left or Backspace goes back; a path above the list (long paths fold their middle behind `…`) jumps to any level. The time axis follows: an open folder shows its own stretch of time. The first folder is the one of the controller.
+- **Filters work inside the open folder, on everything below it** (a switch, *Filters → Look in*, narrows them to the folder's own steps). Matches are listed flat with the folders between the open one and each match; the kinds of step count what is inside the open folder.
+- **A Graph view** next to the Waterfall (remembered per browser): the open folder and its steps as nodes with their full names, lines as thick as the share of time, and a third column for the pinned folder. The two views share the folder, the filters and the pinned step.
+- The name column is wider, and the "show in the flow" links, the problems and the command palette open the right folder and flash the step.
+
 ## [0.7.0] - 2026-10-13
 
 **A new dashboard.** Same data, same API, same store and the same logic (`store.ts`, `lib/*`); the whole interface on top of them is new, and built on ready libraries (Reka UI, motion-v, Tailwind 4, lucide, vue-sonner, floating-ui, VueUse) instead of hand-made widgets.
