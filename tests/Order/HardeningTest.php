@@ -51,6 +51,52 @@ it('stops recording new steps at the span cap, says so, and the request still su
         ->and($trace['queries_count'])->toBe(100);              // counting continues after the cap
 });
 
+it('has no span cap when it is unlimited, and the request and the trace both succeed', function () {
+    config(['request-tracer.unlimited' => true, 'request-tracer.limits.max_spans' => 20, 'request-tracer.limits.collapse_after' => 1000]);
+    Route::get('/flood-all', function () {
+        foreach (range(1, 100) as $i) {
+            DB::select('select '.$i.' as n');
+        }
+
+        return 'still fine';
+    });
+
+    $this->get('/flood-all')->assertOk()->assertSee('still fine');
+
+    $trace = $this->lastTrace();
+    $queries = array_values(array_filter($this->traceSpans(), fn (array $s) => $s['type'] === 'query'));
+    expect($trace['truncated'])->toBeFalse()
+        ->and(count($queries))->toBe(100);                      // every one is stored, although max_spans says 20
+});
+
+it('stores a response of any size in full when it is unlimited', function () {
+    config(['request-tracer.unlimited' => true, 'request-tracer.dumper.max_span_bytes' => 2048, 'request-tracer.dumper.max_depth' => 1]);
+    Route::get('/big-json', fn () => response()->json(['rows' => array_map(fn ($i) => ['n' => $i, 'text' => str_repeat('y', 500), 'deep' => ['a' => ['b' => 'bottom']]], range(1, 200))]));
+
+    $this->get('/big-json')->assertOk();
+
+    $stored = json_encode($this->traceSpans());
+    expect($stored)->toContain('bottom')
+        ->and(strlen((string) $stored))->toBeGreaterThan(100_000);
+});
+
+it('splits the inserts by size, so large payloads cannot go over the packet limit of the database', function () {
+    config(['request-tracer.unlimited' => true, 'request-tracer.storage.insert_max_bytes' => 65536, 'request-tracer.limits.collapse_after' => 1000]);
+    Route::get('/fat', function () {
+        foreach (range(1, 8) as $i) {
+            DB::select('select ? as blob'.$i, [str_repeat('z', 90_000)]);
+        }
+
+        return 'ok';
+    });
+
+    $this->get('/fat')->assertOk();
+
+    $queries = array_values(array_filter($this->traceSpans(), fn (array $s) => $s['type'] === 'query'));
+    expect(count($queries))->toBe(8)
+        ->and(strlen((string) json_encode($queries[7]['input'] ?? '')))->toBeGreaterThan(80_000);
+});
+
 // -------------------------------------------------------------------------------------------- queued writes
 
 it('hands the trace to the queue instead of writing it in terminate(), and a worker stores it', function () {

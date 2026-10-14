@@ -175,6 +175,7 @@ The keys you will reach for first:
 | `exclude.paths`                         | login, webhooks, health checks...        | URLs that are never recorded. Yours are added.                                                                     |
 | `retention.hours`, `retention.max_rows` | `24`, `5000`                             | How long traces are kept (cleaned up automatically).                                                               |
 | `limits.max_spans`                      | `5000`                                   | Steps stored per trace.                                                                                            |
+| `unlimited`                             | `false`                                  | Store everything, whatever its size, so you never tune the numbers above. Only the process running out of memory stops it. For debugging (`REQUEST_TRACER_UNLIMITED=true`). |
 | `storage.connection`                    | app default                              | Database connection that holds the tables (`REQUEST_TRACER_DB_CONNECTION`).                                        |
 
 

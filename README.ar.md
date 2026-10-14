@@ -156,6 +156,7 @@ php artisan vendor:publish --tag=request-tracer-config
 | `exclude.paths` | login وwebhooks وفحوص الصحة... | روابط لا تُسجَّل أبداً. ما تضيفه يُضاف. |
 | `retention.hours`, `retention.max_rows` | `24`, `5000` | مدة بقاء التتبّعات (تُنظَّف تلقائياً). |
 | `limits.max_spans` | `5000` | عدد الخطوات المحفوظة للتتبّع الواحد. |
+| `unlimited` | `false` | يحفظ كل شيء مهما كان حجمه، فلا تحتاج لتعديل الأرقام السابقة. الشيء الوحيد الذي يوقفه هو نفاد ذاكرة العملية. للـ debugging (`REQUEST_TRACER_UNLIMITED=true`). |
 | `storage.connection` | اتصال التطبيق | اتصال قاعدة البيانات الذي يحمل الجداول (`REQUEST_TRACER_DB_CONNECTION`). |
 
 متغيرات البيئة: `REQUEST_TRACER_ENABLED` و`REQUEST_TRACER_MODE` و`REQUEST_TRACER_JOURNAL` و`REQUEST_TRACER_DB_CONNECTION`. كل المفاتيح في [docs/04-configuration.md](docs/04-configuration.md).

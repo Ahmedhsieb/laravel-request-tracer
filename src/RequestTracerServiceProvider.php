@@ -95,6 +95,7 @@ final class RequestTracerServiceProvider extends ServiceProvider
                 new PayloadCodec((int) ($config['compress_over_bytes'] ?? 1024)),
                 (string) ($config['table_prefix'] ?? 'tracer_'),
                 (int) ($config['insert_chunk'] ?? 500),
+                max(65_536, (int) ($config['insert_max_bytes'] ?? 3_145_728)),
             );
         });
     }

@@ -81,10 +81,13 @@ final class TraceSession
     /** Deep trace hits of this trace. */
     public function deep(): ProbeStore
     {
+        $unlimited = (bool) App::config()->get('request-tracer.unlimited', false);
+
         return $this->probeStore ??= new ProbeStore(
             $this,
-            max(100, (int) App::config()->get('request-tracer.deep_trace.max_hits', 20000)),
+            $unlimited ? PHP_INT_MAX : max(100, (int) App::config()->get('request-tracer.deep_trace.max_hits', 20000)),
             max(1, (int) App::config()->get('request-tracer.deep_trace.loop_snapshots', 5)),
+            guardMemory: $unlimited,
         );
     }
 
@@ -95,7 +98,7 @@ final class TraceSession
 
     public function writeTracker(): WriteTracker
     {
-        return $this->writeTracker ??= new WriteTracker($this, $this->dumper->masker(), (int) App::config()->get('request-tracer.limits.max_writes', 2000));
+        return $this->writeTracker ??= new WriteTracker($this, $this->dumper->masker(), App::config()->get('request-tracer.unlimited', false) ? PHP_INT_MAX : (int) App::config()->get('request-tracer.limits.max_writes', 2000));
     }
 
     public function exceptions(): ExceptionTracker

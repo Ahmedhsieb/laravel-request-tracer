@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ahmedhsieb\RequestTracer\Dumper;
 
 use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\MemoryGuard;
 use Symfony\Component\VarDumper\Cloner\VarCloner;
 
 /**
@@ -25,6 +26,9 @@ final class ValueDumper
 
     private bool $masked = false;
 
+    /** the memory guard of `unlimited` mode stopped the capture of a value */
+    private bool $guardTripped = false;
+
     /** @param  array<string, mixed>  $captureConfig  the `capture` section of the config (header allowlists, body size) */
     public function __construct(
         private readonly Masker $masker,
@@ -32,7 +36,7 @@ final class ValueDumper
         array $captureConfig = [],
     ) {
         $this->cloner = new VarCloner;
-        $this->cloner->setMaxItems(max(500, $limits->maxItems * 20));
+        $this->cloner->setMaxItems($limits->unlimited ? -1 : max(500, $limits->maxItems * 20));
         $this->cloner->setMaxString($limits->maxString);
         $this->cloner->addCasters(Casters::make($limits, $captureConfig));
     }
@@ -50,6 +54,16 @@ final class ValueDumper
                 $this->truncated = true;
 
                 return $this->describe($value);
+            }
+
+            if ($this->limits->unlimited) {
+                // no caps, but never more than the memory that is left: cloning a value costs several times its size
+                if (MemoryGuard::low()) {
+                    $this->guardTripped = $this->truncated = true;
+
+                    return $this->describe($value);
+                }
+                $this->cloner->setMaxItems(MemoryGuard::itemBudget());
             }
 
             $data = $this->cloner->cloneVar($value)->withRefHandles(false);
@@ -114,5 +128,11 @@ final class ValueDumper
     public function masked(): bool
     {
         return $this->masked;
+    }
+
+    /** True when `unlimited` mode stopped storing a value because the process was running out of memory. */
+    public function guardTripped(): bool
+    {
+        return $this->guardTripped;
     }
 }

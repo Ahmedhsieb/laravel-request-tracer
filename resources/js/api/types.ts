@@ -35,6 +35,8 @@ export interface Meta {
   poll_seconds: number
   mask: string
   deep_trace: { enabled: boolean }
+  /** `unlimited`: nothing that is stored is capped, only the memory of the process */
+  unlimited?: boolean
   limits: { max_spans: number; max_hits: number }
 }
 

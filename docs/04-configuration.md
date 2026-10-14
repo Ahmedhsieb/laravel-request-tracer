@@ -22,6 +22,7 @@ Rules that apply everywhere:
 | `mode` | `null` (`REQUEST_TRACER_MODE`) | `null` or `triggered` (the default **everywhere**, local included): things are recorded only **while `php artisan request-tracer:listen` is running**, or for a request that carries a signed header, belongs to a watched user, or was sampled. `always` records every request that is not excluded, with no command needed. `off` never records (the dashboard still shows what is stored). |
 | `local_environments` | `['local']` | Environments that count as local: the dashboard is open without a gate there. |
 | `log_channel` | `'request-tracer'` | Where the tracer's own failures are logged. A `single` channel writing `storage/logs/request-tracer.log` is created when your logging config has none with this name. |
+| `unlimited` | `false` (`REQUEST_TRACER_UNLIMITED`) | **Store everything, whatever its size**, so you do not have to keep raising numbers for data of unknown size. It switches off every cap on stored data: `dumper.max_depth`, `max_items`, `max_string`, `max_span_bytes` and `memory_ceiling`, `limits.max_spans`, `max_writes` and `max_lines`, and `deep_trace.max_hits`. (`limits.collapse_after`, which merges identical siblings into `×N`, is kept: it makes a list readable, it does not lose data.) The one thing that still stops the capture is **the memory of the process**: once it has used 70 % of PHP's `memory_limit` the tracer stops storing values, steps and lines, marks the trace as truncated and says why in *Things the tracer could not do*, so the request itself never runs out of memory because of it. With no `memory_limit` (`-1`) nothing stops it. Measured: cloning a value takes about 5 to 8 times the memory the value itself uses (a 134 MB array of 300,000 rows peaked at 1 GB), so under a limit the guard keeps a value short rather than risk the request, and a process that must keep a huge value whole needs a high `memory_limit`. Costs: bigger rows in the database (see `storage.insert_max_bytes`), more time after the response is sent, and a heavier dashboard on a huge value. For debugging, not for production. |
 
 ## `code`
 
@@ -72,6 +73,7 @@ Running a request that already happened again, traced (dashboard: *Replay a requ
 | `queue.enabled` | `false` | Store traces from a queued job instead of in `terminate()`. Needs a running queue worker. |
 | `queue.connection`, `queue.queue` | `null` | Connection and queue name for that job. |
 | `insert_chunk` | `500` | Rows per `INSERT` when a trace is written. |
+| `insert_max_bytes` | `3145728` | An `INSERT` is also split once the values in it pass this many bytes (a row is never split), so a trace with large payloads cannot go over the database's `max_allowed_packet` (4 MB on old MySQL). One row bigger than this goes alone. |
 | `drivers` | `[]` | `'name' => ClassName::class` for custom storage drivers (class must implement `Ahmedhsieb\RequestTracer\Storage\TraceStorage`). |
 
 ## `triggers`

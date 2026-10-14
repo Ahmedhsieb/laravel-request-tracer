@@ -9,6 +9,7 @@ use Ahmedhsieb\RequestTracer\DeepTrace\LinesBuilder;
 use Ahmedhsieb\RequestTracer\DeepTrace\Loader;
 use Ahmedhsieb\RequestTracer\DeepTrace\ProbeMap;
 use Ahmedhsieb\RequestTracer\Support\Failure;
+use Ahmedhsieb\RequestTracer\Support\MemoryGuard;
 use Ahmedhsieb\RequestTracer\Support\Paths;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
@@ -34,9 +35,13 @@ final class TraceBuilder
         if ($session->recorder->capped()) {
             $session->truncated = true;
         }
+        if ($session->recorder->stoppedByMemory() || $session->dumper->guardTripped()) {
+            $session->truncated = true;
+            $session->note('limit', 'memory', 'Unlimited mode stopped storing because the process had used '.(int) (MemoryGuard::SHARE * 100).'% of its memory_limit. Raise memory_limit (for a replay: request-tracer.replay.memory_limit) to keep more.');
+        }
 
         // Deep trace: probe hits -> line rows; files that were compiled but could not be, become notes
-        $deep = LinesBuilder::build($session, new ProbeMap(Loader::cachePath()), max(100, (int) $this->tracer->config('limits.max_lines', 20000)));
+        $deep = LinesBuilder::build($session, new ProbeMap(Loader::cachePath()), $this->tracer->unlimited() ? PHP_INT_MAX : max(100, (int) $this->tracer->config('limits.max_lines', 20000)));
         foreach (Loader::pullWarnings() as $file => $message) {
             $session->note('deep_trace', Paths::relative($file) ?? $file, 'Deep trace could not compile this file, the original was used: '.$message);
         }

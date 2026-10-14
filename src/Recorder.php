@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ahmedhsieb\RequestTracer;
 
+use Ahmedhsieb\RequestTracer\Support\MemoryGuard;
+
 /**
  * Collects the spans of one trace.
  *
@@ -35,11 +37,21 @@ final class Recorder
     /** Spans created while nothing is open (after the root ended) hang off the first span instead of becoming extra roots. */
     private ?int $rootId = null;
 
+    /** `unlimited` mode: no cap on the number of steps, but they stop once the process is running out of memory */
+    private bool $stoppedByMemory = false;
+
     public function __construct(
         private readonly Clock $clock,
         private readonly int $maxSpans = 5000,
         private readonly int $collapseAfter = 20,
+        private readonly bool $guardMemory = false,
     ) {}
+
+    /** True when steps were left out because memory ran low (`unlimited` mode only). */
+    public function stoppedByMemory(): bool
+    {
+        return $this->stoppedByMemory;
+    }
 
     public function clock(): Clock
     {
@@ -209,13 +221,23 @@ final class Recorder
             }
         }
 
-        if (count($this->spans) >= $this->maxSpans) {
+        if (count($this->spans) >= $this->maxSpans || $this->memoryIsLow()) {
             $this->capped = true;
 
             return false;
         }
 
         return null;
+    }
+
+    /** Checked every 64 steps: reading the memory is cheap, but not free, and a request can make thousands of steps. */
+    private function memoryIsLow(): bool
+    {
+        if (! $this->guardMemory || (count($this->spans) & 63) !== 0) {
+            return $this->stoppedByMemory;
+        }
+
+        return $this->stoppedByMemory = $this->stoppedByMemory || MemoryGuard::low();
     }
 
     private function create(?int $parentId, SpanType $type, string $label, ?string $file, ?int $line, int $startUs): Span

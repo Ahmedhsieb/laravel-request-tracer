@@ -64,6 +64,9 @@ async function copyCommand(): Promise<void> {
 
     <Pill v-if="store.meta" :tone="store.meta.is_production ? 'warn' : 'accent'">{{ store.meta.environment }}</Pill>
     <Pill v-if="store.api.demo" color="var(--t-event)">demo data</Pill>
+    <Tip v-if="store.meta?.unlimited" text="Unlimited: nothing that is stored is capped (values, steps, lines). Only the memory of the process stops it. For debugging, not for production.">
+      <span class="inline-flex"><Pill color="var(--warn)">unlimited</Pill></span>
+    </Tip>
 
     <!-- recording state -->
     <div v-if="store.meta" class="flex items-center gap-2" role="status">
