@@ -275,7 +275,7 @@ onBeforeUnmount(() => {
       </div>
       <UndoBanner v-if="trace.mode === 'replay' && store.meta?.replay.enabled" :key="trace.id" :trace-id="trace.id" />
       <p v-if="trace.truncated" class="rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-[12px] text-warn" role="status">
-        This trace hit the step limit, so the busiest parts were merged or left out. Raise <code>request-tracer.limits.max_spans</code> to keep more.
+        This trace hit a limit, so the busiest parts were merged or left out. Raise <code>request-tracer.limits.max_spans</code> (or the <code>dumper</code> limits), or turn on <code>request-tracer.unlimited</code>, to keep more.
       </p>
     </header>
 

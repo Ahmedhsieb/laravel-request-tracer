@@ -89,7 +89,16 @@ final class Tracer
 
     public function limits(): DumpLimits
     {
-        return $this->limits ??= DumpLimits::fromConfig((array) $this->config('dumper', []));
+        return $this->limits ??= DumpLimits::fromConfig((array) $this->config('dumper', []), $this->unlimited());
+    }
+
+    /**
+     * `unlimited`: no cap on what is stored (values, steps, lines, hits, writes); only the memory guard stops it. Read from the config
+     * on every call, so a test or a long-lived worker sees a change.
+     */
+    public function unlimited(): bool
+    {
+        return (bool) $this->config('unlimited', false);
     }
 
     /** Forget cached derived objects (after config changes, mostly in tests). */
@@ -130,10 +139,12 @@ final class Tracer
         }
 
         $clock = new Clock($wallStart);
+        $unlimited = $this->unlimited();
         $recorder = new Recorder(
             $clock,
-            max(10, (int) $this->config('limits.max_spans', 5000)),
+            $unlimited ? PHP_INT_MAX : max(10, (int) $this->config('limits.max_spans', 5000)),
             max(2, (int) $this->config('limits.collapse_after', 20)),
+            $unlimited,
         );
         $dumper = new ValueDumper($this->masker(), $this->limits(), (array) $this->config('capture', []));
 

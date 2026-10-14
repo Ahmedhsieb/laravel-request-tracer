@@ -39,6 +39,14 @@ return [
     'mode' => env('REQUEST_TRACER_MODE'),
 
     /*
+     * Store everything, whatever its size, so you never have to tune the numbers below (`dumper.*`, `limits.*`, `deep_trace.max_hits`).
+     * The only thing that still stops the capture is the process running out of memory: once it has used 70% of PHP's memory_limit the
+     * tracer stops storing and says so on the trace, instead of breaking the request. Bigger traces cost more database space and more
+     * time after the response. For debugging, not for production.
+     */
+    'unlimited' => env('REQUEST_TRACER_UNLIMITED', false),
+
+    /*
      * Environments that count as "local": the dashboard is open without a gate there.
      */
     'local_environments' => ['local'],
@@ -112,6 +120,7 @@ return [
             'queue' => null,
         ],
         'insert_chunk' => 500,
+        'insert_max_bytes' => 3145728,                          // an INSERT is split after this many bytes of values (keep it below the database's max_allowed_packet)
         'drivers' => [],                                        // 'name' => class-string<TraceStorage> for custom drivers
     ],
 

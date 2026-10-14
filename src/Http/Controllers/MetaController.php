@@ -68,6 +68,7 @@ final class MetaController extends Controller
             'poll_seconds' => (int) $tracer->config('dashboard.poll_seconds', 5),
             'mask' => (string) $tracer->config('masking.mask', Brand::MASK),
             'deep_trace' => ['enabled' => (bool) $tracer->config('deep_trace.enabled', true)],
+            'unlimited' => $tracer->unlimited(),
             'limits' => [
                 'max_spans' => (int) $tracer->config('limits.max_spans', 5000),
                 'max_hits' => (int) $tracer->config('deep_trace.max_hits', 20000),

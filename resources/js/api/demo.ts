@@ -39,6 +39,7 @@ export const DEMO_META: Meta = {
   poll_seconds: 5,
   mask: MASK,
   deep_trace: { enabled: true },
+  unlimited: false,
   limits: { max_spans: 5000, max_hits: 20000 },
 }
 

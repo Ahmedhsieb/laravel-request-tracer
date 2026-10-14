@@ -20,6 +20,8 @@ final class DatabaseStorage implements TraceStorage
         private readonly PayloadCodec $codec,
         private readonly string $prefix = 'tracer_',
         private readonly int $chunk = 500,
+        /** an INSERT is split once the values in it pass this many bytes (the database's max_allowed_packet), whatever `chunk` says */
+        private readonly int $maxBytes = 3_145_728,
     ) {}
 
     public function store(TraceData $data): void
@@ -418,9 +420,23 @@ final class DatabaseStorage implements TraceStorage
         };
         $size = max(1, min($this->chunk, intdiv($maxParams, $columns)));
 
-        foreach (array_chunk($rows, $size) as $chunk) {
-            $db->table($this->t($table))->insert($chunk);
+        $batch = [];
+        $bytes = 0;
+        foreach ($rows as $row) {
+            $rowBytes = 0;
+            foreach ($row as $value) {
+                $rowBytes += is_string($value) ? strlen($value) : 16;
+            }
+            // a row is never split: one bigger than the limit goes alone
+            if ($batch !== [] && (count($batch) >= $size || $bytes + $rowBytes > $this->maxBytes)) {
+                $db->table($this->t($table))->insert($batch);
+                $batch = [];
+                $bytes = 0;
+            }
+            $batch[] = $row;
+            $bytes += $rowBytes;
         }
+        $db->table($this->t($table))->insert($batch);                // the last one: $rows is not empty, so neither is the batch
     }
 
     private function table(string $name): Builder

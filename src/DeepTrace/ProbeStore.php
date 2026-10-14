@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ahmedhsieb\RequestTracer\DeepTrace;
 
+use Ahmedhsieb\RequestTracer\Support\MemoryGuard;
 use Ahmedhsieb\RequestTracer\TraceSession;
 
 /**
@@ -27,6 +28,8 @@ final class ProbeStore
         private readonly int $maxHits,
         private readonly int $snapshots,
         private readonly int $valueSamples = 50,
+        /** `unlimited` mode: no cap on the hits, but they stop once the process is running out of memory */
+        private readonly bool $guardMemory = false,
     ) {}
 
     /**
@@ -40,7 +43,7 @@ final class ProbeStore
         if ($this->full) {
             return $null;
         }
-        if (++$this->total > $this->maxHits) {
+        if (++$this->total > $this->maxHits || ($this->guardMemory && ($this->total & 1023) === 0 && MemoryGuard::low())) {
             $this->full = true;
             $this->session->truncated = true;
 

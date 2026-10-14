@@ -419,6 +419,18 @@ it('stops recording at the hit cap and marks the trace truncated', function () {
         ->and($session->truncated)->toBeTrue();
 });
 
+it('has no hit cap when it is unlimited', function () {
+    config(['request-tracer.unlimited' => true, 'request-tracer.deep_trace.max_hits' => 100]);
+    $loaded = loadCorpus('ControlFlow');
+    $class = $loaded['comp'].'\ControlFlow';
+    startRecording();
+    (new $class)->run();
+    $session = app(Tracer::class)->session();
+
+    expect($session->deep()->totalHits())->toBeGreaterThan(101)
+        ->and($session->truncated)->toBeFalse();
+});
+
 it('never throws from a probe, whatever the recorder is doing', function () {
     startRecording();
     app(Tracer::class)->session()->recorder->finish();

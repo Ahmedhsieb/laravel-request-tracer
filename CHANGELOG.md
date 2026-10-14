@@ -4,6 +4,12 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-14
+
+- **`unlimited`: store everything, whatever its size.** `'unlimited' => true` (or `REQUEST_TRACER_UNLIMITED=true`) switches off every cap on stored data at once (`dumper.max_depth`, `max_items`, `max_string`, `max_span_bytes`, `memory_ceiling`, `limits.max_spans`, `max_writes`, `max_lines`, `deep_trace.max_hits`), so there are no numbers to raise for data of unknown size. The one thing that still stops the capture is the memory of the process: at 70 % of `memory_limit` values, steps and lines stop being stored and the trace says why, so the request never runs out of memory because of the tracer. Secrets are still masked. The dashboard shows an *unlimited* pill while it is on. For debugging, not for production. See `docs/04-configuration.md` for the cost.
+- **Inserts are split by size** (`storage.insert_max_bytes`, 3 MB): a trace with large payloads can no longer go over the database's `max_allowed_packet`. This applies to every trace.
+- The "truncated" banner names the dumper limits and `unlimited` besides the step limit.
+
 ## [0.8.6] - 2026-10-13
 
 - **A big request can be replayed.** The replay runs in a process of its own and traces the request from its first line, which can need several times the memory the request needs while it is listened to (measured: 1.15 GB for a request of 517 queries, against +295 MB). When the command line `memory_limit` was lower the process died and the dashboard said only *The replay process failed:*. The process now has its own limit, `replay.memory_limit` (default `2G`, `''` keeps php.ini's), it writes PHP's fatal error to stderr so it can be shown, and the message gives the exit code and names the key to raise (and `replay.timeout`) when it stopped without one.
